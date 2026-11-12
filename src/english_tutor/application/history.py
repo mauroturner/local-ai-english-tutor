@@ -14,7 +14,10 @@ class ChatHistory:
     """
 
     def __init__(self, max_exchanges: int) -> None:
-        self._messages: deque[ChatMessage] = deque(maxlen=2 * max(max_exchanges, 1))
+        if max_exchanges < 0:
+            raise ValueError("max_exchanges must be >= 0")
+        # 0 disables conversation memory: a zero-length deque discards every append.
+        self._messages: deque[ChatMessage] = deque(maxlen=2 * max_exchanges)
 
     def add_exchange(self, user: str, assistant: str) -> None:
         """Append one user message and the tutor's reply."""

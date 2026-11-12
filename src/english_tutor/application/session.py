@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from typing import Callable
 
 from ..audio.processing import prepare_for_stt
 from ..domain.corrections import dedupe, filter_corrections, pick_live, spoken_line
@@ -105,10 +106,22 @@ class ConversationSession:
         self._emit(ErrorRaised(message))
         self._set_state(SessionState.IDLE, "Ready")
 
+    def _submit(self, job: Callable[[], None]) -> None:
+        """Run ``job`` on the worker; an unexpected error always ends in IDLE."""
+
+        def guarded() -> None:
+            try:
+                job()
+            except Exception as exc:  # last-resort guard: never leave the session stuck
+                logger.exception("Unexpected error in %s", getattr(job, "__name__", job))
+                self._fail(f"Unexpected error: {exc}")
+
+        self._runner.submit(guarded)
+
     # -------------------------------------------------------------- lifecycle
     def start(self) -> None:
         """Load models in the background and become ready."""
-        self._runner.submit(self._load)
+        self._submit(self._load)
 
     def _load(self) -> None:
         self._set_state(SessionState.LOADING, "Loading speech model...")
@@ -121,7 +134,7 @@ class ConversationSession:
         logger.info("Speech model ready on %s", device)
         try:
             self._tutor.check()
-        except LlmUnavailable as exc:
+        except Exception as exc:  # a failed check only warns; turns report errors again
             logger.warning("Tutor model check failed: %s", exc)
             self._emit(ErrorRaised(str(exc)))
         if not self._tts.available:
@@ -166,7 +179,7 @@ class ConversationSession:
                 return
             self._state = SessionState.TRANSCRIBING
         self._emit(StateChanged(SessionState.TRANSCRIBING, "Transcribing..."))
-        self._runner.submit(self._process_turn)
+        self._submit(self._process_turn)
 
     def _process_turn(self) -> None:
         try:
@@ -224,12 +237,15 @@ class ConversationSession:
             self._tts.speak(text)
         except TtsError as exc:
             logger.warning("Speech synthesis failed, continuing text-only: %s", exc)
+        except Exception as exc:  # audio stacks raise assorted errors; keep the text
+            logger.exception("Unexpected speech synthesis error")
+            self._emit(ErrorRaised(f"Voice output failed: {exc}"))
 
     # ----------------------------------------------------------------- report
     def end_session(self) -> None:
         """Build the end-of-session report; ignored unless the session is idle."""
         if self._transition(SessionState.IDLE, SessionState.REPORTING, "Writing feedback..."):
-            self._runner.submit(self._build_report)
+            self._submit(self._build_report)
 
     def _build_report(self) -> None:
         turns = tuple(self._turns)
@@ -239,7 +255,7 @@ class ConversationSession:
         if turns:
             try:
                 feedback = self._tutor.feedback(turns)
-            except AdapterError as exc:
+            except Exception as exc:  # the recorded errors are still worth reporting
                 logger.warning("Feedback generation failed: %s", exc)
                 feedback_error = str(exc)
         report = SessionReport(len(turns), majors, minors, feedback, feedback_error)

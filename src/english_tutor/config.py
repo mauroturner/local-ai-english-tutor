@@ -43,6 +43,13 @@ def _int(env: Mapping[str, str], name: str, default: int) -> int:
         raise ConfigError(f"{name} must be an integer, got {raw!r}") from exc
 
 
+def _non_negative(env: Mapping[str, str], name: str, default: int) -> int:
+    value = _int(env, name, default)
+    if value < 0:
+        raise ConfigError(f"{name} must be 0 or greater, got {value}")
+    return value
+
+
 def _float(env: Mapping[str, str], name: str, default: float) -> float:
     raw = env.get(name)
     if raw is None or raw.strip() == "":
@@ -109,7 +116,7 @@ def load_config(
         ollama_model=_str(env, "TUTOR_OLLAMA_MODEL", "llama3:8b-instruct-q4_K_M"),
         ollama_timeout_s=_float(env, "TUTOR_OLLAMA_TIMEOUT", 120.0),
         llm_temperature=_float(env, "TUTOR_LLM_TEMPERATURE", 0.5),
-        history_exchanges=_int(env, "TUTOR_HISTORY_EXCHANGES", 6),
+        history_exchanges=_non_negative(env, "TUTOR_HISTORY_EXCHANGES", 6),
         whisper_model=_str(env, "TUTOR_WHISPER_MODEL", "large-v3"),
         whisper_device=_str(env, "TUTOR_WHISPER_DEVICE", "auto").lower(),
         whisper_compute_type=_str(env, "TUTOR_WHISPER_COMPUTE_TYPE", "float16"),

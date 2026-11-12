@@ -51,9 +51,15 @@ class OllamaTutorModel:
         try:
             response = self._http.get(f"{self._base_url}/api/tags", timeout=_CHECK_TIMEOUT_S)
             response.raise_for_status()
-            names = {m.get("name", "") for m in response.json().get("models", [])}
+            payload = response.json()
         except (requests.RequestException, ValueError) as exc:
             raise unreachable from exc
+        try:
+            names = {m.get("name", "") for m in payload.get("models") or []}
+        except (AttributeError, TypeError) as exc:
+            raise LlmUnavailable(
+                f"Unexpected response from Ollama at {self._base_url}/api/tags"
+            ) from exc
         wanted = self._model if ":" in self._model else f"{self._model}:latest"
         if wanted not in names and self._model not in names:
             raise LlmUnavailable(

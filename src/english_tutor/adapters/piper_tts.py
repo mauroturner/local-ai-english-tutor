@@ -38,11 +38,12 @@ class PiperSynthesizer:
         import scipy.io.wavfile as wav
         import sounddevice as sd
 
-        handle, tmp_name = tempfile.mkstemp(suffix=".wav")
-        os.close(handle)
-        tmp = Path(tmp_name)
         flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        tmp: Path | None = None
         try:
+            handle, tmp_name = tempfile.mkstemp(suffix=".wav")
+            os.close(handle)
+            tmp = Path(tmp_name)
             subprocess.run(
                 [str(self._exe), "--model", str(self._voice), "--output_file", str(tmp)],
                 input=text.replace("\n", " ").encode("utf-8"),
@@ -58,7 +59,8 @@ class PiperSynthesizer:
         except (subprocess.SubprocessError, OSError, ValueError, sd.PortAudioError) as exc:
             raise TtsError(f"Speech synthesis failed: {exc}") from exc
         finally:
-            tmp.unlink(missing_ok=True)
+            if tmp is not None:
+                tmp.unlink(missing_ok=True)
 
 
 class NullSynthesizer:
