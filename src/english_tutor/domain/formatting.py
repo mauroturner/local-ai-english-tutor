@@ -1,0 +1,46 @@
+"""Plain-text renderings shared by the UI and the conversation log."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+from .models import Correction, PracticeReply, SessionReport
+
+
+def correction_text(correction: Correction) -> str:
+    """One-line description, e.g. ``"I go" -> "I went" (Past tense.) [major]``."""
+    return (
+        f'"{correction.original}" -> "{correction.corrected}" '
+        f"({correction.explanation}) [{correction.severity.value}]"
+    )
+
+
+def practice_speech(reply: PracticeReply) -> str:
+    """Text read aloud for a practice turn: the feedback, then the next question."""
+    return " ".join(part for part in (reply.feedback.strip(), reply.next_prompt.strip()) if part)
+
+
+def _format_errors(title: str, errors: Sequence[Correction]) -> list[str]:
+    if not errors:
+        return [f"{title}: none"]
+    lines = [f"{title}:"]
+    lines += [f'  - "{c.original}" -> "{c.corrected}" ({c.explanation})' for c in errors]
+    return lines
+
+
+def format_report(report: SessionReport) -> str:
+    """Render the end-of-session report as text."""
+    lines = [f"SESSION REPORT ({report.turn_count} turns)", ""]
+    lines += _format_errors("Major errors", report.major_errors)
+    lines += _format_errors("Minor errors", report.minor_errors)
+    lines.append("")
+    feedback = report.feedback
+    if feedback is not None:
+        lines.append(f"Feedback: {feedback.summary}")
+        lines += [f"  + {s}" for s in feedback.strengths]
+        lines += [f"  > Focus on: {f}" for f in feedback.focus_areas]
+    elif report.turn_count:
+        lines.append(f"Feedback unavailable: {report.feedback_error or 'unknown error'}")
+    else:
+        lines.append("No turns were recorded in this session.")
+    return "\n".join(lines)

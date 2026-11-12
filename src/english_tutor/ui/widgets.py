@@ -7,6 +7,7 @@ from typing import Any
 
 import customtkinter as ctk
 
+from ..domain.formatting import format_report
 from ..domain.models import Correction, SessionReport
 from . import theme
 
@@ -63,37 +64,12 @@ class ChatView(ctk.CTkScrollableFrame):
 
     def add_report(self, report: SessionReport) -> None:
         """Show the end-of-session report."""
-        self._bubble(_format_report(report), theme.REPORT_BG, "w")
+        self._bubble(format_report(report), theme.REPORT_BG, "w")
 
     def clear(self) -> None:
         """Remove everything from the conversation."""
         for child in self.winfo_children():
             child.destroy()
-
-
-def _format_errors(title: str, errors: Sequence[Correction]) -> list[str]:
-    if not errors:
-        return [f"{title}: none"]
-    lines = [f"{title}:"]
-    lines += [f'  - "{c.original}" -> "{c.corrected}" ({c.explanation})' for c in errors]
-    return lines
-
-
-def _format_report(report: SessionReport) -> str:
-    lines = [f"SESSION REPORT ({report.turn_count} turns)", ""]
-    lines += _format_errors("Major errors", report.major_errors)
-    lines += _format_errors("Minor errors", report.minor_errors)
-    lines.append("")
-    feedback = report.feedback
-    if feedback is not None:
-        lines.append(f"Feedback: {feedback.summary}")
-        lines += [f"  + {s}" for s in feedback.strengths]
-        lines += [f"  > Focus on: {f}" for f in feedback.focus_areas]
-    elif report.turn_count:
-        lines.append(f"Feedback unavailable: {report.feedback_error or 'unknown error'}")
-    else:
-        lines.append("No turns were recorded in this session.")
-    return "\n".join(lines)
 
 
 class MicSelector(ctk.CTkFrame):
