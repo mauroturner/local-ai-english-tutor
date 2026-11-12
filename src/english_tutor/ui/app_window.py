@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import queue
+import tkinter as tk
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -27,7 +28,9 @@ from ..config import AppConfig
 from ..domain.models import SessionState
 from ..i18n import t
 from ..settings.model import UserSettings
+from ..settings.shortcuts import to_tk_sequence
 from . import theme
+from .banners import RestartBanner
 from .mistakes_view import MistakesView
 from .widgets import (
     ChatView,
@@ -38,6 +41,7 @@ from .widgets import (
     StatusBar,
     StatusChip,
 )
+from .services import Confirm, ask_yes_no
 from .tooltip import Tooltip
 
 logger = logging.getLogger(__name__)
@@ -58,6 +62,7 @@ class TutorWindow(ctk.CTk):
         default_device: InputDevice | None,
         settings: UserSettings | None = None,
         on_open_settings: Callable[[], None] | None = None,
+        confirm: Confirm = ask_yes_no,
     ) -> None:
         ctk.set_default_color_theme(theme.COLOR_THEME)
         super().__init__()
@@ -65,6 +70,9 @@ class TutorWindow(ctk.CTk):
         self._settings = settings or UserSettings()
         self._has_settings = on_open_settings is not None
         self._on_open_settings = on_open_settings or (lambda: None)
+        self._confirm = confirm
+        self._settings_sequence: str | None = None
+        self.restart_requested = False
         self._sp = theme.spacing(self._settings.density)
         self._events: queue.Queue[SessionEvent] = queue.Queue()
         self._device_by_name = {d.name: d.index for d in devices}
@@ -75,12 +83,17 @@ class TutorWindow(ctk.CTk):
         self.geometry(f"{DEFAULT_SIZE[0]}x{DEFAULT_SIZE[1]}")
         self.minsize(*MIN_SIZE)
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         theme.set_chat_font_size(self._settings.chat_font_size)
+        self._restart_banner = RestartBanner(self, on_restart=self._restart_now)
+        self._restart_banner.grid(
+            row=0, column=0, sticky="ew", padx=self._sp.l, pady=(self._sp.s, 0)
+        )
+        self._restart_banner.grid_remove()
         self._build_header(devices, default_device)
         self._build_tabs(cfg)
         self._banner = PracticeBanner(self, on_stop=session.stop_practice)
-        self._banner.grid(row=2, column=0, sticky="ew", padx=self._sp.l, pady=(0, self._sp.s))
+        self._banner.grid(row=3, column=0, sticky="ew", padx=self._sp.l, pady=(0, self._sp.s))
         self._banner.grid_remove()
         self._build_footer()
         ctk.CTkLabel(
@@ -88,12 +101,13 @@ class TutorWindow(ctk.CTk):
             text=t("hint.hold", key=cfg.ptt_label),
             font=theme.FONT_HINT,
             text_color=theme.MUTED_TEXT,
-        ).grid(row=4, column=0, pady=(0, self._sp.m))
+        ).grid(row=5, column=0, pady=(0, self._sp.m))
         self._refresh_controls()
 
         if default_device is not None:
             session.set_input_device(default_device.index)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._bind_settings_shortcut()
         self.after(_PUMP_INTERVAL_MS, self._pump)
 
     def _build_header(
@@ -101,7 +115,7 @@ class TutorWindow(ctk.CTk):
     ) -> None:
         sp = self._sp
         header = ctk.CTkFrame(self, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=sp.l, pady=(sp.l, sp.s))
+        header.grid(row=1, column=0, sticky="ew", padx=sp.l, pady=(sp.m, sp.s))
         header.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(header, text=t("app.heading"), font=theme.FONT_TITLE, anchor="w").grid(
             row=0, column=0, sticky="w"
@@ -113,9 +127,9 @@ class TutorWindow(ctk.CTk):
         )  # fmt: skip
         if self._has_settings:  # never show a button that does nothing
             self._settings_button.grid(row=0, column=1, sticky="e")
-        shortcut = self._settings.shortcut_settings
         self._settings_tip = Tooltip(
-            self._settings_button, t("tooltip.settings", shortcut=shortcut)
+            self._settings_button,
+            lambda: t("tooltip.settings", shortcut=self._settings.shortcut_settings),
         )
         default_name = default_device.name if default_device else t("mic.none")
         MicSelector(header, [d.name for d in devices], default_name, self._on_mic_change).grid(
@@ -125,7 +139,7 @@ class TutorWindow(ctk.CTk):
     def _build_tabs(self, cfg: AppConfig) -> None:
         sp = self._sp
         self._tabs = ctk.CTkTabview(self)
-        self._tabs.grid(row=1, column=0, sticky="nsew", padx=sp.l, pady=sp.s)
+        self._tabs.grid(row=2, column=0, sticky="nsew", padx=sp.l, pady=sp.s)
         self._chat_tab_name = t("tab.chat")
         chat_tab = self._tabs.add(self._chat_tab_name)
         mistakes_tab = self._tabs.add(t("tab.mistakes"))
@@ -137,7 +151,7 @@ class TutorWindow(ctk.CTk):
     def _build_footer(self) -> None:
         sp = self._sp
         footer = ctk.CTkFrame(self, fg_color="transparent")
-        footer.grid(row=3, column=0, sticky="ew", padx=sp.l, pady=(0, sp.s))
+        footer.grid(row=4, column=0, sticky="ew", padx=sp.l, pady=(0, sp.s))
         footer.grid_columnconfigure(0, weight=1)
         self._meter = LevelMeter(footer)
         self._meter.grid(row=0, column=0, sticky="ew", padx=(0, sp.m))
@@ -217,6 +231,35 @@ class TutorWindow(ctk.CTk):
     def _on_practice(self, key: str) -> None:
         self._tabs.set(self._chat_tab_name)
         self._session.start_practice(key)
+
+    # ------------------------------------------------- settings, restart, shortcuts
+    def apply_settings(self, settings: UserSettings) -> None:
+        """Take over saved settings that the main window itself uses (shortcuts)."""
+        self._settings = settings
+        self._bind_settings_shortcut()
+
+    def _bind_settings_shortcut(self) -> None:
+        """Bind the "open settings" shortcut on this window only (never globally)."""
+        try:
+            sequence = to_tk_sequence(self._settings.shortcut_settings)
+            if self._settings_sequence:
+                self.unbind(self._settings_sequence)
+            self.bind(sequence, lambda _e: (self._on_open_settings(), "break")[1])
+            self._settings_sequence = sequence
+        except (ValueError, tk.TclError):
+            logger.warning("Shortcut %r is not usable", self._settings.shortcut_settings)
+            self._settings_sequence = None
+
+    def show_restart_banner(self, keys: Sequence[str]) -> None:
+        """Tell the learner which saved settings need a restart."""
+        self._restart_banner.show([t(f"setting.{key}.label") for key in keys])
+
+    def _restart_now(self) -> None:
+        asked = t("restart.confirm_title"), t("restart.confirm_message")
+        if self._session.turns and not self._confirm(*asked, parent=self):
+            return
+        self.restart_requested = True
+        self._on_close()
 
     def report_callback_exception(
         self, exc: type[BaseException], val: BaseException, tb: Any

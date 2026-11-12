@@ -9,9 +9,11 @@ from dataclasses import dataclass
 
 from ..ports import AdapterError, AutoStart, SettingsStore, StorageError
 from ..settings.model import (
+    ENV_VARS,
     RESTART_FIELDS,
     UserSettings,
     locked_fields,
+    parse_field,
     parse_settings,
     to_json_dict,
 )
@@ -25,12 +27,14 @@ class Loaded:
 
     ``settings`` holds the values stored in settings.json (defaults for anything
     missing or invalid), not the environment overrides; ``locked`` names the
-    fields a ``TUTOR_*`` variable currently pins.
+    fields a ``TUTOR_*`` variable currently pins. ``effective`` is what is in force:
+    the file values with those variables applied.
     """
 
     settings: UserSettings
     warnings: tuple[str, ...]
     locked: frozenset[str]
+    effective: UserSettings
 
 
 @dataclass(frozen=True)
@@ -66,7 +70,17 @@ class SettingsService:
         for message in invalid:
             logger.warning(message)
         self._stored = settings
-        return Loaded(settings, tuple(warnings), locked_fields(self._env))
+        effective = self._with_env(settings)
+        return Loaded(settings, tuple(warnings), locked_fields(self._env), effective)
+
+    def _with_env(self, settings: UserSettings) -> UserSettings:
+        values = {}
+        for field in locked_fields(self._env):
+            try:
+                values[field] = parse_field(field, self._env[ENV_VARS[field]])
+            except ValueError as exc:
+                logger.warning("Ignoring %s for display: %s", ENV_VARS[field], exc)
+        return dataclasses.replace(settings, **values)
 
     def save(
         self, new: UserSettings, old: UserSettings, *, autostart: bool | None = None

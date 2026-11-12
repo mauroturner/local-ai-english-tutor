@@ -7,6 +7,7 @@ import os
 import sys
 
 from .adapters.file_conversation_log import FileConversationLog
+from .adapters.folders import open_folder
 from .adapters.json_mistake_store import JsonMistakeStore
 from .adapters.json_settings_store import JsonSettingsStore
 from .adapters.keyboard_ptt import KeyboardPushToTalk
@@ -28,6 +29,7 @@ from .config import (
 from .i18n import set_language
 from .logging_setup import configure_logging
 from .ports import SpeechSynthesizer
+from .restart import spawn_restart
 from .settings.model import settings_env
 
 logger = logging.getLogger("english_tutor")
@@ -42,6 +44,11 @@ def _build_tts(cfg: AppConfig) -> tuple[SpeechSynthesizer, str | None]:
         return piper, None
     where = cfg.piper_exe if cfg.piper_exe is not None else "piper/piper.exe not found"
     return NullSynthesizer(), f"Text-only (Piper not found or voice files missing: {where})"
+
+
+def _apply_log_level(level: str) -> None:
+    """Change the log level of the running app (a live setting)."""
+    logging.getLogger().setLevel(getattr(logging, level.upper(), logging.INFO))
 
 
 def main() -> int:
@@ -61,6 +68,8 @@ def main() -> int:
     # Imported here so configuration errors are reported without loading Tk.
     from .ui import theme
     from .ui.app_window import TutorWindow
+    from .ui.services import UiPaths, UiServices
+    from .ui.settings.window import SettingsWindow
 
     devices, default_device = list_input_devices()
     tts, tts_warning = _build_tts(cfg)
@@ -91,7 +100,22 @@ def main() -> int:
         coach=tutor,
     )
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)
-    window = TutorWindow(cfg, session, devices, default_device, loaded.settings)
+    services = UiServices(
+        settings_service,
+        UiPaths(cfg.data_dir, cfg.data_dir / "logs"),
+        open_folder,
+        apply_log_level=_apply_log_level,
+        on_applied=lambda saved: window_ref[0].apply_settings(saved),
+        on_restart_needed=lambda keys: window_ref[0].show_restart_banner(keys),
+    )
+    window = TutorWindow(
+        cfg,
+        session,
+        devices,
+        default_device,
+        loaded.settings,
+        on_open_settings=lambda: SettingsWindow.open(window_ref[0], services),
+    )
     window_ref.append(window)
     for warning in loaded.warnings:
         window.post(ErrorRaised(warning))
@@ -109,6 +133,8 @@ def main() -> int:
     finally:
         ptt.stop()
         session.shutdown()
+        if window.restart_requested:
+            spawn_restart()
     return 0
 
 

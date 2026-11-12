@@ -104,4 +104,31 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.restore_defaults.label": "Restaurar valores predeterminados",
     "setting.restore_defaults.help": "Devuelve todos los ajustes a su valor predeterminado. "
     "No se guarda nada hasta que pulses Guardar.",
+    # Ventana de ajustes
+    "settings.title": "Ajustes",
+    "settings.search_placeholder": "Buscar ajustes (Ctrl+F)",
+    "settings.search_empty": "Ningún ajuste coincide con '{query}'",
+    "settings.dirty": "● Cambios sin guardar ({count})",
+    "settings.clean": "Sin cambios",
+    "settings.pill_restart": "Requiere reinicio",
+    "settings.locked": "Definido por {var}",
+    "settings.confirm_discard_title": "¿Descartar los cambios?",
+    "settings.confirm_discard": "Hay cambios sin guardar. ¿Cerrar sin guardar?",
+    "settings.confirm_restore_title": "¿Restaurar los valores predeterminados?",
+    "settings.confirm_restore": "Todos los ajustes volverán a su valor predeterminado. "
+    "No se guarda nada hasta que pulses Guardar.",
+    "settings.save_failed": "No se pudieron guardar los ajustes: {error}",
+    "settings.action_failed": "{error}",
+    "button.save": "Guardar",
+    "button.cancel": "Cancelar",
+    "button.restore_defaults": "Restaurar valores",
+    "button.browse": "Examinar...",
+    "button.open": "Abrir",
+    "unit.points": "{value} pt",
+    # Aviso de reinicio
+    "banner.restart": "Reinicia la aplicación para aplicar: {names}",
+    "banner.restart_now": "Reiniciar ahora",
+    "banner.later": "Más tarde",
+    "restart.confirm_title": "¿Reiniciar ahora?",
+    "restart.confirm_message": "La conversación actual terminará. ¿Reiniciar de todos modos?",
 }

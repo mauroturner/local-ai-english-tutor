@@ -97,6 +97,12 @@ _RULES: dict[str, _Rule] = {
 }
 
 
+FIELD_BOUNDS: dict[str, tuple[int, int]] = {
+    name: rule.bounds for name, rule in _RULES.items() if rule.bounds is not None
+}
+"""Inclusive ``(min, max)`` of the bounded integer settings (for sliders)."""
+
+
 def _as_text(name: str, raw: Any, kind: str) -> str:
     """Turn a JSON value into the string form the shared parsers expect."""
     if kind == "bool" and isinstance(raw, bool):

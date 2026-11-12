@@ -100,4 +100,31 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.restore_defaults.label": "Restore default settings",
     "setting.restore_defaults.help": "Resets every setting to its default value. "
     "Nothing is saved until you click Save.",
+    # Settings window chrome
+    "settings.title": "Settings",
+    "settings.search_placeholder": "Search settings (Ctrl+F)",
+    "settings.search_empty": "No settings match '{query}'",
+    "settings.dirty": "● Unsaved changes ({count})",
+    "settings.clean": "No changes",
+    "settings.pill_restart": "Restart required",
+    "settings.locked": "Set by {var}",
+    "settings.confirm_discard_title": "Discard changes?",
+    "settings.confirm_discard": "You have unsaved changes. Close without saving?",
+    "settings.confirm_restore_title": "Restore defaults?",
+    "settings.confirm_restore": "Every setting will go back to its default value. "
+    "Nothing is saved until you click Save.",
+    "settings.save_failed": "Could not save the settings: {error}",
+    "settings.action_failed": "{error}",
+    "button.save": "Save",
+    "button.cancel": "Cancel",
+    "button.restore_defaults": "Restore defaults",
+    "button.browse": "Browse...",
+    "button.open": "Open",
+    "unit.points": "{value} pt",
+    # Restart banner
+    "banner.restart": "Restart the app to apply: {names}",
+    "banner.restart_now": "Restart now",
+    "banner.later": "Later",
+    "restart.confirm_title": "Restart now?",
+    "restart.confirm_message": "The current conversation will end. Restart anyway?",
 }

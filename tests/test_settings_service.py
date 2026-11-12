@@ -159,3 +159,20 @@ def test_autostart_request_without_an_adapter_is_ignored():
     service = SettingsService(MemoryStore(), None, {})
     old = service.load().settings
     assert service.save(old, old, autostart=True).errors == ()
+
+
+def test_load_reports_the_effective_settings_with_env_values_applied():
+    store = MemoryStore({"ptt_key": "f9", "language": "es"})
+    env = {"TUTOR_PTT_KEY": "right ctrl", "TUTOR_TTS": "0", "TUTOR_LOG_LEVEL": "debug"}
+    loaded = SettingsService(store, None, env).load()
+    assert loaded.settings.ptt_key == "f9"
+    assert loaded.effective.ptt_key == "right ctrl"
+    assert loaded.effective.tts_enabled is False
+    assert loaded.effective.log_level == "DEBUG"
+    assert loaded.effective.language == "es"
+
+
+def test_effective_ignores_an_env_value_the_model_rejects():
+    store = MemoryStore({"ollama_url": "http://h:1"})
+    loaded = SettingsService(store, None, {"TUTOR_OLLAMA_URL": "not a url"}).load()
+    assert loaded.effective.ollama_url == "http://h:1"

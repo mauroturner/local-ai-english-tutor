@@ -28,6 +28,12 @@ BADGE_MINOR = ("#B26A00", "#9A5B00")
 HOVER = ("gray85", "gray25")
 TOOLTIP_BG = ("gray20", "gray85")
 TOOLTIP_TEXT = ("gray95", "gray10")
+SIDEBAR_BG = ("gray92", "gray16")
+SELECTED = ("gray80", "gray28")
+ROW_BG = ("gray95", "gray19")
+PILL_BG = ("#FFE0B2", "#5D3A00")
+PILL_TEXT = ("#8A4B00", "#FFCC80")
+ERROR_TEXT = ("#C62828", "#EF9A9A")
 CHIP_GREEN = ("#2E7D32", "#2E7D32")
 CHIP_RED = ("#C62828", "#D32F2F")
 CHIP_AMBER = ("#B26A00", "#B26A00")
@@ -35,7 +41,8 @@ CHIP_AMBER = ("#B26A00", "#B26A00")
 COLOR_NAMES = (
     "TEXT", "MUTED_TEXT", "CHAT_BG", "TUTOR_BUBBLE", "USER_BUBBLE", "CORRECTION_BUBBLE",
     "NOTICE_TEXT", "REPORT_BG", "PRACTICE_OK", "PRACTICE_RETRY", "BADGE_MAJOR", "BADGE_MINOR",
-    "HOVER", "TOOLTIP_BG", "TOOLTIP_TEXT", "CHIP_GREEN", "CHIP_RED", "CHIP_AMBER",
+    "HOVER", "TOOLTIP_BG", "TOOLTIP_TEXT", "SIDEBAR_BG", "SELECTED", "ROW_BG", "PILL_BG",
+    "PILL_TEXT", "ERROR_TEXT", "CHIP_GREEN", "CHIP_RED", "CHIP_AMBER",
 )  # fmt: skip
 
 # --------------------------------------------------------------------- spacing
