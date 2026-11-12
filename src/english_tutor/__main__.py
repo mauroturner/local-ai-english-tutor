@@ -13,8 +13,10 @@ from .adapters.json_settings_store import JsonSettingsStore
 from .adapters.keyboard_ptt import KeyboardPushToTalk
 from .adapters.ollama_chat import OllamaTutorModel
 from .adapters.piper_tts import NullSynthesizer, PiperSynthesizer
+from .adapters.sounddevice_cues import SoundDeviceCuePlayer
 from .adapters.sounddevice_recorder import SoundDeviceRecorder
 from .adapters.whisper_stt import WhisperTranscriber
+from .adapters.windows_notifier import WindowsNotifier, tk_hwnd
 from .application.events import ErrorRaised, LevelChanged, SessionEvent
 from .application.maintenance import clear_logs, clear_mistakes
 from .application.preferences import SettingsService
@@ -118,6 +120,7 @@ def main() -> int:
         last_report=lambda: window_ref[0].snapshot.report,
         mistakes=lambda: window_ref[0].snapshot.mistakes,
     )
+    cue_player = SoundDeviceCuePlayer()
     window = TutorWindow(
         cfg,
         session,
@@ -126,6 +129,8 @@ def main() -> int:
         loaded.settings,
         on_open_settings=lambda: SettingsWindow.open(window_ref[0], services),
         on_data_cleared=SettingsWindow.notify,
+        cue_player=cue_player,
+        notifier=WindowsNotifier(hwnd=lambda: tk_hwnd(window_ref[0])),
     )
     window_ref.append(window)
     for warning in loaded.warnings:
@@ -145,6 +150,7 @@ def main() -> int:
     finally:
         ptt.stop()
         session.shutdown()
+        cue_player.close()
         if window.restart_requested:
             exit_code = finish_restart()
     return exit_code

@@ -8,6 +8,7 @@ from typing import Any, Literal, Protocol
 
 import numpy as np
 
+from .audio.cues import Cue
 from .domain.models import (
     ChatMessage,
     MistakeRecord,
@@ -178,4 +179,24 @@ class PracticeCoach(Protocol):
         self, target: MistakeRecord, history: Sequence[ChatMessage], learner_text: str
     ) -> PracticeReply:
         """Judge ``learner_text`` against ``target`` and ask the next question."""
+        ...
+
+
+class CuePlayer(Protocol):
+    """Plays short sound cues; ``play`` never blocks and never raises."""
+
+    def play(self, cue: Cue) -> None:
+        """Play ``cue`` unless another one is still playing."""
+        ...
+
+    def close(self) -> None:
+        """Release the audio output."""
+        ...
+
+
+class Notifier(Protocol):
+    """Shows a desktop notification; ``notify`` never blocks and never raises."""
+
+    def notify(self, title: str, body: str) -> None:
+        """Tell the user something while the window may be in the background."""
         ...

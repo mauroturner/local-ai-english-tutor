@@ -27,9 +27,11 @@ from ..audio.devices import InputDevice
 from ..config import AppConfig
 from ..domain.models import SessionState
 from ..i18n import t
+from ..ports import CuePlayer, Notifier
 from ..settings.model import UserSettings
 from . import theme
 from .banners import RestartBanner
+from .feedback import Feedback
 from .mistakes_view import MistakesView
 from .widgets import (
     ChatView,
@@ -65,6 +67,8 @@ class TutorWindow(ctk.CTk):
         on_open_settings: Callable[[], None] | None = None,
         confirm: Confirm = ask_yes_no,
         on_data_cleared: Callable[[str], None] | None = None,
+        cue_player: CuePlayer | None = None,
+        notifier: Notifier | None = None,
     ) -> None:
         ctk.set_default_color_theme(theme.COLOR_THEME)
         super().__init__()
@@ -75,6 +79,7 @@ class TutorWindow(ctk.CTk):
         self._confirm = confirm
         self._on_data_cleared = on_data_cleared or (lambda text: None)
         self.snapshot = SessionSnapshot()
+        self._feedback = Feedback(self, cue_player, notifier)
         self.restart_requested = False
         self._sp = theme.spacing(self._settings.density)
         self._events: queue.Queue[SessionEvent] = queue.Queue()
@@ -191,6 +196,7 @@ class TutorWindow(ctk.CTk):
 
     def _dispatch(self, event: SessionEvent) -> None:
         self.snapshot.observe(event)
+        self._feedback.handle(event, self._settings)
         if isinstance(event, StateChanged):
             self._chip.set_state(event.state)
             self._status.set(event.message or event.state.value.capitalize())
