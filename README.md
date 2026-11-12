@@ -66,10 +66,10 @@ If PowerShell refuses to run `Activate.ps1`, allow local scripts once with `Set-
 Make sure Ollama is running (`ollama serve`, or the Ollama tray app), then:
 
 ```powershell
-english-tutor
-# or
-python -m english_tutor
+python main.py
 ```
+
+`main.py` at the repository root is the entry point. It works even without `pip install -e`, because it adds `src/` to the import path. After `pip install -e ".[dev]"` the `english-tutor` command and `python -m english_tutor` start the same app.
 
 The first start loads Whisper (the status line shows `Loading speech model...`) and then `Ready: hold Right Ctrl`. If Ollama or the model is missing, the chat shows a notice but the app stays open; see [docs/troubleshooting.md](docs/troubleshooting.md).
 
@@ -110,7 +110,7 @@ All settings are optional environment variables prefixed with `TUTOR_` (Ollama U
 
 ```powershell
 $env:TUTOR_PTT_KEY = "v"   # use the V key instead of Right Ctrl
-english-tutor
+python main.py
 ```
 
 Full table with defaults and validation: [docs/configuration.md](docs/configuration.md).
@@ -126,8 +126,9 @@ The tests use fakes: no microphone, GPU, Ollama or network is needed.
 ## Project layout
 
 ```text
+main.py                entry point: python main.py
 src/english_tutor/
-  __main__.py          composition root (entry point)
+  __main__.py          composition root (builds and starts the app)
   config.py            TUTOR_* environment variables -> AppConfig
   ports.py             interfaces (Protocols) and adapter errors
   domain/              models, correction rules, prompts and JSON schemas
@@ -151,4 +152,4 @@ data/                  created at run time: conversation logs and mistake histor
 
 ## Upgrading from the old prototype
 
-The earlier prototype needed a custom Ollama model called `english-teacher`. It is **no longer needed**: the tutor prompts now live in the code ([`domain/prompts.py`](src/english_tutor/domain/prompts.py)) and the app talks to the plain `llama3:8b-instruct-q4_K_M` model.
+The earlier single-file prototype (`english_teacher/assistant.py`) has been removed; start the app with `python main.py`. The prototype also needed a custom Ollama model called `english-teacher`. It is **no longer needed**: the tutor prompts now live in the code ([`domain/prompts.py`](src/english_tutor/domain/prompts.py)) and the app talks to the plain `llama3:8b-instruct-q4_K_M` model.
