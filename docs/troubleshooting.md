@@ -49,10 +49,11 @@ If playback fails on a single turn, the failure is logged (`Speech synthesis fai
 ## Push-to-talk does not respond
 
 - The key is a **global keyboard hook** (the `keyboard` package). On some systems installing the hook needs elevated rights: run the terminal as administrator. If the hook cannot be installed the chat shows `PTT unavailable: <error>`.
-- Wait for the status `Ready: hold V`. Presses are ignored while the app is loading, transcribing, thinking, speaking or writing the report.
+- The default key is **Right Ctrl**. Wait for the status `Ready: hold Right Ctrl` (or `Practice: hold Right Ctrl to answer` during a drill). Presses are ignored while the app is loading, transcribing, thinking, speaking or writing the report.
 - Hold the key until you finish speaking, then release. Auto-repeat is ignored.
-- Change the key with `TUTOR_PTT_KEY` (for example `$env:TUTOR_PTT_KEY = "f9"`). The window hint and status line show the configured key.
-- The key press is not suppressed, so a letter key types that letter in the focused application.
+- **Left Ctrl is ignored on purpose.** The app tells the two Ctrl keys apart by the localized key name Windows reports (for example `CTRL DERECHA` for the right key on Spanish Windows). If that lookup fails, there is no side filter and either Ctrl key triggers recording.
+- Change the key with `TUTOR_PTT_KEY`, for example `$env:TUTOR_PTT_KEY = "v"` for the old default or `"f9"`. The window hint and status line show the configured key. Side filtering applies only to `left`/`right` `ctrl`/`alt`.
+- The key press is not suppressed. A letter key such as `v` is typed into the focused application, and shortcuts that use Right Ctrl also start a recording.
 
 ## Wrong or duplicated microphone
 
@@ -65,6 +66,24 @@ Windows exposes each microphone through several audio APIs (MME, DirectSound, WA
 ## `Too short or too quiet, try again`
 
 The recording was shorter than 0.25 seconds or its peak level was below 0.01. Hold the key a little longer, speak closer to the microphone or choose another device. `Didn't catch that, try again` means audio was accepted but Whisper returned no text (for example only noise or silence).
+
+## Mistake history problems
+
+- **`Mistake history was unreadable; saved a copy as mistakes.json.corrupt-<timestamp> and started a new one`.** `data\mistakes.json` was not valid JSON, had the wrong structure or an unsupported `version`. The app renamed it next to the original and started an empty history. Open the `.corrupt-...` file in a text editor to recover entries by hand if you need them; nothing deletes it.
+- **`... could not be backed up; it is read-only this run`.** The rename failed (for example the file is open in another program). Nothing is overwritten and new mistakes are kept only in memory until you restart the app.
+- **`Mistake history not saved: ...`.** The save failed (disk full, folder not writable, file locked). Mistakes stay in memory for this run and the conversation continues; the message appears once.
+- Entries that cannot be parsed are skipped individually, with a console warning.
+
+## Conversation log problems
+
+- **`Conversation log unavailable: Could not write the conversation log: ...`.** The folder `data\conversations` (or `TUTOR_DATA_DIR\conversations`) could not be created or written, for example because the path is read-only, a file with that name exists, or the drive is missing. The notice appears once; the conversation continues without logging and each failure is also a console warning. Point `TUTOR_DATA_DIR` at a writable folder and restart.
+- The log file is created when the first transcript is saved, not at start-up, so an empty folder right after launch is normal.
+
+## Practice problems
+
+- **`Practice is not available for that mistake.`** The selected entry no longer exists in memory or practice is not available; the session stays in normal conversation.
+- Practice buttons are disabled unless the app is idle and no drill is running; **End session** is disabled during a drill. Click **Stop practice** first.
+- If the same answer keeps scoring `not_used`, the coach's last question may not have called for the target form (a known limit of the 8B model; see [tutor-behavior.md](tutor-behavior.md#practice-mode)). Try answering with a sentence that uses the structure, or stop and restart the drill.
 
 ## Other messages
 

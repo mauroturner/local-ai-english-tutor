@@ -8,6 +8,7 @@ You hold a key and talk. The app transcribes your speech with Whisper, sends it 
 - **Conversation first.** The tutor replies to what you said and ends with a follow-up question. It remembers the last few exchanges.
 - **Live correction only for clear mistakes.** At most one clearly marked error per turn is shown (and spoken) right away. Smaller slips are recorded silently.
 - **End-of-session report.** Click **End session** to get the list of errors (original -> corrected, with the reason) and overall feedback.
+- **Local history and targeted practice.** Every conversation is saved as a `.log` file on your disk, recurring mistakes are collected in a **Mistakes** tab, and a **Practice** button runs a short spoken drill on one specific mistake.
 
 No cloud service is used at run time. The only download is the one-time Whisper model fetch (see [Requirements](#requirements)).
 
@@ -70,23 +71,45 @@ english-tutor
 python -m english_tutor
 ```
 
-The first start loads Whisper (the status line shows `Loading speech model...`) and then `Ready: hold V`. If Ollama or the model is missing, the chat shows a notice but the app stays open; see [docs/troubleshooting.md](docs/troubleshooting.md).
+The first start loads Whisper (the status line shows `Loading speech model...`) and then `Ready: hold Right Ctrl`. If Ollama or the model is missing, the chat shows a notice but the app stays open; see [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Usage
 
 1. Choose your microphone in the **Select Microphone** drop-down (the system default is preselected; duplicate entries from different Windows audio APIs are merged).
-2. **Hold the push-to-talk key** (default `V`), speak, and release to send. The key is global: it works even when the app window is not focused.
+2. **Hold the push-to-talk key** (default **Right Ctrl**), speak, and release to send. The key is global: it works even when the app window is not focused. The left Ctrl key is ignored. To use another key, set `TUTOR_PTT_KEY` (for example `v` for the previous default); see [docs/configuration.md](docs/configuration.md).
 3. Your transcript appears as `You: ...`, then the tutor's reply as `Alex: ...`. When a clearly marked mistake was found, a highlighted `Tip: "..." -> "..."` card follows, and the tip is spoken before the reply.
-4. Click **End session** (enabled only when the app is idle) to get the session report. Starting a new conversation afterwards begins with an empty history.
+4. Click **End session** (enabled only when the app is idle and no practice is running) to get the session report. Starting a new conversation afterwards begins with an empty chat history.
 
 Details of what is shown, spoken and recorded: [docs/tutor-behavior.md](docs/tutor-behavior.md).
 
+### Mistakes tab and practice mode
+
+Every correction the tutor finds (major and minor) is added to a persistent list, grouped by the normalised `original -> corrected` pair, with a counter. It survives restarts and is not cleared by **End session**.
+
+1. Open the **Mistakes** tab. Rows are sorted by frequency (then most recent) and show severity, the pair, how many times it occurred, the last date and your practice score (`practice successes/attempts`). Up to 50 rows are shown.
+2. Click **Practice** on a row (enabled only when the app is idle). The app switches to the **Chat** tab, a banner `Practicing: "..." -> "..."` appears, and Alex introduces the drill and asks a question.
+3. Answer by holding the push-to-talk key. For each answer the coach judges **only the target structure**: `correct`, `incorrect` (you get the corrected sentence) or `not_used` (a reminder), then asks the next question.
+4. Click **Stop practice** to return to the normal conversation.
+
+Practice turns do not run the general correction pipeline: other mistakes in your answer are ignored, nothing is added to the session report, and the normal chat memory is untouched. Only `correct` and `incorrect` results change the practice score.
+
+### Local data
+
+The app stores two things under `data/` (or the folder in `TUTOR_DATA_DIR`), both ignored by git:
+
+| Path | Content |
+| --- | --- |
+| `data/conversations/session-YYYYmmdd-HHMMSS.log` | One text file per session. Lines look like `[2026-11-12 14:03:22] YOU: <raw transcript>`; the transcript is written verbatim |
+| `data/mistakes.json` | The mistake history (versioned JSON) |
+
+To wipe your history, close the app and delete the `data` folder (or just `data\conversations` or `data\mistakes.json`). Details, including the file formats, are in [docs/configuration.md](docs/configuration.md#local-data) and [docs/security-notes.md](docs/security-notes.md).
+
 ## Configuration
 
-All settings are optional environment variables prefixed with `TUTOR_` (Ollama URL and model, Whisper model and device, Piper paths, push-to-talk key, history length, log level, and more). Example:
+All settings are optional environment variables prefixed with `TUTOR_` (Ollama URL and model, Whisper model and device, Piper paths, push-to-talk key, history length, data folder, log level, and more). Numeric values are range-checked at start-up. Example:
 
 ```powershell
-$env:TUTOR_PTT_KEY = "f9"
+$env:TUTOR_PTT_KEY = "v"   # use the V key instead of Right Ctrl
 english-tutor
 ```
 
@@ -108,22 +131,23 @@ src/english_tutor/
   config.py            TUTOR_* environment variables -> AppConfig
   ports.py             interfaces (Protocols) and adapter errors
   domain/              models, correction rules, prompts and JSON schemas
-  application/         ConversationSession, events, history, SerialWorker
+  application/         ConversationSession, practice drill, mistake book, events, SerialWorker
   audio/               audio processing and microphone discovery
-  adapters/            Whisper, Ollama, Piper, sounddevice, keyboard
-  ui/                  customtkinter window and widgets
+  adapters/            Whisper, Ollama, Piper, sounddevice, keyboard, log file, JSON store
+  ui/                  customtkinter window, chat, Mistakes tab and widgets
 tests/                 pytest suite
 docs/                  technical documentation
+data/                  created at run time: conversation logs and mistake history (git-ignored)
 ```
 
 ## Documentation
 
 - [Architecture](docs/architecture.md): layers, ports and adapters, threading, failure recovery
-- [Data flow](docs/data-flow.md): one conversation turn and the end-of-session report
+- [Data flow](docs/data-flow.md): one conversation turn, a practice turn and the end-of-session report
 - [Configuration](docs/configuration.md): every `TUTOR_*` variable, Piper resolution
-- [Tutor behavior](docs/tutor-behavior.md): transcription, correction policy, prompts, model limits
+- [Tutor behavior](docs/tutor-behavior.md): transcription, correction policy, practice mode, prompts, model limits
 - [Troubleshooting](docs/troubleshooting.md)
-- [Security notes](docs/security-notes.md)
+- [Security notes](docs/security-notes.md): includes how the local data is stored
 
 ## Upgrading from the old prototype
 

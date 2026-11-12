@@ -71,7 +71,7 @@ The code does **not** check that a `corrected` phrase is actually right, and it 
 | Your transcript | `You: <raw text>` | no |
 | Tutor reply | `Alex: <reply>` | yes |
 | Live correction (one major error) | Highlighted card: `Tip: "<original>"  ->  "<corrected>"` and the explanation | `Quick tip: instead of '<original>', say '<corrected>'.` is spoken **before** the reply, so the follow-up question is heard last |
-| Minor errors, extra major errors | not shown | no |
+| Minor errors, extra major errors | not shown (recorded in the Mistakes tab and the log) | no |
 | Session report | Full report | Only the summary |
 
 Without Piper the same content appears in the chat and nothing is spoken.
@@ -89,9 +89,42 @@ Clicking **End session** (only possible when idle) sends the learner's raw sente
 
 The report prompt says to avoid mentioning punctuation, capitalisation and spelling because the text comes from speech recognition.
 
+## Practice mode
+
+The **Mistakes** tab lists every recurring correction (see [configuration.md](configuration.md#mistake-history)). **Practice** starts a short spoken drill on one entry (the target: what you said, the correct form and the rule).
+
+1. The coach is called with the message `START`. It says in one sentence what you will practise and asks a question meant to make you use the correct form.
+2. You answer with push-to-talk. Your transcript is shown and logged exactly like a normal turn.
+3. The coach judges **only the target structure** in that answer and returns three fields: `target_used`, `feedback` and `next_prompt`.
+
+| `target_used` | Meaning | Feedback | Score |
+| --- | --- | --- | --- |
+| `correct` | The correct form (or the same rule with other words) was used | Brief praise | +1 attempt, +1 success |
+| `incorrect` | The structure was used with the same kind of mistake | The corrected version of your sentence | +1 attempt |
+| `not_used` | The structure was not used (also the answer to `START`) | A kind reminder | no change |
+
+Rules enforced by the code:
+
+- **General corrections are skipped.** A practice answer does not go through the normal tutor call, so no other errors are reported or recorded, no turn is stored, the normal conversation memory is untouched, and practice turns are **not** part of the end-of-session report.
+- The verdict is shown as `Correct! ...` or `Try again: ...` (plain feedback for `not_used`) and the next question follows as a tutor bubble. The spoken text is the feedback followed by the next question.
+- The score (`practice successes/attempts`) is saved with the mistake. If the coach answer cannot be parsed as JSON, it counts as `not_used`: the raw text becomes the next question and the score does not change.
+- The drill keeps its own memory of the last 4 exchanges. **Stop practice** returns to normal conversation; **End session** is disabled while a drill is active.
+- The fields of the target are cleaned before they go into the prompt: whitespace collapsed to single spaces, double quotes replaced by single quotes, at most 200 characters each.
+
+Observed behaviour with `llama3:8b-instruct-q4_K_M` (manual test, target "I go" -> "I went"):
+
+| Learner message | Result |
+| --- | --- |
+| `START` | `not_used`, a one-sentence introduction and a first question |
+| "Last weekend I go ..." | `incorrect`, with the corrected sentence in the feedback |
+| "Yesterday I went ..." | `correct` |
+| An unrelated sentence | `not_used` |
+
+Replies took about 1.2 seconds each. Known limit: the model's next question does not always call for the target form, so a perfectly good answer can end up as `not_used`.
+
 ## Prompts
 
-Both prompts are defined in [`src/english_tutor/domain/prompts.py`](../src/english_tutor/domain/prompts.py) as `TURN_SYSTEM_PROMPT` and `REPORT_SYSTEM_PROMPT`. They are quoted here as they stand in the code; the source file is authoritative. The earlier custom Ollama model `english-teacher` is no longer used.
+The turn and report prompts are defined in [`src/english_tutor/domain/prompts.py`](../src/english_tutor/domain/prompts.py) as `TURN_SYSTEM_PROMPT` and `REPORT_SYSTEM_PROMPT`; the practice prompt is in [`src/english_tutor/domain/practice_prompts.py`](../src/english_tutor/domain/practice_prompts.py) as `PRACTICE_SYSTEM_PROMPT`. They are quoted here as they stand in the code; the source files are authoritative. The earlier custom Ollama model `english-teacher` is no longer used.
 
 ### Turn prompt
 
@@ -159,11 +192,57 @@ Recorded errors:
 
 with `none` under `Recorded errors:` when the list is empty.
 
+### Practice prompt
+
+`build_practice_system_prompt(target)` sends this text followed by a newline and the target block (concatenated, never formatted):
+
+```text
+You are Alex, a friendly English tutor running a short SPEAKING drill. The learner's messages are
+automatic speech-to-text transcripts. The drill practices ONE structure, described in TARGET below.
+
+Every answer is JSON with three fields, in this order:
+1. "target_used": judge ONLY the target structure in the learner's last message.
+   - "correct": they used the correct form, or the same rule correctly with other words.
+   - "incorrect": they used the structure but made the same kind of mistake again.
+   - "not_used": they did not use the structure, or the message is START.
+   If you are not sure it is wrong, it is "correct". Ignore every other mistake.
+   Never judge punctuation, capitalization or spelling (the text comes from speech recognition).
+2. "feedback": ONE short sentence.
+   - "correct": praise briefly and say what was right.
+   - "incorrect": give the corrected version of their sentence.
+   - "not_used": kindly remind them to use the structure.
+   - START: say in one sentence what you will practice together.
+3. "next_prompt": ONE short, simple question about the learner's life (yesterday, plans, habits,
+   likes) that makes them naturally use the correct form in their answer.
+   Never include the answer. Never repeat a question you already asked.
+Spoken English only: no lists, no emojis, no markdown.
+Answer ONLY with JSON: {"target_used": "...", "feedback": "...", "next_prompt": "..."}
+
+Example (said "I go", correct form "I went", rule: use the past tense for finished actions):
+Learner: START
+{"target_used": "not_used", "feedback": "Let's practice talking about the past.", "next_prompt": "Where did you go last weekend?"}
+Learner: last weekend I go to the beach
+{"target_used": "incorrect", "feedback": "Almost! Say: last weekend I went to the beach.", "next_prompt": "What did you eat for dinner yesterday?"}
+Learner: I ate pizza with my friends
+{"target_used": "correct", "feedback": "Perfect, 'I ate' is the right past form!", "next_prompt": "Who did you talk to this morning?"}
+```
+
+The target block appended after it has this shape:
+
+```text
+TARGET:
+- The learner said: "<original>"
+- Correct form: "<corrected>"
+- Rule: <explanation>
+```
+
+Message order for a practice call: this system prompt, the drill history (last 4 exchanges), then the learner's raw text (or `START`).
+
 ### Output schemas
 
-`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]`). `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings).
+`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]`). `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings). `PRACTICE_SCHEMA`: object with required `target_used` (one of `correct`, `incorrect`, `not_used`), `feedback` and `next_prompt` (strings).
 
-If the model still returns something unparseable, the raw text is used as the reply with no corrections (or as the summary, for the report). If even that is empty, the app uses `Sorry, I lost my train of thought. Could you say that again?` or `I could not write the feedback this time.`
+If the model still returns something unparseable, the raw text is used as the reply with no corrections (or as the summary, for the report). If even that is empty, the app uses `Sorry, I lost my train of thought. Could you say that again?` or `I could not write the feedback this time.` (for practice: `Let's keep going. Tell me about your day.`)
 
 ## Known limits of an 8B model
 
