@@ -19,14 +19,21 @@ OnChange = Callable[[str, Any], None]
 Capture = Callable[[str, Callable[[str], None]], None]
 """``capture(setting_key, apply)``: ask for a key press and pass the result to ``apply``."""
 WRAP = 500
-_BUTTON_TEXT = {"restore_defaults": "button.restore_defaults"}
+_BUTTON_TEXT = {
+    "restore_defaults": "button.restore_defaults",
+    "export_report": "button.export",
+    "export_mistakes": "button.export",
+    "clear_logs": "button.delete",
+    "clear_mistakes": "button.delete",
+}
 
 
 class Row(ctk.CTkFrame):
     """Renders one ``SettingSpec`` and reports edits through ``on_change(key, value)``.
 
     ``env_var`` set means a TUTOR_* variable pins the value: the control is disabled
-    and the row says so. ``action`` is called by ACTION rows.
+    and the row says so. ``unavailable`` (a reason) disables the control the same way.
+    ``action`` is called by ACTION rows.
     """
 
     def __init__(
@@ -38,6 +45,7 @@ class Row(ctk.CTkFrame):
         action: Callable[[], None] | None = None,
         env_var: str | None = None,
         capture: Capture | None = None,
+        unavailable: str | None = None,
     ) -> None:
         super().__init__(master, fg_color=theme.ROW_BG, corner_radius=8)
         self.spec = spec
@@ -45,7 +53,7 @@ class Row(ctk.CTkFrame):
         self._action = action
         self._capture = capture
         self.capture_button: ctk.CTkButton | None = None
-        self._disabled = env_var is not None
+        self._disabled = env_var is not None or unavailable is not None
         self._widgets: list[Any] = []
         self.grid_columnconfigure(0, weight=1)
         pad = theme.SPACE_M
@@ -65,9 +73,10 @@ class Row(ctk.CTkFrame):
             self, text=t(spec.help), font=theme.FONT_HINT, text_color=theme.MUTED_TEXT,
             anchor="w", justify="left", wraplength=WRAP,
         ).grid(row=1, column=0, sticky="w", padx=pad)  # fmt: skip
-        if env_var:
+        if env_var or unavailable:
             ctk.CTkLabel(
-                self, text=t("settings.locked", var=env_var), font=theme.FONT_HINT,
+                self, text=t("settings.locked", var=env_var) if env_var else unavailable,
+                font=theme.FONT_HINT,
                 text_color=theme.NOTICE_TEXT, anchor="w",
             ).grid(row=2, column=0, sticky="w", padx=pad)  # fmt: skip
         self._control_frame = ctk.CTkFrame(self, fg_color="transparent", height=1)

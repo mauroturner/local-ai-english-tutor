@@ -136,4 +136,30 @@ SETTINGS_STRINGS: dict[str, str] = {
     "capture.prompt_shortcut": "Press the new shortcut, for example Ctrl+K.",
     "capture.hint": "Esc cancels.",
     "capture.unsupported": "That key cannot be used here.",
+    # Storage actions: export, delete, folders
+    "button.export": "Export...",
+    "button.delete": "Delete...",
+    "settings.export_report_unavailable": "Available after you end a session and its report "
+    "appears.",
+    "export.report_title": "Export session report",
+    "export.mistakes_title": "Export mistakes",
+    "export.type_markdown": "Markdown document",
+    "export.type_csv": "CSV spreadsheet",
+    "export.done": "Saved to {path}",
+    "export.failed": "Could not save the file: {error}",
+    "export.no_mistakes": "There are no mistakes to export yet.",
+    "export.no_report": "There is no report to export yet. End a session first.",
+    "settings.clear_busy": "Alex is busy right now. Wait until the turn or practice is "
+    "finished, then try again.",
+    "settings.clear_logs_title": "Delete conversation logs?",
+    "settings.clear_logs_message": "Every conversation log file (session-*.log) in this "
+    "folder will be permanently deleted:\n{folder}\n\nYour mistake history, settings and "
+    "application logs are not affected. This cannot be undone.",
+    "settings.clear_mistakes_title": "Delete mistake history?",
+    "settings.clear_mistakes_message": "All {count} recorded mistakes and their practice "
+    "statistics will be permanently deleted. Conversation logs and settings are not affected. "
+    "This cannot be undone.",
+    "settings.folder_error": "This folder cannot be used: {error}",
+    "data.cleared_logs": "Deleted {count} conversation log file(s).",
+    "data.cleared_mistakes": "Mistake history deleted ({count} mistakes).",
 }

@@ -16,6 +16,7 @@ from .adapters.piper_tts import NullSynthesizer, PiperSynthesizer
 from .adapters.sounddevice_recorder import SoundDeviceRecorder
 from .adapters.whisper_stt import WhisperTranscriber
 from .application.events import ErrorRaised, LevelChanged, SessionEvent
+from .application.maintenance import clear_logs, clear_mistakes
 from .application.preferences import SettingsService
 from .application.ptt_gate import PttGate
 from .application.session import ConversationSession
@@ -88,6 +89,7 @@ def main() -> int:
     tutor = OllamaTutorModel(
         cfg.ollama_url, cfg.ollama_model, cfg.ollama_timeout_s, cfg.llm_temperature
     )
+    conversation_log = FileConversationLog(cfg.data_dir / "conversations")
     session = ConversationSession(
         WhisperTranscriber(cfg),
         tutor,
@@ -96,7 +98,7 @@ def main() -> int:
         emit,
         history_exchanges=cfg.history_exchanges,
         ptt_label=cfg.ptt_label,
-        conversation_log=FileConversationLog(cfg.data_dir / "conversations"),
+        conversation_log=conversation_log,
         mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
         coach=tutor,
     )
@@ -110,6 +112,11 @@ def main() -> int:
         on_applied=lambda saved: window_ref[0].apply_settings(saved),
         on_restart_needed=lambda keys: window_ref[0].show_restart_banner(keys),
         ptt_gate=gate,
+        clear_logs=lambda: session.clear_data(clear_logs(conversation_log.clear)),
+        clear_mistakes=lambda: session.clear_data(clear_mistakes),
+        is_free=lambda: window_ref[0].is_free,
+        last_report=lambda: window_ref[0].snapshot.report,
+        mistakes=lambda: window_ref[0].snapshot.mistakes,
     )
     window = TutorWindow(
         cfg,
@@ -118,6 +125,7 @@ def main() -> int:
         default_device,
         loaded.settings,
         on_open_settings=lambda: SettingsWindow.open(window_ref[0], services),
+        on_data_cleared=SettingsWindow.notify,
     )
     window_ref.append(window)
     for warning in loaded.warnings:

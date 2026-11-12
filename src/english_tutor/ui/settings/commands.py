@@ -9,6 +9,7 @@ from ...i18n import t
 from ...settings.draft import SettingsDraft
 from ...settings.model import UserSettings
 from ..services import UiServices
+from .actions import check_folders
 from .chrome import Footer
 from .live import LIVE_KEYS, PREVIEW_KEYS, apply_live
 
@@ -20,9 +21,11 @@ class SettingsCommands:
     _draft: SettingsDraft
     _effective: UserSettings
     footer: Footer
+    _folder_errors: dict[str, str]
 
     def _preview(self, key: str | None = None) -> None: ...
     def _refresh_page(self) -> None: ...
+    def _refresh_status(self) -> None: ...
     def _close(self) -> None: ...
 
     def restore_defaults(self) -> None:
@@ -38,6 +41,14 @@ class SettingsCommands:
     def save(self) -> bool:
         """Write the draft; closes the window on success."""
         if self._draft.has_errors or not self._draft.dirty_keys:
+            return False
+        self._folder_errors = check_folders(self._draft)  # creates and probes the folders
+        if self._folder_errors:
+            self._refresh_status()
+            self.footer.set_status(
+                t("settings.save_failed", error="; ".join(self._folder_errors.values())),
+                error=True,
+            )
             return False
         new = self._draft.to_settings()
         outcome = self._services.settings.save(new, self._effective)

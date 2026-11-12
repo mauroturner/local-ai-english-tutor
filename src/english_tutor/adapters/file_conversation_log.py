@@ -53,6 +53,29 @@ class FileConversationLog:
         """Start a new file with the next entry."""
         self._path = None
 
+    def clear(self) -> int:
+        """Delete every ``session-*.log`` file in the folder; returns how many were deleted.
+
+        Nothing else is touched (other files, sub-folders, the application logs). The next
+        ``record`` starts a new file. Raises StorageError if a file could not be deleted.
+        """
+        self._path = None
+        deleted, failures = 0, []
+        for path in self._folder.glob("session-*.log") if self._folder.is_dir() else ():
+            if not path.is_file():
+                continue
+            try:
+                path.unlink()
+                deleted += 1
+            except OSError as exc:
+                failures.append(f"{path.name}: {exc}")
+        if failures:
+            raise StorageError(
+                f"Could not delete {len(failures)} conversation log(s): {'; '.join(failures)}"
+            )
+        logger.info("Deleted %d conversation log file(s)", deleted)
+        return deleted
+
     def _create(self, now: datetime) -> Path:
         self._folder.mkdir(parents=True, exist_ok=True)
         stamp = now.strftime("%Y%m%d-%H%M%S")

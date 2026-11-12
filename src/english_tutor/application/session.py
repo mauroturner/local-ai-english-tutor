@@ -7,7 +7,7 @@ import threading
 from typing import Callable, Literal, TypeVar
 
 from ..audio.processing import prepare_for_stt
-from ..domain.corrections import filter_corrections, pick_live, spoken_line
+from ..domain.corrections import compose_speech, filter_corrections, pick_live
 from ..domain.formatting import correction_text, format_report
 from ..domain.models import Correction, SessionState, Turn
 from ..ports import (
@@ -25,7 +25,6 @@ from ..ports import (
 from .events import (
     ErrorRaised,
     EventSink,
-    LevelChanged,
     MistakesChanged,
     PracticeChanged,
     ReportReady,
@@ -180,10 +179,6 @@ class ConversationSession:
         """Choose the microphone used by the next recording."""
         self._device_index = index
 
-    def on_level(self, value: float) -> None:
-        """Forward a microphone level reading to the UI."""
-        self._emit(LevelChanged(value))
-
     def shutdown(self, timeout_s: float = 2.0) -> None:
         """Stop background work; abandon any recording in progress.
 
@@ -288,7 +283,7 @@ class ConversationSession:
         if live is not None:
             self._journal.record("tip", correction_text(live))
         self._record_mistakes(corrections, raw)
-        self._speak(self._compose_speech(reply.reply, live))
+        self._speak(compose_speech(reply.reply, live))
         self._set_state(SessionState.IDLE, "Ready")
 
     def _ask(self, call: Callable[[], _T]) -> _T | None:
@@ -309,10 +304,6 @@ class ConversationSession:
             return
         self._book.add_corrections(corrections, sentence)
         self._emit(MistakesChanged(self._book.snapshot()))
-
-    @staticmethod
-    def _compose_speech(reply: str, live: Correction | None) -> str:
-        return f"{spoken_line(live)} {reply}" if live is not None else reply
 
     def _speak(self, text: str) -> None:
         if not self._tts.available:
@@ -371,6 +362,14 @@ class ConversationSession:
         if practicing:
             return f"Practice: hold {self._ptt_label} to answer"
         return f"Ready: hold {self._ptt_label}"
+
+    def clear_data(self, job: Callable[[MistakeBook, SafeJournal, EventSink], None]) -> bool:
+        """Run a data-clearing job on the worker; False unless idle and not practicing."""
+        with self._lock:
+            if self._state is not SessionState.IDLE or self._drill is not None:
+                return False
+        self._submit(lambda: job(self._book, self._journal, self._emit))
+        return True
 
     # ----------------------------------------------------------------- report
     def end_session(self) -> None:

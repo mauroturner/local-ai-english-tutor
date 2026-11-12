@@ -4,18 +4,23 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from ..application.preferences import SettingsService
 from ..application.ptt_gate import PttGate
+from ..domain.models import MistakeRecord, SessionReport
 from ..settings.model import UserSettings
 
 Confirm = Callable[..., bool]
 """``confirm(title, message, parent=window) -> bool``; tests pass ``lambda *a, **k: True``."""
 
-ENABLED_ACTIONS = frozenset({"open_data_folder", "open_logs_folder", "restore_defaults"})
-"""Action rows that exist so far; later phases add export, clear, test and auto-start."""
+ENABLED_ACTIONS = frozenset({
+    "open_data_folder", "open_logs_folder", "restore_defaults",
+    "export_report", "export_mistakes", "clear_logs", "clear_mistakes",
+})  # fmt: skip
+"""Action rows that exist so far; later phases add test and auto-start."""
 
 
 def ask_yes_no(title: str, message: str, parent: Any = None) -> bool:
@@ -29,12 +34,22 @@ def _ignore(*args: Any) -> None:
     """Default for optional callbacks."""
 
 
+def _refuse() -> bool:
+    """Default for data-clearing callbacks: nothing is wired, so nothing is deleted."""
+    return False
+
+
 @dataclass(frozen=True)
 class UiPaths:
     """Folders the Settings actions refer to."""
 
     data_dir: Path
     logs_dir: Path
+
+    @property
+    def conversations_dir(self) -> Path:
+        """Folder holding the ``session-*.log`` conversation files."""
+        return self.data_dir / "conversations"
 
 
 @dataclass
@@ -50,3 +65,12 @@ class UiServices:
     on_restart_needed: Callable[[Sequence[str]], None] = _ignore
     enabled_actions: frozenset[str] = ENABLED_ACTIONS
     ptt_gate: PttGate | None = None
+    clear_logs: Callable[[], bool] = _refuse
+    """Ask the session to delete the conversation logs; False when it is busy."""
+    clear_mistakes: Callable[[], bool] = _refuse
+    """Ask the session to delete the mistake history; False when it is busy."""
+    is_free: Callable[[], bool] = lambda: True  # noqa: E731
+    """Whether the session is idle and not practising (data may be deleted)."""
+    last_report: Callable[[], SessionReport | None] = lambda: None  # noqa: E731
+    mistakes: Callable[[], Sequence[MistakeRecord]] = lambda: ()  # noqa: E731
+    clock: Callable[[], datetime] = datetime.now

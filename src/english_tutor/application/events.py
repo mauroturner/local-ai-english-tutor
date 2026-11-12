@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Literal
 
 from ..domain.models import (
     Correction,
@@ -81,6 +82,14 @@ class PracticeFeedback:
     prompt: str
 
 
+@dataclass(frozen=True)
+class DataCleared:
+    """Stored data was deleted: ``count`` conversation log files or mistake records."""
+
+    kind: Literal["logs", "mistakes"]
+    count: int
+
+
 SessionEvent = (
     StateChanged
     | UserSaid
@@ -91,5 +100,6 @@ SessionEvent = (
     | MistakesChanged
     | PracticeChanged
     | PracticeFeedback
+    | DataCleared
 )
 EventSink = Callable[[SessionEvent], None]

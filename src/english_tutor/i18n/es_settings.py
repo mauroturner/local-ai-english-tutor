@@ -140,4 +140,31 @@ SETTINGS_STRINGS: dict[str, str] = {
     "capture.prompt_shortcut": "Pulsa el nuevo atajo, por ejemplo Ctrl+K.",
     "capture.hint": "Esc cancela.",
     "capture.unsupported": "Esa tecla no se puede usar aquí.",
+    # Acciones de almacenamiento: exportar, eliminar, carpetas
+    "button.export": "Exportar...",
+    "button.delete": "Eliminar...",
+    "settings.export_report_unavailable": "Disponible cuando termines una sesión y aparezca "
+    "su informe.",
+    "export.report_title": "Exportar informe de la sesión",
+    "export.mistakes_title": "Exportar errores",
+    "export.type_markdown": "Documento Markdown",
+    "export.type_csv": "Hoja de cálculo CSV",
+    "export.done": "Guardado en {path}",
+    "export.failed": "No se pudo guardar el archivo: {error}",
+    "export.no_mistakes": "Todavía no hay errores para exportar.",
+    "export.no_report": "Todavía no hay un informe para exportar. Termina una sesión primero.",
+    "settings.clear_busy": "Alex está ocupado ahora. Espera a que termine el turno o la "
+    "práctica e inténtalo de nuevo.",
+    "settings.clear_logs_title": "¿Eliminar los registros de conversación?",
+    "settings.clear_logs_message": "Se eliminarán de forma permanente todos los archivos de "
+    "registro de conversación (session-*.log) de esta carpeta:\n{folder}\n\nTu historial de "
+    "errores, tus ajustes y los registros de la aplicación no se ven afectados. Esta acción "
+    "no se puede deshacer.",
+    "settings.clear_mistakes_title": "¿Eliminar el historial de errores?",
+    "settings.clear_mistakes_message": "Se eliminarán de forma permanente los {count} errores "
+    "registrados y sus estadísticas de práctica. Los registros de conversación y los ajustes "
+    "no se ven afectados. Esta acción no se puede deshacer.",
+    "settings.folder_error": "No se puede usar esta carpeta: {error}",
+    "data.cleared_logs": "Se eliminaron {count} archivo(s) de registro de conversación.",
+    "data.cleared_mistakes": "Historial de errores eliminado ({count} errores).",
 }

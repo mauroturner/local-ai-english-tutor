@@ -10,6 +10,7 @@ from typing import Any
 import customtkinter as ctk
 
 from ..application.events import (
+    DataCleared,
     ErrorRaised,
     LevelChanged,
     MistakesChanged,
@@ -41,6 +42,7 @@ from .widgets import (
 )
 from .services import Confirm, ask_yes_no
 from .shortcut_binder import ShortcutBinder
+from .snapshot import SessionSnapshot, cleared_message
 from .tooltip import Tooltip
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,7 @@ class TutorWindow(ctk.CTk):
         settings: UserSettings | None = None,
         on_open_settings: Callable[[], None] | None = None,
         confirm: Confirm = ask_yes_no,
+        on_data_cleared: Callable[[str], None] | None = None,
     ) -> None:
         ctk.set_default_color_theme(theme.COLOR_THEME)
         super().__init__()
@@ -70,6 +73,8 @@ class TutorWindow(ctk.CTk):
         self._has_settings = on_open_settings is not None
         self._on_open_settings = on_open_settings or (lambda: None)
         self._confirm = confirm
+        self._on_data_cleared = on_data_cleared or (lambda text: None)
+        self.snapshot = SessionSnapshot()
         self.restart_requested = False
         self._sp = theme.spacing(self._settings.density)
         self._events: queue.Queue[SessionEvent] = queue.Queue()
@@ -185,6 +190,7 @@ class TutorWindow(ctk.CTk):
         self.after(_PUMP_INTERVAL_MS, self._pump)
 
     def _dispatch(self, event: SessionEvent) -> None:
+        self.snapshot.observe(event)
         if isinstance(event, StateChanged):
             self._chip.set_state(event.state)
             self._status.set(event.message or event.state.value.capitalize())
@@ -210,6 +216,10 @@ class TutorWindow(ctk.CTk):
             self._chat.add_practice_feedback(event.outcome, event.feedback)
             if event.prompt:
                 self._chat.add_tutor(event.prompt)
+        elif isinstance(event, DataCleared):
+            message = cleared_message(event)
+            self._chat.add_notice(message)
+            self._on_data_cleared(message)
 
     def _on_practice_changed(self, event: PracticeChanged) -> None:
         self._practicing = event.target is not None
@@ -220,9 +230,14 @@ class TutorWindow(ctk.CTk):
             self._banner.hide()
         self._refresh_controls()
 
+    @property
+    def is_free(self) -> bool:
+        """Whether the session is idle and not in a practice drill."""
+        return self._idle and not self._practicing
+
     def _refresh_controls(self) -> None:
         """End session and Practice need an idle session outside a drill; Stop only idle."""
-        free = self._idle and not self._practicing
+        free = self.is_free
         self._controls.set_enabled(free)
         self._mistakes.set_enabled(free)
         self._banner.set_enabled(self._idle)

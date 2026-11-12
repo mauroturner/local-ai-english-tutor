@@ -5,6 +5,7 @@ from __future__ import annotations
 from conftest import major, minor
 
 from english_tutor.domain.corrections import (
+    compose_speech,
     dedupe,
     filter_corrections,
     is_cosmetic,
@@ -69,3 +70,12 @@ def test_dedupe_keeps_first_occurrence():
 
 def test_spoken_line():
     assert spoken_line(major("I go", "I went")) == "Quick tip: instead of 'I go', say 'I went'."
+
+
+def test_compose_speech_puts_the_tip_before_the_reply():
+    live = major("I go", "I went")
+    assert compose_speech("Where?", live) == f"{spoken_line(live)} Where?"
+
+
+def test_compose_speech_without_a_live_correction_is_the_reply():
+    assert compose_speech("Where?", None) == "Where?"

@@ -59,6 +59,17 @@ class MistakeBook:
         self._records = add_practice(self._records, key, outcome, self._clock())
         self._save()
 
+    def clear(self) -> int:
+        """Forget every mistake and save the empty history; returns how many were forgotten.
+
+        Unlike the other changes this raises StorageError when the empty history cannot
+        be saved, and then keeps the records in memory, so the learner is told the truth.
+        """
+        count = len(self._records)
+        self._store.save(())
+        self._records = {}
+        return count
+
     def _save(self) -> None:
         try:
             self._store.save(self.snapshot())

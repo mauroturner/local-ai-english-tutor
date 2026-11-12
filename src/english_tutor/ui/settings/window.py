@@ -4,20 +4,19 @@ from __future__ import annotations
 
 import logging
 import tkinter as tk
-from pathlib import Path
 from collections.abc import Callable
 from typing import Any, ClassVar
 
 import customtkinter as ctk
 
 from ...i18n import t
-from ...ports import StorageError
 from ...settings.draft import SettingsDraft
 from ...settings.model import ENV_VARS
 from ...settings.registry import Category, Control, SettingSpec
 from .. import theme
 from ..layout import content_padding
 from ..services import UiServices
+from .actions import StorageActions
 from .chrome import SIDEBAR_WIDTH, Footer, Sidebar
 from .commands import SettingsCommands
 from .focus import PttHold, bind_keys, center_on, show_modal
@@ -75,11 +74,9 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
         self._query = ""
         self._rows: dict[str, Row] = {}
         self._closed = False
-        self._actions = {
-            "open_data_folder": lambda: self._open(services.paths.data_dir),
-            "open_logs_folder": lambda: self._open(services.paths.logs_dir),
-            "restore_defaults": self.restore_defaults,
-        }
+        self._folder_errors: dict[str, str] = {}
+        self._storage = StorageActions(self, services)
+        self._actions = {**self._storage.actions(), "restore_defaults": self.restore_defaults}
         self._build()
         self._bind_keys()
         self._refresh_page()
@@ -90,6 +87,17 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
     def _on_destroy(self, event: Any) -> None:
         if event.widget is self:  # however the window goes away, push-to-talk comes back
             self._ptt.release()
+
+    @classmethod
+    def notify(cls, text: str) -> None:
+        """Show ``text`` in the footer of the open window, if there is one."""
+        current = cls._current
+        if current is None or current._closed:
+            return
+        try:
+            current.footer.set_status(text)
+        except tk.TclError:
+            logger.debug("Settings window is gone; dropping %r", text)
 
     # ---------------------------------------------------------------- building
     def _build(self) -> None:
@@ -165,10 +173,11 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
         return Row(
             parent, spec, value, self._on_change, self._actions.get(spec.key),
             ENV_VARS[spec.key] if locked else None, self._capture,
+            self._storage.unavailable(spec.key),
         )  # fmt: skip
 
     def _refresh_status(self) -> None:
-        errors, warnings = self._draft.errors, self._draft.warnings
+        errors, warnings = {**self._draft.errors, **self._folder_errors}, self._draft.warnings
         for key, row in self._rows.items():
             row.set_note(errors.get(key), warnings.get(key))
         count = len(self._draft.dirty_keys)
@@ -179,6 +188,7 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
     # ------------------------------------------------------------------ events
     def _on_change(self, key: str, value: Any) -> None:
         self._draft.set(key, value)
+        self._folder_errors.pop(key, None)  # an edited folder is checked again on Save
         if key in PREVIEW_KEYS:
             self._preview(key)
         self._refresh_status()
@@ -233,12 +243,6 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
     def capture_dialog(self) -> KeyCaptureDialog | None:
         """The key-capture dialog while one is open."""
         return self._capture_dialog
-
-    def _open(self, path: Path) -> None:
-        try:
-            self._services.open_folder(path)
-        except StorageError as exc:
-            self.footer.set_status(t("settings.action_failed", error=exc), error=True)
 
     # --------------------------------------------------------- public / tests
     def select_category(self, category: Category) -> None:

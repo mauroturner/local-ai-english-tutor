@@ -74,3 +74,8 @@ def spoken_line(correction: Correction) -> str:
         f"Quick tip: instead of '{correction.original}', "
         f"say '{correction.corrected}'."
     )
+
+
+def compose_speech(reply: str, live: Correction | None) -> str:
+    """Text read aloud for a turn: the live tip (if any), then the tutor's reply."""
+    return f"{spoken_line(live)} {reply}" if live is not None else reply
