@@ -63,6 +63,7 @@ class TutorWindow(ctk.CTk):
         super().__init__()
         self._session = session
         self._settings = settings or UserSettings()
+        self._has_settings = on_open_settings is not None
         self._on_open_settings = on_open_settings or (lambda: None)
         self._sp = theme.spacing(self._settings.density)
         self._events: queue.Queue[SessionEvent] = queue.Queue()
@@ -110,7 +111,8 @@ class TutorWindow(ctk.CTk):
             fg_color="transparent", text_color=theme.TEXT, hover_color=theme.HOVER,
             command=self._on_open_settings,
         )  # fmt: skip
-        self._settings_button.grid(row=0, column=1, sticky="e")
+        if self._has_settings:  # never show a button that does nothing
+            self._settings_button.grid(row=0, column=1, sticky="e")
         shortcut = self._settings.shortcut_settings
         self._settings_tip = Tooltip(
             self._settings_button, t("tooltip.settings", shortcut=shortcut)

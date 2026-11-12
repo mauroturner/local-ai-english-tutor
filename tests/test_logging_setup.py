@@ -65,8 +65,25 @@ def test_reconfiguring_does_not_stack_handlers(tmp_path):
     assert len(file_handlers(root.handlers)) == 1
 
 
-def test_unwritable_logs_folder_still_gives_a_console_handler(tmp_path):
+def test_unwritable_logs_folder_falls_back_and_reports_it(tmp_path):
     blocker = tmp_path / "blocker"
     blocker.write_text("not a folder", encoding="utf-8")
-    handlers = configure_logging("INFO", blocker / "logs")
-    assert not file_handlers(handlers)
+    fallback = tmp_path / "fallback"
+    handlers = configure_logging("INFO", blocker / "logs", fallback_dir=fallback)
+    [file_handler] = file_handlers(handlers)
+    assert file_handler.baseFilename == str(fallback / "app.log")
+    for handler in handlers:
+        handler.flush()
+    assert "Log file unavailable" in (fallback / "app.log").read_text(encoding="utf-8")
+
+
+def test_unwritable_folder_without_console_still_records_the_warning(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, "stderr", None)
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a folder", encoding="utf-8")
+    fallback = tmp_path / "fallback"
+    handlers = configure_logging("INFO", blocker / "logs", fallback_dir=fallback)
+    assert len(handlers) == 1
+    handlers[0].flush()
+    text = (fallback / "app.log").read_text(encoding="utf-8")
+    assert "Log file unavailable" in text and str(blocker / "logs") in text
