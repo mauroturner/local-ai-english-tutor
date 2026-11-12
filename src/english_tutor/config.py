@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -29,8 +30,19 @@ class AppConfig:
     tts_enabled: bool = True
     piper_exe: Path | None = None
     piper_voice: Path = Path("piper/voices/en_US-lessac-medium.onnx")
-    ptt_key: str = "v"
+    ptt_key: str = "right ctrl"
     log_level: str = "INFO"
+    data_dir: Path = Path("data")
+
+    @property
+    def ptt_label(self) -> str:
+        """Human-readable name of the push-to-talk key, e.g. ``Right Ctrl``."""
+        return key_label(self.ptt_key)
+
+
+def key_label(key: str) -> str:
+    """Format a key name for display: ``"right ctrl"`` -> ``"Right Ctrl"``."""
+    return " ".join(part.capitalize() for part in key.split())
 
 
 def _int(env: Mapping[str, str], name: str, default: int) -> int:
@@ -58,6 +70,27 @@ def _float(env: Mapping[str, str], name: str, default: float) -> float:
         return float(raw)
     except ValueError as exc:
         raise ConfigError(f"{name} must be a number, got {raw!r}") from exc
+
+
+def _positive_float(env: Mapping[str, str], name: str, default: float) -> float:
+    value = _float(env, name, default)
+    if not math.isfinite(value) or value <= 0:
+        raise ConfigError(f"{name} must be greater than 0, got {value}")
+    return value
+
+
+def _non_negative_float(env: Mapping[str, str], name: str, default: float) -> float:
+    value = _float(env, name, default)
+    if not math.isfinite(value) or value < 0:
+        raise ConfigError(f"{name} must be 0 or greater, got {value}")
+    return value
+
+
+def _positive_int(env: Mapping[str, str], name: str, default: int) -> int:
+    value = _int(env, name, default)
+    if value < 1:
+        raise ConfigError(f"{name} must be 1 or greater, got {value}")
+    return value
 
 
 def _bool(env: Mapping[str, str], name: str, default: bool) -> bool:
@@ -111,20 +144,22 @@ def load_config(
     piper_dir = exe.parent if exe is not None else root / "piper"
     voice_raw = env.get("TUTOR_PIPER_VOICE", "").strip()
     voice = Path(voice_raw) if voice_raw else piper_dir / "voices" / "en_US-lessac-medium.onnx"
+    data_raw = env.get("TUTOR_DATA_DIR", "").strip()
     return AppConfig(
         ollama_url=_str(env, "TUTOR_OLLAMA_URL", "http://localhost:11434").rstrip("/"),
         ollama_model=_str(env, "TUTOR_OLLAMA_MODEL", "llama3:8b-instruct-q4_K_M"),
-        ollama_timeout_s=_float(env, "TUTOR_OLLAMA_TIMEOUT", 120.0),
-        llm_temperature=_float(env, "TUTOR_LLM_TEMPERATURE", 0.5),
+        ollama_timeout_s=_positive_float(env, "TUTOR_OLLAMA_TIMEOUT", 120.0),
+        llm_temperature=_non_negative_float(env, "TUTOR_LLM_TEMPERATURE", 0.5),
         history_exchanges=_non_negative(env, "TUTOR_HISTORY_EXCHANGES", 6),
         whisper_model=_str(env, "TUTOR_WHISPER_MODEL", "large-v3"),
         whisper_device=_str(env, "TUTOR_WHISPER_DEVICE", "auto").lower(),
         whisper_compute_type=_str(env, "TUTOR_WHISPER_COMPUTE_TYPE", "float16"),
         whisper_cpu_compute_type=_str(env, "TUTOR_WHISPER_CPU_COMPUTE_TYPE", "int8"),
-        whisper_beam_size=_int(env, "TUTOR_WHISPER_BEAM_SIZE", 5),
+        whisper_beam_size=_positive_int(env, "TUTOR_WHISPER_BEAM_SIZE", 5),
         tts_enabled=_bool(env, "TUTOR_TTS", True),
         piper_exe=exe,
         piper_voice=voice,
-        ptt_key=_str(env, "TUTOR_PTT_KEY", "v"),
+        ptt_key=_str(env, "TUTOR_PTT_KEY", "right ctrl"),
         log_level=_str(env, "TUTOR_LOG_LEVEL", "INFO").upper(),
+        data_dir=Path(data_raw) if data_raw else root / "data",
     )

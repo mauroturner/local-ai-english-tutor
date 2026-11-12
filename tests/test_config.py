@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from english_tutor.config import ConfigError, load_config, resolve_piper_exe
+from english_tutor.config import ConfigError, key_label, load_config, resolve_piper_exe
 
 
 def make_exe(path: Path) -> Path:
@@ -28,9 +28,11 @@ def test_defaults(tmp_path):
     assert cfg.whisper_cpu_compute_type == "int8"
     assert cfg.whisper_beam_size == 5
     assert cfg.tts_enabled is True
-    assert cfg.ptt_key == "v"
+    assert cfg.ptt_key == "right ctrl"
+    assert cfg.ptt_label == "Right Ctrl"
     assert cfg.log_level == "INFO"
     assert cfg.piper_exe is None
+    assert cfg.data_dir == tmp_path / "data"
 
 
 def test_env_overrides(tmp_path):
@@ -73,6 +75,56 @@ def test_env_overrides(tmp_path):
 def test_bad_values_raise_config_error_naming_variable(tmp_path, name, value):
     with pytest.raises(ConfigError, match=name):
         load_config({name: value}, tmp_path)
+
+
+@pytest.mark.parametrize(
+    "name,value",
+    [
+        ("TUTOR_OLLAMA_TIMEOUT", "0"),
+        ("TUTOR_OLLAMA_TIMEOUT", "-1"),
+        ("TUTOR_OLLAMA_TIMEOUT", "nan"),
+        ("TUTOR_OLLAMA_TIMEOUT", "inf"),
+        ("TUTOR_LLM_TEMPERATURE", "-0.1"),
+        ("TUTOR_LLM_TEMPERATURE", "nan"),
+        ("TUTOR_WHISPER_BEAM_SIZE", "0"),
+    ],
+)
+def test_out_of_range_values_raise_config_error_naming_variable(tmp_path, name, value):
+    with pytest.raises(ConfigError, match=name):
+        load_config({name: value}, tmp_path)
+
+
+def test_range_edges_are_accepted(tmp_path):
+    cfg = load_config(
+        {
+            "TUTOR_LLM_TEMPERATURE": "0",
+            "TUTOR_WHISPER_BEAM_SIZE": "1",
+            "TUTOR_OLLAMA_TIMEOUT": "0.5",
+            "TUTOR_HISTORY_EXCHANGES": "0",
+        },
+        tmp_path,
+    )
+    assert cfg.llm_temperature == 0
+    assert cfg.whisper_beam_size == 1
+    assert cfg.ollama_timeout_s == 0.5
+    assert cfg.history_exchanges == 0
+
+
+@pytest.mark.parametrize(
+    "key,label",
+    [("right ctrl", "Right Ctrl"), ("v", "V"), ("f9", "F9"), ("left  alt", "Left Alt")],
+)
+def test_key_label(key, label):
+    assert key_label(key) == label
+
+
+def test_ptt_label_follows_configured_key(tmp_path):
+    assert load_config({"TUTOR_PTT_KEY": "f9"}, tmp_path).ptt_label == "F9"
+
+
+def test_data_dir_override(tmp_path):
+    cfg = load_config({"TUTOR_DATA_DIR": str(tmp_path / "elsewhere")}, tmp_path)
+    assert cfg.data_dir == tmp_path / "elsewhere"
 
 
 def test_piper_explicit_env_wins(tmp_path):

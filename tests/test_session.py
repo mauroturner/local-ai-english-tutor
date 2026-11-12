@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from conftest import major, minor
+from conftest import FakeRecorder, FakeSTT, FakeTTS, FakeTutor, InlineRunner, major, minor
 
+from english_tutor.application.session import ConversationSession
 from english_tutor.application.events import (
     ErrorRaised,
     ReportReady,
@@ -24,6 +25,18 @@ def test_start_loads_models_and_becomes_idle(make_harness):
     assert h.stt.loaded
     assert h.session.state is SessionState.IDLE
     assert states(h)[0] is SessionState.LOADING
+
+
+def test_ready_status_names_the_configured_ptt_label(make_harness):
+    h = make_harness()
+    assert h.of_type(StateChanged)[-1].message == "Ready: hold Right Ctrl"
+    events: list = []
+    session = ConversationSession(
+        FakeSTT(), FakeTutor(), FakeTTS(True), FakeRecorder(), events.append,
+        runner=InlineRunner(), ptt_label="F9",
+    )
+    session.start()
+    assert [e for e in events if isinstance(e, StateChanged)][-1].message == "Ready: hold F9"
 
 
 def test_start_warns_when_ollama_down_but_stays_usable(make_harness):

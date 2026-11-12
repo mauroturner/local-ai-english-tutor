@@ -65,7 +65,7 @@ def main() -> int:
         recorder,
         emit,
         history_exchanges=cfg.history_exchanges,
-        ptt_key=cfg.ptt_key,
+        ptt_label=cfg.ptt_label,
     )
     window = TutorWindow(cfg, session, devices, default_device)
     window_ref.append(window)

@@ -58,7 +58,7 @@ class ConversationSession:
         *,
         history_exchanges: int = 6,
         runner: Runner | None = None,
-        ptt_key: str = "v",
+        ptt_label: str = "Right Ctrl",
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -66,7 +66,7 @@ class ConversationSession:
         self._recorder = recorder
         self._emit = emit
         self._runner: Runner = runner if runner is not None else SerialWorker()
-        self._ptt_key = ptt_key
+        self._ptt_label = ptt_label
         self._history = ChatHistory(history_exchanges)
         self._turns: list[Turn] = []
         self._state = SessionState.LOADING
@@ -139,7 +139,7 @@ class ConversationSession:
             self._emit(ErrorRaised(str(exc)))
         if not self._tts.available:
             self._emit(ErrorRaised("Voice output unavailable: replies are text-only."))
-        self._set_state(SessionState.IDLE, f"Ready: hold {self._ptt_key.upper()}")
+        self._set_state(SessionState.IDLE, f"Ready: hold {self._ptt_label}")
 
     def set_input_device(self, index: int | None) -> None:
         """Choose the microphone used by the next recording."""

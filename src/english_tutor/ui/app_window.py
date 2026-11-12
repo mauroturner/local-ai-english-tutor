@@ -64,7 +64,7 @@ class TutorWindow(ctk.CTk):
         self._controls.set_enabled(False)
         ctk.CTkLabel(
             self,
-            text=f"Hold '{cfg.ptt_key.upper()}' to speak, release to send",
+            text=f"Hold '{cfg.ptt_label}' to speak, release to send",
             font=theme.FONT_HINT,
         ).pack(pady=10)
 
