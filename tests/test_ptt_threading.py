@@ -99,3 +99,28 @@ def test_shutdown_stops_an_open_microphone(make_harness):
     runner.run_all()
     h.session.shutdown()
     assert h.recorder.calls == ["start", "stop"]
+
+
+def test_shutdown_does_not_hang_when_the_device_hangs(make_harness):
+    import threading
+    import time
+
+    h, runner = make(make_harness)
+    entered, release = threading.Event(), threading.Event()
+
+    def hang() -> None:
+        entered.set()
+        release.wait(5)
+
+    h.recorder.on_start = hang
+    h.session.on_ptt_press()
+    worker = threading.Thread(target=runner.run_all, daemon=True)
+    worker.start()
+    assert entered.wait(2)
+    started = time.monotonic()
+    h.session.shutdown(timeout_s=0.2)
+    elapsed = time.monotonic() - started
+    release.set()
+    worker.join(2)
+    assert elapsed < 1.0
+    assert runner.closed

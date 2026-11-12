@@ -153,17 +153,26 @@ class ConversationSession:
         """Forward a microphone level reading to the UI."""
         self._emit(LevelChanged(value))
 
-    def shutdown(self) -> None:
-        """Stop background work; abandon any recording in progress."""
-        with self._recorder_lock:
-            with self._lock:
-                self._closing = True
-            if self._mic == "open":
-                self._mic = "closed"
-                try:
-                    self._recorder.stop()
-                except Exception:  # shutting down: nothing useful to do with the error
-                    logger.exception("Recorder failed to stop during shutdown")
+    def shutdown(self, timeout_s: float = 2.0) -> None:
+        """Stop background work; abandon any recording in progress.
+
+        Runs on the UI thread, so it waits at most ``timeout_s`` for a device
+        call in progress on the worker; a hung audio driver must not freeze exit.
+        """
+        with self._lock:
+            self._closing = True
+        if self._recorder_lock.acquire(timeout=timeout_s):
+            try:
+                if self._mic == "open":
+                    self._mic = "closed"
+                    try:
+                        self._recorder.stop()
+                    except Exception:  # shutting down: nothing useful to do with the error
+                        logger.exception("Recorder failed to stop during shutdown")
+            finally:
+                self._recorder_lock.release()
+        else:
+            logger.warning("Audio device busy for %.1fs; closing without stopping it", timeout_s)
         self._runner.close()
 
     # ------------------------------------------------------------------- turn
