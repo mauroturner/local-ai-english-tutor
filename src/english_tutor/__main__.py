@@ -3,20 +3,30 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 
 from .adapters.file_conversation_log import FileConversationLog
 from .adapters.json_mistake_store import JsonMistakeStore
+from .adapters.json_settings_store import JsonSettingsStore
 from .adapters.keyboard_ptt import KeyboardPushToTalk
 from .adapters.ollama_chat import OllamaTutorModel
 from .adapters.piper_tts import NullSynthesizer, PiperSynthesizer
 from .adapters.sounddevice_recorder import SoundDeviceRecorder
 from .adapters.whisper_stt import WhisperTranscriber
 from .application.events import ErrorRaised, LevelChanged, SessionEvent
+from .application.preferences import SettingsService
 from .application.session import ConversationSession
 from .audio.devices import list_input_devices
-from .config import AppConfig, ConfigError, load_config
+from .config import (
+    AppConfig,
+    ConfigError,
+    default_project_root,
+    load_config,
+    resolve_settings_path,
+)
 from .ports import SpeechSynthesizer
+from .settings.model import settings_env
 
 logger = logging.getLogger("english_tutor")
 
@@ -34,8 +44,13 @@ def _build_tts(cfg: AppConfig) -> tuple[SpeechSynthesizer, str | None]:
 
 def main() -> int:
     """Start the application; returns a process exit code."""
+    root = default_project_root()
+    settings_service = SettingsService(
+        JsonSettingsStore(resolve_settings_path(os.environ, root)), None, os.environ
+    )
+    loaded = settings_service.load()
     try:
-        cfg = load_config()
+        cfg = load_config(overrides=settings_env(loaded.settings))
     except ConfigError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
@@ -76,6 +91,8 @@ def main() -> int:
     )
     window = TutorWindow(cfg, session, devices, default_device)
     window_ref.append(window)
+    for warning in loaded.warnings:
+        window.post(ErrorRaised(warning))
 
     ptt = KeyboardPushToTalk(cfg.ptt_key)
     try:

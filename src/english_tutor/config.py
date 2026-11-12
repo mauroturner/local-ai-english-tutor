@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import math
 import os
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
 class ConfigError(ValueError):
@@ -110,6 +111,26 @@ def _str(env: Mapping[str, str], name: str, default: str) -> str:
     return raw.strip() if raw is not None and raw.strip() else default
 
 
+PARSERS: dict[str, Callable[[Mapping[str, str], str, Any], Any]] = {
+    "str": _str,
+    "bool": _bool,
+    "int": _int,
+    "float": _float,
+    "non_negative": _non_negative,
+    "positive_int": _positive_int,
+    "positive_float": _positive_float,
+    "non_negative_float": _non_negative_float,
+}
+"""The parsers above by kind, shared with ``settings.model`` so messages match."""
+
+
+def check_between(name: str, value: float, lo: float, hi: float) -> float:
+    """Return ``value`` if ``lo <= value <= hi``; otherwise raise ConfigError."""
+    if not lo <= value <= hi:
+        raise ConfigError(f"{name} must be between {lo} and {hi}, got {value}")
+    return value
+
+
 def default_project_root() -> Path:
     """Repository root when running from source, else the current directory."""
     candidate = Path(__file__).resolve().parents[2]
@@ -134,11 +155,33 @@ def resolve_piper_exe(env: Mapping[str, str], root: Path) -> Path | None:
     return next((c for c in candidates if c.is_file()), None)
 
 
+def resolve_settings_path(env: Mapping[str, str], root: Path) -> Path:
+    """Locate settings.json: ``TUTOR_SETTINGS_FILE``, else ``<data folder>/settings.json``.
+
+    The data folder here is ``TUTOR_DATA_DIR`` or ``<root>/data``; the ``data_dir``
+    user setting never moves the settings file itself.
+    """
+    explicit = env.get("TUTOR_SETTINGS_FILE", "").strip()
+    if explicit:
+        return Path(explicit)
+    data = env.get("TUTOR_DATA_DIR", "").strip()
+    return (Path(data) if data else root / "data") / "settings.json"
+
+
 def load_config(
-    env: Mapping[str, str] | None = None, project_root: Path | None = None
+    env: Mapping[str, str] | None = None,
+    project_root: Path | None = None,
+    *,
+    overrides: Mapping[str, str] | None = None,
 ) -> AppConfig:
-    """Build an AppConfig from ``env`` (defaults to ``os.environ``)."""
+    """Build an AppConfig from ``env`` (defaults to ``os.environ``).
+
+    ``overrides`` (the values saved in settings.json, as ``TUTOR_*`` names) sit
+    between the defaults and ``env``: a non-empty variable always wins.
+    """
     env = os.environ if env is None else env
+    if overrides:
+        env = {**overrides, **{k: v for k, v in env.items() if v.strip()}}
     root = project_root if project_root is not None else default_project_root()
     exe = resolve_piper_exe(env, root)
     piper_dir = exe.parent if exe is not None else root / "piper"

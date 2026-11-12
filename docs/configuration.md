@@ -1,6 +1,6 @@
 # Configuration
 
-All settings are read once at start-up from environment variables (`config.load_config`). Every variable is optional. An empty or whitespace-only value counts as "not set" and the default is used.
+All settings are read once at start-up (`config.load_config`) from the defaults, the [settings file](#settings-file) and environment variables, in that order of increasing priority. Every variable is optional. An empty or whitespace-only value counts as "not set" and the default is used.
 
 If a value is invalid the app prints `Configuration error: <message>` to standard error and exits with code `2` before opening a window. The message names the variable, for example `TUTOR_HISTORY_EXCHANGES must be an integer, got 'abc'` or `TUTOR_OLLAMA_TIMEOUT must be greater than 0, got 0.0`.
 
@@ -24,11 +24,43 @@ If a value is invalid the app prints `Configuration error: <message>` to standar
 | `TUTOR_PTT_KEY` | string | `v` | Push-to-talk key, as a key name understood by the `keyboard` package. Shown capitalised (`V`, `Right Ctrl`) in the window hint and in the `Ready: hold <KEY>` status. See [Push-to-talk key](#push-to-talk-key) |
 | `TUTOR_DATA_DIR` | path | `<project root>\data` | Folder for the conversation logs and the mistake history. A relative path is relative to the working directory. See [Local data](#local-data) |
 | `TUTOR_LOG_LEVEL` | string | `INFO` | Python logging level name (`DEBUG`, `INFO`, `WARNING`, ...). Upper-cased; an unknown name falls back to `INFO`. Logs go to the console |
+| `TUTOR_SETTINGS_FILE` | path | `<data folder>\settings.json` | Location of the settings file. See [Settings file](#settings-file) |
 
 Notes:
 
 - Numbers are parsed with Python's `int()` / `float()`. Ranges are enforced for the four numeric variables above; `nan` and `inf` are rejected for the float ones. Error texts: `must be greater than 0`, `must be 0 or greater`, `must be 1 or greater`.
 - Use **absolute paths** for `TUTOR_PIPER_EXE` and `TUTOR_PIPER_VOICE`. Availability is checked against the app's working directory, whereas Piper itself is started with the folder of `piper.exe` as its working directory and receives the voice path unchanged.
+
+## Settings file
+
+User settings are saved in `settings.json`. Environment variables keep working and always win, so the effective value of each setting is decided in this order (later wins):
+
+1. built-in default
+2. `settings.json`
+3. the `TUTOR_*` variable, when it is set and not blank
+
+**Location.** `TUTOR_SETTINGS_FILE` if set, otherwise `settings.json` inside the data folder (`TUTOR_DATA_DIR`, default `<project root>\data`, git-ignored). The `data_dir` setting inside the file never moves the file itself; it only changes where conversations, mistakes and logs go.
+
+**Format.** Versioned JSON, written atomically (temporary file, flush, `os.replace`), so a failed save keeps the previous file:
+
+```json
+{
+  "version": 1,
+  "settings": {
+    "language": "en", "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
+    "density": "comfortable", "tts_enabled": true, "ptt_key": "v",
+    "whisper_device": "auto", "whisper_model": "large-v3",
+    "ollama_url": "http://localhost:11434", "ollama_model": "llama3:8b-instruct-q4_K_M",
+    "log_level": "INFO"
+  }
+}
+```
+
+Missing keys use their default and unknown keys are ignored. A value that is invalid (wrong type, out of range, not one of the allowed choices, a bad Ollama URL) is replaced by its default **on its own**, the other settings are kept, and the app shows one chat notice per ignored value, for example `Ignored invalid setting: chat_font_size must be between 10 and 22, got 99; using 13.`
+
+**Environment overrides.** Settings that have a variable (`tts_enabled` -> `TUTOR_TTS`, `data_dir` -> `TUTOR_DATA_DIR`, `ptt_key` -> `TUTOR_PTT_KEY`, `whisper_device`, `whisper_model`, `ollama_url`, `ollama_model`, `log_level` -> `TUTOR_WHISPER_DEVICE`, `TUTOR_WHISPER_MODEL`, `TUTOR_OLLAMA_URL`, `TUTOR_OLLAMA_MODEL`, `TUTOR_LOG_LEVEL`) are *locked* while that variable is set. A locked setting keeps the value stored in the file; the variable's value is never written to `settings.json`.
+
+**Corrupt or unsupported file.** If the file is not valid JSON, has the wrong structure or a `version` other than 1, it is renamed to `settings.json.corrupt-YYYYmmdd-HHMMSS`, the app starts with the defaults and shows `Settings were unreadable; saved a copy as <name> and started with defaults`. If the rename fails, settings are read-only for that run and nothing is overwritten.
 
 ## Push-to-talk key
 

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 import numpy as np
 
@@ -133,6 +133,41 @@ class MistakeStore(Protocol):
 
     def save(self, records: Sequence[MistakeRecord]) -> None:
         """Replace the stored records; raises StorageError on failure."""
+        ...
+
+
+class SettingsStore(Protocol):
+    """Persistent user settings as a plain field-name -> value mapping."""
+
+    def load(self) -> dict[str, Any]:
+        """Return the stored mapping (empty when nothing is saved yet).
+
+        Raises StorageError when the file was unusable and had to be set aside.
+        """
+        ...
+
+    def save(self, data: Mapping[str, Any]) -> None:
+        """Replace the stored mapping; raises StorageError on failure."""
+        ...
+
+
+class AutoStart(Protocol):
+    """Start-with-the-operating-system registration (state lives in the OS)."""
+
+    def is_enabled(self) -> bool:
+        """Whether an auto-start entry exists."""
+        ...
+
+    def is_stale(self) -> bool:
+        """Whether the entry exists but points somewhere other than this install."""
+        ...
+
+    def enable(self) -> None:
+        """Create or rewrite the entry; raises StorageError on failure."""
+        ...
+
+    def disable(self) -> None:
+        """Remove the entry; raises StorageError on failure."""
         ...
 
 
