@@ -36,3 +36,8 @@ dist/
 
 # Local agent tooling
 .atl/
+
+# Conversation logs and mistake history (private learner data)
+data/
+logs/
+*.log

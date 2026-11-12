@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from ..domain.models import Correction, SessionReport, SessionState
+from ..domain.models import Correction, MistakeRecord, SessionReport, SessionState
 
 
 @dataclass(frozen=True)
@@ -52,7 +52,20 @@ class LevelChanged:
     value: float
 
 
+@dataclass(frozen=True)
+class MistakesChanged:
+    """The mistake history changed; carries the full ranked list."""
+
+    mistakes: tuple[MistakeRecord, ...]
+
+
 SessionEvent = (
-    StateChanged | UserSaid | TutorSaid | ReportReady | ErrorRaised | LevelChanged
+    StateChanged
+    | UserSaid
+    | TutorSaid
+    | ReportReady
+    | ErrorRaised
+    | LevelChanged
+    | MistakesChanged
 )
 EventSink = Callable[[SessionEvent], None]

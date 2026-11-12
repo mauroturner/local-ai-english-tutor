@@ -7,18 +7,16 @@ import threading
 from typing import Callable, Literal
 
 from ..audio.processing import prepare_for_stt
-from ..domain.corrections import dedupe, filter_corrections, pick_live, spoken_line
-from ..domain.models import (
-    Correction,
-    SessionReport,
-    SessionState,
-    Severity,
-    Turn,
-)
+from ..domain.corrections import filter_corrections, pick_live, spoken_line
+from ..domain.formatting import correction_text, format_report
+from ..domain.models import Correction, SessionState, Turn
 from ..ports import (
     AdapterError,
     AudioRecorder,
+    ConversationLog,
     LlmUnavailable,
+    LogSpeaker,
+    MistakeStore,
     SpeechSynthesizer,
     SpeechToText,
     TtsError,
@@ -28,12 +26,16 @@ from .events import (
     ErrorRaised,
     EventSink,
     LevelChanged,
+    MistakesChanged,
     ReportReady,
     StateChanged,
     TutorSaid,
     UserSaid,
 )
 from .history import ChatHistory
+from .journal import NullConversationLog, NullMistakeStore
+from .mistake_book import MistakeBook
+from .report import make_report
 from .worker import Runner, SerialWorker
 
 logger = logging.getLogger(__name__)
@@ -61,6 +63,8 @@ class ConversationSession:
         history_exchanges: int = 6,
         runner: Runner | None = None,
         ptt_label: str = "Right Ctrl",
+        conversation_log: ConversationLog | None = None,
+        mistakes: MistakeStore | None = None,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -69,6 +73,12 @@ class ConversationSession:
         self._emit = emit
         self._runner: Runner = runner if runner is not None else SerialWorker()
         self._ptt_label = ptt_label
+        self._log: ConversationLog = conversation_log or NullConversationLog()
+        self._warned: set[str] = set()
+        self._book = MistakeBook(
+            mistakes or NullMistakeStore(),
+            lambda message: self._warn_once("mistakes", message),
+        )
         self._history = ChatHistory(history_exchanges)
         self._turns: list[Turn] = []
         self._state = SessionState.LOADING
@@ -110,6 +120,23 @@ class ConversationSession:
         self._emit(ErrorRaised(message))
         self._set_state(SessionState.IDLE, "Ready")
 
+    def _warn_once(self, source: str, message: str) -> None:
+        """Show ``message`` to the learner the first time ``source`` fails."""
+        if source not in self._warned:
+            self._warned.add(source)
+            self._emit(ErrorRaised(message))
+
+    def _journal(self, speaker: LogSpeaker, text: str) -> None:
+        """Append to the conversation log; a failing log never affects the turn."""
+        self._guard_log(lambda: self._log.record(speaker, text))
+
+    def _guard_log(self, action: Callable[[], None]) -> None:
+        try:
+            action()
+        except Exception as exc:  # any storage problem must leave the turn untouched
+            logger.warning("Conversation log failed: %s", exc)
+            self._warn_once("log", f"Conversation log unavailable: {exc}")
+
     def _submit(self, job: Callable[[], None]) -> None:
         """Run ``job`` on the worker; an unexpected error always ends in IDLE."""
 
@@ -129,6 +156,8 @@ class ConversationSession:
 
     def _load(self) -> None:
         self._set_state(SessionState.LOADING, "Loading speech model...")
+        self._book.load()
+        self._emit(MistakesChanged(self._book.snapshot()))
         try:
             device = self._stt.load()
         except Exception as exc:  # any load failure must be shown, not crash the worker
@@ -236,6 +265,7 @@ class ConversationSession:
             self._set_state(SessionState.IDLE, "Didn't catch that, try again")
             return
         self._emit(UserSaid(raw))
+        self._journal("you", raw)
         self._set_state(SessionState.THINKING, "Thinking...")
         try:
             reply = self._tutor.reply(self._history.messages(), raw)
@@ -254,8 +284,19 @@ class ConversationSession:
         )
         self._history.add_exchange(raw, reply.reply)
         self._emit(TutorSaid(reply.reply, live))
+        self._journal("tutor", reply.reply)
+        if live is not None:
+            self._journal("tip", correction_text(live))
+        self._record_mistakes(corrections, raw)
         self._speak(self._compose_speech(reply.reply, live))
         self._set_state(SessionState.IDLE, "Ready")
+
+    def _record_mistakes(self, corrections: tuple[Correction, ...], sentence: str) -> None:
+        """Add this turn's corrections to the history and tell the UI."""
+        if not corrections:
+            return
+        self._book.add_corrections(corrections, sentence)
+        self._emit(MistakesChanged(self._book.snapshot()))
 
     @staticmethod
     def _compose_speech(reply: str, live: Correction | None) -> str:
@@ -280,29 +321,12 @@ class ConversationSession:
             self._submit(self._build_report)
 
     def _build_report(self) -> None:
-        turns = tuple(self._turns)
-        majors, minors = self._collect_errors(turns)
-        feedback = None
-        feedback_error = None
-        if turns:
-            try:
-                feedback = self._tutor.feedback(turns)
-            except Exception as exc:  # the recorded errors are still worth reporting
-                logger.warning("Feedback generation failed: %s", exc)
-                feedback_error = str(exc)
-        report = SessionReport(len(turns), majors, minors, feedback, feedback_error)
+        report = make_report(self._tutor, tuple(self._turns))
         self._emit(ReportReady(report))
-        if feedback is not None and feedback.summary:
-            self._speak(feedback.summary)
+        self._journal("report", format_report(report))
+        self._guard_log(self._log.new_session)
+        if report.feedback is not None and report.feedback.summary:
+            self._speak(report.feedback.summary)
         self._turns.clear()
         self._history.clear()
         self._set_state(SessionState.IDLE, "Ready")
-
-    @staticmethod
-    def _collect_errors(
-        turns: tuple[Turn, ...],
-    ) -> tuple[tuple[Correction, ...], tuple[Correction, ...]]:
-        every = [c for turn in turns for c in turn.corrections]
-        majors = dedupe(c for c in every if c.severity is Severity.MAJOR)
-        minors = dedupe(c for c in every if c.severity is Severity.MINOR)
-        return majors, minors

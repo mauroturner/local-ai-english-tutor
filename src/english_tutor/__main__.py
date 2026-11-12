@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import sys
 
+from .adapters.file_conversation_log import FileConversationLog
+from .adapters.json_mistake_store import JsonMistakeStore
 from .adapters.keyboard_ptt import KeyboardPushToTalk
 from .adapters.ollama_chat import OllamaTutorModel
 from .adapters.piper_tts import NullSynthesizer, PiperSynthesizer
@@ -49,6 +51,7 @@ def main() -> int:
     if tts_warning:
         logger.warning(tts_warning)
 
+    logger.info("Local data folder: %s", cfg.data_dir)
     window_ref: list[TutorWindow] = []
 
     def emit(event: SessionEvent) -> None:
@@ -66,6 +69,8 @@ def main() -> int:
         emit,
         history_exchanges=cfg.history_exchanges,
         ptt_label=cfg.ptt_label,
+        conversation_log=FileConversationLog(cfg.data_dir / "conversations"),
+        mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
     )
     window = TutorWindow(cfg, session, devices, default_device)
     window_ref.append(window)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -13,13 +14,14 @@ from english_tutor.application.worker import InlineRunner
 from english_tutor.domain.models import (
     ChatMessage,
     Correction,
+    MistakeRecord,
     SessionFeedback,
     Severity,
     Transcript,
     Turn,
     TutorReply,
 )
-from english_tutor.ports import AudioClip, LlmUnavailable, TtsError
+from english_tutor.ports import AudioClip, LlmUnavailable, StorageError, TtsError
 
 
 def major(original: str, corrected: str, why: str = "because") -> Correction:
@@ -112,6 +114,45 @@ class ManualRunner:
             self.jobs.pop(0)()
 
 
+class FakeLog:
+    """In-memory ConversationLog; ``fail`` makes every call raise StorageError."""
+
+    def __init__(self) -> None:
+        self.entries: list[tuple[str, str]] = []
+        self.sessions = 0
+        self.fail = False
+
+    def record(self, speaker: str, text: str) -> None:
+        if self.fail:
+            raise StorageError("disk full")
+        self.entries.append((speaker, text))
+
+    def new_session(self) -> None:
+        if self.fail:
+            raise StorageError("disk full")
+        self.sessions += 1
+
+
+class FakeMistakeStore:
+    """In-memory MistakeStore; the ``*_error`` attributes make calls raise."""
+
+    def __init__(self) -> None:
+        self.records: list[MistakeRecord] = []
+        self.saves: list[list[MistakeRecord]] = []
+        self.load_error: Exception | None = None
+        self.save_error: Exception | None = None
+
+    def load(self) -> list[MistakeRecord]:
+        if self.load_error is not None:
+            raise self.load_error
+        return list(self.records)
+
+    def save(self, records: Sequence[MistakeRecord]) -> None:
+        if self.save_error is not None:
+            raise self.save_error
+        self.saves.append(list(records))
+
+
 class FakeRecorder:
     """Returns a fixed audible clip; ``start`` can fail or run a hook."""
 
@@ -159,11 +200,33 @@ class Harness:
 
 
 @pytest.fixture
+def fake_store() -> FakeMistakeStore:
+    """A fresh in-memory mistake store."""
+    return FakeMistakeStore()
+
+
+@pytest.fixture
+def old_record() -> MistakeRecord:
+    """A mistake already present in the stored history."""
+    when = datetime(2026, 11, 1, 9, 0, 0)
+    return MistakeRecord(
+        "she go => she goes", "she go", "she goes", "Third person.", Severity.MINOR,
+        4, when, when, ("she go home",),
+    )
+
+
+@pytest.fixture
+def fake_log() -> FakeLog:
+    """A fresh in-memory conversation log."""
+    return FakeLog()
+
+
+@pytest.fixture
 def make_harness():
     """Factory building a ready (IDLE) session around fakes."""
 
     def _make(
-        texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None
+        texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -172,6 +235,8 @@ def make_harness():
             stt, tutor, tts, recorder, events.append,
             history_exchanges=history_exchanges,
             runner=runner if runner is not None else InlineRunner(),
+            conversation_log=log,
+            mistakes=store,
         )
         session.start()
         if isinstance(runner, ManualRunner):

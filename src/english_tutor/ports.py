@@ -4,11 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 import numpy as np
 
-from .domain.models import ChatMessage, SessionFeedback, Transcript, Turn, TutorReply
+from .domain.models import (
+    ChatMessage,
+    MistakeRecord,
+    SessionFeedback,
+    Transcript,
+    Turn,
+    TutorReply,
+)
 
 
 class AdapterError(Exception):
@@ -25,6 +32,10 @@ class SttError(AdapterError):
 
 class TtsError(AdapterError):
     """Speech synthesis failed."""
+
+
+class StorageError(AdapterError):
+    """Reading or writing local data (logs, mistake history) failed."""
 
 
 @dataclass(frozen=True)
@@ -94,4 +105,31 @@ class PushToTalk(Protocol):
 
     def stop(self) -> None:
         """Stop listening."""
+        ...
+
+
+LogSpeaker = Literal["you", "tutor", "tip", "report", "practice"]
+
+
+class ConversationLog(Protocol):
+    """Append-only record of what was said, one file per session."""
+
+    def record(self, speaker: LogSpeaker, text: str) -> None:
+        """Append one entry; raises StorageError when it cannot be written."""
+        ...
+
+    def new_session(self) -> None:
+        """Make the next ``record`` start a new file."""
+        ...
+
+
+class MistakeStore(Protocol):
+    """Persistent mistake history."""
+
+    def load(self) -> list[MistakeRecord]:
+        """Return the stored records; raises StorageError when unusable."""
+        ...
+
+    def save(self, records: Sequence[MistakeRecord]) -> None:
+        """Replace the stored records; raises StorageError on failure."""
         ...

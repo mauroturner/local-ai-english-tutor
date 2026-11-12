@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Literal
 
@@ -90,3 +91,38 @@ class SessionReport:
     minor_errors: tuple[Correction, ...]
     feedback: SessionFeedback | None
     feedback_error: str | None = None
+
+
+class PracticeOutcome(str, Enum):
+    """Whether the learner used the practised structure correctly."""
+
+    CORRECT = "correct"
+    INCORRECT = "incorrect"
+    NOT_USED = "not_used"
+
+
+@dataclass(frozen=True)
+class PracticeReply:
+    """The coach's answer to one practice turn."""
+
+    outcome: PracticeOutcome
+    feedback: str
+    next_prompt: str
+    parsed_ok: bool = True
+
+
+@dataclass(frozen=True)
+class MistakeRecord:
+    """A recurring mistake, grouped by its normalized original/corrected pair."""
+
+    key: str
+    original: str
+    corrected: str
+    explanation: str
+    severity: Severity
+    count: int
+    first_seen: datetime
+    last_seen: datetime
+    examples: tuple[str, ...]
+    practice_attempts: int = 0
+    practice_successes: int = 0
