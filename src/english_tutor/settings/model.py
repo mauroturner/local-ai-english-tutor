@@ -72,7 +72,8 @@ RESTART_FIELDS: frozenset[str] = frozenset(
 )
 """Settings that only take effect after the app restarts."""
 
-_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_DEFAULTS: dict[str, Any] = dataclasses.asdict(UserSettings())
+_LOCAL_HOSTS =frozenset({"localhost", "127.0.0.1", "::1"})
 _SCALES = (0.8, 0.9, 1.0, 1.1, 1.25, 1.5)
 
 
@@ -123,6 +124,16 @@ def _parse_field(name: str, raw: Any, default: Any) -> Any:
     if name == "ollama_url":
         value = _checked_url(name, value)
     return value
+
+
+def parse_field(name: str, raw: Any) -> Any:
+    """Validate one value exactly as ``parse_settings`` does; raises ConfigError.
+
+    Raises KeyError for a name that is not a setting.
+    """
+    if name not in _DEFAULTS:
+        raise KeyError(name)
+    return _parse_field(name, raw, _DEFAULTS[name])
 
 
 def _checked_url(name: str, value: str) -> str:

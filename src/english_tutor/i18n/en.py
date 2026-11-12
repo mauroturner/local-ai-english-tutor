@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .en_settings import SETTINGS_STRINGS
+
 STRINGS: dict[str, str] = {
     # Window chrome
     "app.title": "AI English Tutor - Virtual Assistant",
@@ -56,3 +58,5 @@ STRINGS: dict[str, str] = {
     "severity.major": "MAJOR",
     "severity.minor": "MINOR",
 }
+
+STRINGS.update(SETTINGS_STRINGS)
