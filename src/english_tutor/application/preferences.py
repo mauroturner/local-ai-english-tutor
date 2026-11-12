@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import dataclasses
 import logging
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, replace
 
 from ..ports import AdapterError, AutoStart, SettingsStore, StorageError
 from ..settings.model import (
@@ -80,7 +79,7 @@ class SettingsService:
                 values[field] = parse_field(field, self._env[ENV_VARS[field]])
             except ValueError as exc:
                 logger.warning("Ignoring %s for display: %s", ENV_VARS[field], exc)
-        return dataclasses.replace(settings, **values)
+        return replace(settings, **values)
 
     def save(
         self, new: UserSettings, old: UserSettings, *, autostart: bool | None = None
@@ -93,7 +92,7 @@ class SettingsService:
         """
         locked = locked_fields(self._env)
         keep = {name: getattr(self._stored, name) for name in locked}
-        to_store = dataclasses.replace(new, **keep)
+        to_store = replace(new, **keep)
         try:
             self._store.save(to_json_dict(to_store))
         except StorageError as exc:
@@ -101,7 +100,7 @@ class SettingsService:
         self._stored = to_store
         restart = tuple(
             f.name
-            for f in dataclasses.fields(UserSettings)
+            for f in fields(UserSettings)
             if f.name in RESTART_FIELDS
             and f.name not in locked
             and getattr(new, f.name) != getattr(old, f.name)
