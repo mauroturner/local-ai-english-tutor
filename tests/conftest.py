@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -93,19 +93,47 @@ class FakeTTS:
         self.spoken.append(text)
 
 
+class ManualRunner:
+    """Queues jobs until a test runs them, to control thread interleavings."""
+
+    def __init__(self) -> None:
+        self.jobs: list[Callable[[], None]] = []
+        self.closed = False
+
+    def submit(self, fn: Callable[[], None]) -> None:
+        self.jobs.append(fn)
+
+    def close(self) -> None:
+        self.closed = True
+
+    def run_all(self) -> None:
+        """Run queued jobs in FIFO order, including jobs they submit."""
+        while self.jobs:
+            self.jobs.pop(0)()
+
+
 class FakeRecorder:
-    """Returns a fixed audible clip."""
+    """Returns a fixed audible clip; ``start`` can fail or run a hook."""
 
     def __init__(self, clip: AudioClip | None = None) -> None:
+        self.start_error: Exception | None = None
+        self.on_start: Callable[[], None] | None = None
+        self.calls: list[str] = []
         tone = (0.5 * np.sin(np.linspace(0, 440 * 2 * np.pi, 16000))).astype(np.float32)
         self.clip = clip or AudioClip(tone.reshape(-1, 1), 16000)
         self.started_with: list[int | None] = []
         self.stops = 0
 
     def start(self, device_index: int | None) -> None:
+        self.calls.append("start")
+        if self.on_start is not None:
+            self.on_start()
+        if self.start_error is not None:
+            raise self.start_error
         self.started_with.append(device_index)
 
     def stop(self) -> AudioClip:
+        self.calls.append("stop")
         self.stops += 1
         return self.clip
 
@@ -134,15 +162,20 @@ class Harness:
 def make_harness():
     """Factory building a ready (IDLE) session around fakes."""
 
-    def _make(texts=(), replies=(), tts_available=True, history_exchanges=6) -> Harness:
+    def _make(
+        texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None
+    ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
         tts, recorder = FakeTTS(tts_available), FakeRecorder()
         session = ConversationSession(
             stt, tutor, tts, recorder, events.append,
-            history_exchanges=history_exchanges, runner=InlineRunner(),
+            history_exchanges=history_exchanges,
+            runner=runner if runner is not None else InlineRunner(),
         )
         session.start()
+        if isinstance(runner, ManualRunner):
+            runner.run_all()
         return Harness(session, stt, tutor, tts, recorder, events)
 
     return _make

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Callable
+from typing import Callable, Literal
 
 from ..audio.processing import prepare_for_stt
 from ..domain.corrections import dedupe, filter_corrections, pick_live, spoken_line
@@ -45,7 +45,9 @@ class ConversationSession:
     Threading model: ``on_ptt_press`` / ``on_ptt_release`` / ``end_session`` may
     be called from any thread and never block on slow work. All slow work and
     all mutation of ``turns`` and history happen on the runner (one job at a
-    time). The state is guarded by a lock.
+    time). The state is guarded by a lock. The microphone is opened and closed
+    on the runner too. Lock order: ``_recorder_lock`` first, then ``_lock``;
+    never take ``_recorder_lock`` while holding ``_lock``.
     """
 
     def __init__(
@@ -72,6 +74,8 @@ class ConversationSession:
         self._state = SessionState.LOADING
         self._lock = threading.Lock()
         self._recorder_lock = threading.Lock()
+        self._mic: Literal["closed", "open", "failed"] = "closed"
+        self._closing = False
         self._device_index: int | None = None
 
     # ------------------------------------------------------------------ state
@@ -151,12 +155,15 @@ class ConversationSession:
 
     def shutdown(self) -> None:
         """Stop background work; abandon any recording in progress."""
-        if self.state is SessionState.RECORDING:
-            try:
-                with self._recorder_lock:
+        with self._recorder_lock:
+            with self._lock:
+                self._closing = True
+            if self._mic == "open":
+                self._mic = "closed"
+                try:
                     self._recorder.stop()
-            except Exception:  # shutting down: nothing useful to do with the error
-                logger.exception("Recorder failed to stop during shutdown")
+                except Exception:  # shutting down: nothing useful to do with the error
+                    logger.exception("Recorder failed to stop during shutdown")
         self._runner.close()
 
     # ------------------------------------------------------------------- turn
@@ -164,13 +171,24 @@ class ConversationSession:
         """Start recording; ignored unless the session is idle."""
         if not self._transition(SessionState.IDLE, SessionState.RECORDING, "Listening..."):
             return
-        try:
-            with self._recorder_lock:
+        self._submit(self._start_recording)
+
+    def _start_recording(self) -> None:
+        """Open the microphone on the worker (queued before any release job)."""
+        with self._recorder_lock:
+            with self._lock:
+                skip = self._closing or self._state is not SessionState.RECORDING
+            if skip:
+                return
+            try:
                 self._recorder.start(self._device_index)
-        except Exception as exc:  # device errors vary by driver
-            logger.exception("Could not start recording")
-            self._emit(ErrorRaised(f"Could not start recording: {exc}"))
-            self._set_state(SessionState.IDLE, "Ready")
+                self._mic = "open"
+            except Exception as exc:  # device errors vary by driver
+                logger.exception("Could not start recording")
+                self._emit(ErrorRaised(f"Could not start recording: {exc}"))
+                # If a release already queued the turn, that job returns to IDLE.
+                back = self._transition(SessionState.RECORDING, SessionState.IDLE, "Ready")
+                self._mic = "closed" if back else "failed"
 
     def on_ptt_release(self) -> None:
         """Stop recording and process the turn; ignored unless recording."""
@@ -184,10 +202,15 @@ class ConversationSession:
     def _process_turn(self) -> None:
         try:
             with self._recorder_lock:
-                clip = self._recorder.stop()
+                mic, self._mic = self._mic, "closed"
+                clip = self._recorder.stop() if mic == "open" else None
         except Exception as exc:  # device errors vary by driver
             logger.exception("Could not stop recording")
             self._fail(f"Recording failed: {exc}")
+            return
+        if clip is None:  # the microphone never opened (quick tap or start failure)
+            message = "Ready" if mic == "failed" else "Too short or too quiet, try again"
+            self._set_state(SessionState.IDLE, message)
             return
         audio = prepare_for_stt(clip)
         if audio is None:
