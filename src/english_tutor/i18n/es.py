@@ -1,0 +1,48 @@
+"""Spanish interface texts (neutral, professional register)."""
+
+from __future__ import annotations
+
+STRINGS: dict[str, str] = {
+    # Window chrome
+    "app.title": "Tutor de inglés con IA - Asistente virtual",
+    "app.heading": "Tutor virtual de inglés",
+    "tab.chat": "Chat",
+    "tab.mistakes": "Errores",
+    "hint.hold": "Mantén pulsada '{key}' para hablar y suéltala para enviar",
+    # Microphone, level, status, buttons
+    "mic.label": "Seleccionar micrófono:",
+    "mic.none": "Ninguno",
+    "level.label": "Nivel de audio:",
+    "status.prefix": "Estado: {text}",
+    "button.end_session": "Finalizar sesión",
+    "button.stop_practice": "Detener práctica",
+    "button.practice": "Practicar",
+    # Status messages (see i18n.translate_status)
+    "status.initializing": "Iniciando...",
+    "status.ready": "Listo",
+    "status.ready_hold": "Listo: mantén {key}",
+    "status.practice_hold": "Práctica: mantén {key} para responder",
+    "status.loading": "Cargando el modelo de voz...",
+    "status.listening": "Escuchando...",
+    "status.transcribing": "Transcribiendo...",
+    "status.thinking": "Pensando...",
+    "status.speaking": "Hablando...",
+    "status.preparing_practice": "Preparando la práctica...",
+    "status.checking_answer": "Revisando tu respuesta...",
+    "status.writing_feedback": "Redactando comentarios...",
+    "status.too_short": "Muy corto o con poco volumen, inténtalo de nuevo",
+    "status.not_caught": "No te he entendido, inténtalo de nuevo",
+    # Chat bubbles
+    "chat.you": "Tú: {text}",
+    "chat.alex": "Alex: {text}",
+    "chat.tip": 'Consejo: "{original}"  ->  "{corrected}"',
+    "practice.correct": "¡Correcto!",
+    "practice.retry": "Inténtalo de nuevo:",
+    "practice.banner": 'Practicando: "{original}" -> "{corrected}"',
+    # Mistakes tab
+    "mistakes.empty": "Todavía no hay errores. Conversa con Alex y aparecerán aquí.",
+    "mistakes.truncated": "Se muestran los {shown} errores más frecuentes de {total}.",
+    "mistakes.stats": "x{count}   última vez {date}   práctica {successes}/{attempts}",
+    "severity.major": "GRAVE",
+    "severity.minor": "LEVE",
+}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import queue
 from collections.abc import Sequence
+from typing import Any
 
 import customtkinter as ctk
 
@@ -24,6 +25,7 @@ from ..application.session import ConversationSession
 from ..audio.devices import InputDevice
 from ..config import AppConfig
 from ..domain.models import SessionState
+from ..i18n import t
 from . import theme
 from .mistakes_view import MistakesView
 from .widgets import (
@@ -59,16 +61,18 @@ class TutorWindow(ctk.CTk):
         self._idle = False
         self._practicing = False
 
-        self.title("AI English Tutor - Virtual Assistant")
+        self.title(t("app.title"))
         self.geometry("600x800")
-        ctk.CTkLabel(self, text="English Virtual Tutor", font=theme.FONT_TITLE).pack(pady=15)
-        default_name = default_device.name if default_device else "None"
+        ctk.CTkLabel(self, text=t("app.heading"), font=theme.FONT_TITLE).pack(pady=15)
+        default_name = default_device.name if default_device else t("mic.none")
         MicSelector(
             self, [d.name for d in devices], default_name, self._on_mic_change
         ).pack()
         self._tabs = ctk.CTkTabview(self, width=550, height=380)
         self._tabs.pack(pady=10, padx=20, fill="both", expand=True)
-        chat_tab, mistakes_tab = self._tabs.add("Chat"), self._tabs.add("Mistakes")
+        self._chat_tab_name = t("tab.chat")
+        chat_tab = self._tabs.add(self._chat_tab_name)
+        mistakes_tab = self._tabs.add(t("tab.mistakes"))
         self._chat = ChatView(chat_tab, width=530, height=340)
         self._chat.pack(fill="both", expand=True)
         self._mistakes = MistakesView(mistakes_tab, on_practice=self._on_practice)
@@ -83,7 +87,7 @@ class TutorWindow(ctk.CTk):
         self._refresh_controls()
         ctk.CTkLabel(
             self,
-            text=f"Hold '{cfg.ptt_label}' to speak, release to send",
+            text=t("hint.hold", key=cfg.ptt_label),
             font=theme.FONT_HINT,
         ).pack(pady=10)
 
@@ -135,7 +139,7 @@ class TutorWindow(ctk.CTk):
         self._practicing = event.target is not None
         if event.target is not None:
             self._banner.show(event.target, before=self._meter)
-            self._tabs.set("Chat")
+            self._tabs.set(self._chat_tab_name)
         else:
             self._banner.hide()
         self._refresh_controls()
@@ -154,8 +158,14 @@ class TutorWindow(ctk.CTk):
         self._session.set_input_device(index)
 
     def _on_practice(self, key: str) -> None:
-        self._tabs.set("Chat")
+        self._tabs.set(self._chat_tab_name)
         self._session.start_practice(key)
+
+    def report_callback_exception(
+        self, exc: type[BaseException], val: BaseException, tb: Any
+    ) -> None:
+        """Log errors raised inside Tk callbacks instead of printing them to stderr."""
+        logger.error("Unhandled error in a Tk callback", exc_info=(exc, val, tb))
 
     def _on_close(self) -> None:
         self._session.shutdown()

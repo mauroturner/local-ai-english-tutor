@@ -8,10 +8,10 @@ from typing import Any
 import customtkinter as ctk
 
 from ..domain.models import MistakeRecord, Severity
+from ..i18n import format_date, t
 from . import theme
 
 MAX_ROWS = 50
-EMPTY_TEXT = "No mistakes yet. Talk with Alex and they will appear here."
 
 
 class MistakesView(ctk.CTkScrollableFrame):
@@ -33,12 +33,12 @@ class MistakesView(ctk.CTkScrollableFrame):
             child.destroy()
         self._buttons = []
         if not records:
-            ctk.CTkLabel(self, text=EMPTY_TEXT, text_color=theme.MUTED_TEXT).pack(pady=20)
+            ctk.CTkLabel(self, text=t("mistakes.empty"), text_color=theme.MUTED_TEXT).pack(pady=20)
             return
         for record in records[:MAX_ROWS]:
             self._add_row(record)
         if len(records) > MAX_ROWS:
-            note = f"Showing the {MAX_ROWS} most frequent of {len(records)} mistakes."
+            note = t("mistakes.truncated", shown=MAX_ROWS, total=len(records))
             ctk.CTkLabel(self, text=note, text_color=theme.MUTED_TEXT).pack(pady=6)
 
     def set_enabled(self, enabled: bool) -> None:
@@ -53,7 +53,7 @@ class MistakesView(ctk.CTkScrollableFrame):
         major = record.severity is Severity.MAJOR
         ctk.CTkLabel(
             row,
-            text=record.severity.value.upper(),
+            text=t(f"severity.{record.severity.value}"),
             fg_color=theme.BADGE_MAJOR if major else theme.BADGE_MINOR,
             text_color="white",
             corner_radius=6,
@@ -68,16 +68,19 @@ class MistakesView(ctk.CTkScrollableFrame):
             wraplength=theme.BUBBLE_WRAP - 120,
             justify="left",
         ).grid(row=0, column=1, padx=4, pady=(8, 2), sticky="w")
-        stats = (
-            f"x{record.count}   last seen {record.last_seen:%Y-%m-%d}   "
-            f"practice {record.practice_successes}/{record.practice_attempts}"
+        stats = t(
+            "mistakes.stats",
+            count=record.count,
+            date=format_date(record.last_seen),
+            successes=record.practice_successes,
+            attempts=record.practice_attempts,
         )
         ctk.CTkLabel(row, text=stats, text_color=theme.MUTED_TEXT, font=theme.FONT_HINT).grid(
             row=1, column=1, padx=4, pady=(0, 8), sticky="w"
         )
         button = ctk.CTkButton(
             row,
-            text="Practice",
+            text=t("button.practice"),
             width=80,
             state="normal" if self._enabled else "disabled",
             command=lambda key=record.key: self._on_practice(key),

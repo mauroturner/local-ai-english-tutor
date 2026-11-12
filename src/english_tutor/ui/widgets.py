@@ -9,6 +9,7 @@ import customtkinter as ctk
 
 from ..domain.formatting import format_report
 from ..domain.models import Correction, MistakeRecord, PracticeOutcome, SessionReport
+from ..i18n import t, translate_status
 from . import theme
 
 
@@ -40,18 +41,16 @@ class ChatView(ctk.CTkScrollableFrame):
 
     def add_user(self, text: str) -> None:
         """Show the learner's raw transcript."""
-        self._bubble(f"You: {text}", theme.USER_BUBBLE, "e")
+        self._bubble(t("chat.you", text=text), theme.USER_BUBBLE, "e")
 
     def add_tutor(self, text: str) -> None:
         """Show the tutor's reply."""
-        self._bubble(f"Alex: {text}", theme.TUTOR_BUBBLE, "w")
+        self._bubble(t("chat.alex", text=text), theme.TUTOR_BUBBLE, "w")
 
     def add_correction(self, correction: Correction) -> None:
         """Highlight the single live correction of a turn."""
-        text = (
-            f'Tip: "{correction.original}"  ->  "{correction.corrected}"\n'
-            f"{correction.explanation}"
-        )
+        tip = t("chat.tip", original=correction.original, corrected=correction.corrected)
+        text = f"{tip}\n{correction.explanation}"
         self._bubble(text, theme.CORRECTION_BUBBLE, "w")
 
     def add_practice_feedback(self, outcome: PracticeOutcome, feedback: str) -> None:
@@ -59,8 +58,8 @@ class ChatView(ctk.CTkScrollableFrame):
         if not feedback:
             return
         label = {
-            PracticeOutcome.CORRECT: "Correct! ",
-            PracticeOutcome.INCORRECT: "Try again: ",
+            PracticeOutcome.CORRECT: t("practice.correct") + " ",
+            PracticeOutcome.INCORRECT: t("practice.retry") + " ",
             PracticeOutcome.NOT_USED: "",
         }[outcome]
         color = theme.PRACTICE_OK if outcome is PracticeOutcome.CORRECT else theme.PRACTICE_RETRY
@@ -94,12 +93,14 @@ class PracticeBanner(ctk.CTkFrame):
             wraplength=360, justify="left",
         )
         self._label.pack(side="left", padx=10, pady=6)
-        self._button = ctk.CTkButton(self, text="Stop practice", width=110, command=on_stop)
+        self._button = ctk.CTkButton(self, text=t("button.stop_practice"), width=110, command=on_stop)
         self._button.pack(side="right", padx=10, pady=6)
 
     def show(self, target: MistakeRecord, before: Any) -> None:
         """Display the banner for ``target`` just above the ``before`` widget."""
-        self._label.configure(text=f'Practicing: "{target.original}" -> "{target.corrected}"')
+        self._label.configure(
+            text=t("practice.banner", original=target.original, corrected=target.corrected)
+        )
         self.pack(before=before, fill="x", padx=20, pady=(0, 6))
 
     def hide(self) -> None:
@@ -118,10 +119,10 @@ class MicSelector(ctk.CTkFrame):
         self, master: Any, names: Sequence[str], default: str, on_change: Callable[[str], None]
     ) -> None:
         super().__init__(master, fg_color="transparent")
-        ctk.CTkLabel(self, text="Select Microphone:").pack()
+        ctk.CTkLabel(self, text=t("mic.label")).pack()
         self._var = ctk.StringVar(value=default)
         menu = ctk.CTkOptionMenu(
-            self, values=list(names) or ["None"], variable=self._var, width=350, command=on_change
+            self, values=list(names) or [t("mic.none")], variable=self._var, width=350, command=on_change
         )
         menu.pack(pady=5)
 
@@ -131,7 +132,7 @@ class LevelMeter(ctk.CTkFrame):
 
     def __init__(self, master: Any) -> None:
         super().__init__(master, fg_color="transparent")
-        ctk.CTkLabel(self, text="Audio Level:").pack()
+        ctk.CTkLabel(self, text=t("level.label")).pack()
         self._bar = ctk.CTkProgressBar(self, width=400)
         self._bar.set(0)
         self._bar.pack(pady=5)
@@ -145,11 +146,12 @@ class StatusBar(ctk.CTkLabel):
     """One-line status text."""
 
     def __init__(self, master: Any) -> None:
-        super().__init__(master, text="Status: Initializing...", text_color=theme.MUTED_TEXT)
+        initial = t("status.prefix", text=translate_status("Initializing..."))
+        super().__init__(master, text=initial, text_color=theme.MUTED_TEXT)
 
     def set(self, text: str) -> None:
-        """Replace the status text."""
-        self.configure(text=f"Status: {text}")
+        """Replace the status text (known session messages are translated)."""
+        self.configure(text=t("status.prefix", text=translate_status(text)))
 
 
 class ControlBar(ctk.CTkFrame):
@@ -157,7 +159,7 @@ class ControlBar(ctk.CTkFrame):
 
     def __init__(self, master: Any, on_end_session: Callable[[], None]) -> None:
         super().__init__(master, fg_color="transparent")
-        self._button = ctk.CTkButton(self, text="End session", command=on_end_session)
+        self._button = ctk.CTkButton(self, text=t("button.end_session"), command=on_end_session)
         self._button.pack(pady=5)
 
     def set_enabled(self, enabled: bool) -> None:

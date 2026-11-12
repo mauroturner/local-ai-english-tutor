@@ -25,6 +25,8 @@ from .config import (
     load_config,
     resolve_settings_path,
 )
+from .i18n import set_language
+from .logging_setup import configure_logging
 from .ports import SpeechSynthesizer
 from .settings.model import settings_env
 
@@ -54,10 +56,8 @@ def main() -> int:
     except ConfigError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
-    logging.basicConfig(
-        level=getattr(logging, cfg.log_level, logging.INFO),
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    configure_logging(cfg.log_level, cfg.data_dir / "logs")
+    set_language(loaded.settings.language)
     # Imported here so configuration errors are reported without loading Tk.
     from .ui.app_window import TutorWindow
 
