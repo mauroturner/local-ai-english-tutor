@@ -127,4 +127,13 @@ SETTINGS_STRINGS: dict[str, str] = {
     "banner.later": "Later",
     "restart.confirm_title": "Restart now?",
     "restart.confirm_message": "The current conversation will end. Restart anyway?",
+    # Key capture and push-to-talk pause
+    "settings.ptt_paused": "Push-to-talk is paused while Settings is open.",
+    "button.change": "Change...",
+    "capture.title_ptt": "Push-to-talk key",
+    "capture.title_shortcut": "New shortcut",
+    "capture.prompt_ptt": "Press the key you will hold to speak.",
+    "capture.prompt_shortcut": "Press the new shortcut, for example Ctrl+K.",
+    "capture.hint": "Esc cancels.",
+    "capture.unsupported": "That key cannot be used here.",
 }

@@ -17,6 +17,7 @@ from .adapters.sounddevice_recorder import SoundDeviceRecorder
 from .adapters.whisper_stt import WhisperTranscriber
 from .application.events import ErrorRaised, LevelChanged, SessionEvent
 from .application.preferences import SettingsService
+from .application.ptt_gate import PttGate
 from .application.session import ConversationSession
 from .audio.devices import list_input_devices
 from .config import (
@@ -99,6 +100,7 @@ def main() -> int:
         mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
         coach=tutor,
     )
+    gate = PttGate(session.on_ptt_press, session.on_ptt_release)
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)
     services = UiServices(
         settings_service,
@@ -107,6 +109,7 @@ def main() -> int:
         apply_log_level=_apply_log_level,
         on_applied=lambda saved: window_ref[0].apply_settings(saved),
         on_restart_needed=lambda keys: window_ref[0].show_restart_banner(keys),
+        ptt_gate=gate,
     )
     window = TutorWindow(
         cfg,
@@ -122,7 +125,7 @@ def main() -> int:
 
     ptt = KeyboardPushToTalk(cfg.ptt_key)
     try:
-        ptt.start(session.on_ptt_press, session.on_ptt_release)
+        ptt.start(gate.press, gate.release)
     except Exception as exc:  # the keyboard hook needs OS privileges on some systems
         logger.exception("Push-to-talk unavailable")
         window.post(ErrorRaised(f"PTT unavailable: {exc}"))

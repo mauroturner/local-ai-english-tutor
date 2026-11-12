@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import queue
-import tkinter as tk
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -28,7 +27,6 @@ from ..config import AppConfig
 from ..domain.models import SessionState
 from ..i18n import t
 from ..settings.model import UserSettings
-from ..settings.shortcuts import to_tk_sequence
 from . import theme
 from .banners import RestartBanner
 from .mistakes_view import MistakesView
@@ -42,6 +40,7 @@ from .widgets import (
     StatusChip,
 )
 from .services import Confirm, ask_yes_no
+from .shortcut_binder import ShortcutBinder
 from .tooltip import Tooltip
 
 logger = logging.getLogger(__name__)
@@ -71,7 +70,6 @@ class TutorWindow(ctk.CTk):
         self._has_settings = on_open_settings is not None
         self._on_open_settings = on_open_settings or (lambda: None)
         self._confirm = confirm
-        self._settings_sequence: str | None = None
         self.restart_requested = False
         self._sp = theme.spacing(self._settings.density)
         self._events: queue.Queue[SessionEvent] = queue.Queue()
@@ -107,7 +105,13 @@ class TutorWindow(ctk.CTk):
         if default_device is not None:
             session.set_input_device(default_device.index)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self._bind_settings_shortcut()
+        self._binder = ShortcutBinder(self, {
+            "end_session": self._shortcut_end_session,
+            "settings": self._shortcut_settings,
+            "chat_tab": lambda: self._tabs.set(self._chat_tab_name),
+            "mistakes_tab": lambda: self._tabs.set(self._mistakes_tab_name),
+        })  # fmt: skip
+        self._binder.apply(self._settings)
         self.after(_PUMP_INTERVAL_MS, self._pump)
 
     def _build_header(
@@ -142,7 +146,8 @@ class TutorWindow(ctk.CTk):
         self._tabs.grid(row=2, column=0, sticky="nsew", padx=sp.l, pady=sp.s)
         self._chat_tab_name = t("tab.chat")
         chat_tab = self._tabs.add(self._chat_tab_name)
-        mistakes_tab = self._tabs.add(t("tab.mistakes"))
+        self._mistakes_tab_name = t("tab.mistakes")
+        mistakes_tab = self._tabs.add(self._mistakes_tab_name)
         self._chat = ChatView(chat_tab, empty_text=t("chat.empty", key=cfg.ptt_label))
         self._chat.pack(fill="both", expand=True)
         self._mistakes = MistakesView(mistakes_tab, on_practice=self._on_practice)
@@ -236,19 +241,15 @@ class TutorWindow(ctk.CTk):
     def apply_settings(self, settings: UserSettings) -> None:
         """Take over saved settings that the main window itself uses (shortcuts)."""
         self._settings = settings
-        self._bind_settings_shortcut()
+        self._binder.apply(settings)
 
-    def _bind_settings_shortcut(self) -> None:
-        """Bind the "open settings" shortcut on this window only (never globally)."""
-        try:
-            sequence = to_tk_sequence(self._settings.shortcut_settings)
-            if self._settings_sequence:
-                self.unbind(self._settings_sequence)
-            self.bind(sequence, lambda _e: (self._on_open_settings(), "break")[1])
-            self._settings_sequence = sequence
-        except (ValueError, tk.TclError):
-            logger.warning("Shortcut %r is not usable", self._settings.shortcut_settings)
-            self._settings_sequence = None
+    def _shortcut_end_session(self) -> None:
+        if self._controls.enabled:  # same rule as the button
+            self._session.end_session()
+
+    def _shortcut_settings(self) -> None:
+        if self._has_settings:
+            self._on_open_settings()
 
     def show_restart_banner(self, keys: Sequence[str]) -> None:
         """Tell the learner which saved settings need a restart."""

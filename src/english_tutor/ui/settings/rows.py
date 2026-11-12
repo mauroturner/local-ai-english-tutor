@@ -16,6 +16,8 @@ from .focus import enable_keyboard
 from .values import format_scale, index_of_nearest, option_labels, value_for_label
 
 OnChange = Callable[[str, Any], None]
+Capture = Callable[[str, Callable[[str], None]], None]
+"""``capture(setting_key, apply)``: ask for a key press and pass the result to ``apply``."""
 WRAP = 500
 _BUTTON_TEXT = {"restore_defaults": "button.restore_defaults"}
 
@@ -35,11 +37,14 @@ class Row(ctk.CTkFrame):
         on_change: OnChange,
         action: Callable[[], None] | None = None,
         env_var: str | None = None,
+        capture: Capture | None = None,
     ) -> None:
         super().__init__(master, fg_color=theme.ROW_BG, corner_radius=8)
         self.spec = spec
         self._on_change = on_change
         self._action = action
+        self._capture = capture
+        self.capture_button: ctk.CTkButton | None = None
         self._disabled = env_var is not None
         self._widgets: list[Any] = []
         self.grid_columnconfigure(0, weight=1)
@@ -102,6 +107,8 @@ class Row(ctk.CTkFrame):
             Control.COMBO: lambda: self._combo(value),
             Control.PATH: lambda: self._entry(value, browse=True),
             Control.ACTION: lambda: self._action_button(top),
+            Control.KEY: lambda: self._entry(value, record=True),
+            Control.SHORTCUT: lambda: self._entry(value, record=True),
         }
         builders.get(self.spec.control, lambda: self._entry(value))()
 
@@ -176,7 +183,7 @@ class Row(ctk.CTkFrame):
         combo.pack(anchor="w")
         self._widgets.append(combo)
 
-    def _entry(self, value: Any, browse: bool = False) -> None:
+    def _entry(self, value: Any, browse: bool = False, record: bool = False) -> None:
         var = self._text_var(value)
         entry = ctk.CTkEntry(self._control_frame, textvariable=var)
         entry.pack(side="left", fill="x", expand=True)
@@ -189,6 +196,16 @@ class Row(ctk.CTkFrame):
             button.pack(side="left", padx=(theme.SPACE_S, 0))
             enable_keyboard(button, button.invoke)
             self._widgets.append(button)
+
+        if record and self._capture is not None:
+            button = ctk.CTkButton(
+                self._control_frame, text=t("button.change"), width=90,
+                command=lambda: self._capture(self.spec.key, var.set),
+            )  # fmt: skip
+            button.pack(side="left", padx=(theme.SPACE_S, 0))
+            enable_keyboard(button, button.invoke)
+            self._widgets.append(button)
+            self.capture_button = button
 
     def _browse(self, var: Any) -> None:
         chosen = filedialog.askdirectory(parent=self, initialdir=var.get() or None)

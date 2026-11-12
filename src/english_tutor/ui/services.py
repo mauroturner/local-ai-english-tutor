@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ..application.preferences import SettingsService
+from ..application.ptt_gate import PttGate
 from ..settings.model import UserSettings
 
 Confirm = Callable[..., bool]
@@ -48,3 +49,4 @@ class UiServices:
     on_applied: Callable[[UserSettings], None] = _ignore
     on_restart_needed: Callable[[Sequence[str]], None] = _ignore
     enabled_actions: frozenset[str] = ENABLED_ACTIONS
+    ptt_gate: PttGate | None = None

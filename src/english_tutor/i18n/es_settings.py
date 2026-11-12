@@ -131,4 +131,13 @@ SETTINGS_STRINGS: dict[str, str] = {
     "banner.later": "Más tarde",
     "restart.confirm_title": "¿Reiniciar ahora?",
     "restart.confirm_message": "La conversación actual terminará. ¿Reiniciar de todos modos?",
+    # Captura de teclas y pausa de la tecla para hablar
+    "settings.ptt_paused": "La tecla para hablar está en pausa mientras Ajustes está abierto.",
+    "button.change": "Cambiar...",
+    "capture.title_ptt": "Tecla para hablar",
+    "capture.title_shortcut": "Nuevo atajo",
+    "capture.prompt_ptt": "Pulsa la tecla que mantendrás pulsada para hablar.",
+    "capture.prompt_shortcut": "Pulsa el nuevo atajo, por ejemplo Ctrl+K.",
+    "capture.hint": "Esc cancela.",
+    "capture.unsupported": "Esa tecla no se puede usar aquí.",
 }
