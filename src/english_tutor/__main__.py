@@ -59,11 +59,12 @@ def main() -> int:
             window_ref[0].post(event)
 
     recorder = SoundDeviceRecorder(on_level=lambda value: emit(LevelChanged(value)))
+    tutor = OllamaTutorModel(
+        cfg.ollama_url, cfg.ollama_model, cfg.ollama_timeout_s, cfg.llm_temperature
+    )
     session = ConversationSession(
         WhisperTranscriber(cfg),
-        OllamaTutorModel(
-            cfg.ollama_url, cfg.ollama_model, cfg.ollama_timeout_s, cfg.llm_temperature
-        ),
+        tutor,
         tts,
         recorder,
         emit,
@@ -71,6 +72,7 @@ def main() -> int:
         ptt_label=cfg.ptt_label,
         conversation_log=FileConversationLog(cfg.data_dir / "conversations"),
         mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
+        coach=tutor,
     )
     window = TutorWindow(cfg, session, devices, default_device)
     window_ref.append(window)

@@ -8,7 +8,7 @@ from typing import Any
 import customtkinter as ctk
 
 from ..domain.formatting import format_report
-from ..domain.models import Correction, SessionReport
+from ..domain.models import Correction, MistakeRecord, PracticeOutcome, SessionReport
 from . import theme
 
 
@@ -54,6 +54,18 @@ class ChatView(ctk.CTkScrollableFrame):
         )
         self._bubble(text, theme.CORRECTION_BUBBLE, "w")
 
+    def add_practice_feedback(self, outcome: PracticeOutcome, feedback: str) -> None:
+        """Show the coach's verdict on a practice answer."""
+        if not feedback:
+            return
+        label = {
+            PracticeOutcome.CORRECT: "Correct! ",
+            PracticeOutcome.INCORRECT: "Try again: ",
+            PracticeOutcome.NOT_USED: "",
+        }[outcome]
+        color = theme.PRACTICE_OK if outcome is PracticeOutcome.CORRECT else theme.PRACTICE_RETRY
+        self._bubble(f"{label}{feedback}", color, "w")
+
     def add_notice(self, text: str) -> None:
         """Show a status or error message inside the conversation."""
         label = ctk.CTkLabel(
@@ -70,6 +82,33 @@ class ChatView(ctk.CTkScrollableFrame):
         """Remove everything from the conversation."""
         for child in self.winfo_children():
             child.destroy()
+
+
+class PracticeBanner(ctk.CTkFrame):
+    """Strip shown while a practice drill is active, with a Stop button."""
+
+    def __init__(self, master: Any, on_stop: Callable[[], None]) -> None:
+        super().__init__(master, fg_color=theme.PRACTICE_OK, corner_radius=8)
+        self._label = ctk.CTkLabel(
+            self, text="", text_color=theme.TEXT, font=theme.FONT_BODY,
+            wraplength=360, justify="left",
+        )
+        self._label.pack(side="left", padx=10, pady=6)
+        self._button = ctk.CTkButton(self, text="Stop practice", width=110, command=on_stop)
+        self._button.pack(side="right", padx=10, pady=6)
+
+    def show(self, target: MistakeRecord, before: Any) -> None:
+        """Display the banner for ``target`` just above the ``before`` widget."""
+        self._label.configure(text=f'Practicing: "{target.original}" -> "{target.corrected}"')
+        self.pack(before=before, fill="x", padx=20, pady=(0, 6))
+
+    def hide(self) -> None:
+        """Remove the banner."""
+        self.pack_forget()
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Enable or disable the Stop button."""
+        self._button.configure(state="normal" if enabled else "disabled")
 
 
 class MicSelector(ctk.CTkFrame):
