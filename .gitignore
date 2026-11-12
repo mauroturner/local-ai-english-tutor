@@ -1,0 +1,35 @@
+# Legacy prototype virtualenv and bundled Piper binaries
+english_teacher/
+piper/
+
+# Virtual environments
+.venv/
+venv/
+
+# Piper voice models
+*.onnx
+*.onnx.json
+
+# Windows binaries
+*.exe
+*.dll
+
+# Local planning and tracking documents
+odd/
+
+# Python bytecode and build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Audio scratch files
+*.wav
+
+# Local secrets and configuration
+.env
+
+# CodeGraph index
+.codegraph/
