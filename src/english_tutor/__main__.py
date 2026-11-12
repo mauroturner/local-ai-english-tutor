@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from pathlib import Path
 
 from .adapters.file_conversation_log import FileConversationLog
 from .adapters.folders import open_folder
@@ -16,6 +17,7 @@ from .adapters.piper_tts import NullSynthesizer, PiperSynthesizer
 from .adapters.sounddevice_cues import SoundDeviceCuePlayer
 from .adapters.sounddevice_recorder import SoundDeviceRecorder
 from .adapters.whisper_stt import WhisperTranscriber
+from .adapters.windows_autostart import NullAutoStart, WindowsAutoStart, autostart_command
 from .adapters.windows_notifier import WindowsNotifier, tk_hwnd
 from .application.events import ErrorRaised, LevelChanged, SessionEvent
 from .application.maintenance import clear_logs, clear_mistakes
@@ -32,7 +34,7 @@ from .config import (
 )
 from .i18n import set_language
 from .logging_setup import configure_logging
-from .ports import SpeechSynthesizer
+from .ports import AutoStart, SpeechSynthesizer
 from .restart import finish_restart
 from .settings.model import settings_env
 
@@ -55,11 +57,25 @@ def _apply_log_level(level: str) -> None:
     logging.getLogger().setLevel(getattr(logging, level.upper(), logging.INFO))
 
 
+def _build_autostart(root: Path) -> AutoStart | None:
+    """The registry-backed auto-start on Windows; ``None`` anywhere else."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import winreg
+    except ImportError:  # a Python build without the registry module
+        return None
+    return WindowsAutoStart(winreg, autostart_command(root))
+
+
 def main() -> int:
     """Start the application; returns a process exit code."""
     root = default_project_root()
+    autostart = _build_autostart(root)
     settings_service = SettingsService(
-        JsonSettingsStore(resolve_settings_path(os.environ, root)), None, os.environ
+        JsonSettingsStore(resolve_settings_path(os.environ, root)),
+        autostart or NullAutoStart(),
+        os.environ,
     )
     loaded = settings_service.load()
     try:
@@ -114,6 +130,7 @@ def main() -> int:
         on_applied=lambda saved: window_ref[0].apply_settings(saved),
         on_restart_needed=lambda keys: window_ref[0].show_restart_banner(keys),
         ptt_gate=gate,
+        autostart=autostart,
         clear_logs=lambda: session.clear_data(clear_logs(conversation_log.clear)),
         clear_mistakes=lambda: session.clear_data(clear_mistakes),
         is_free=lambda: window_ref[0].is_free,

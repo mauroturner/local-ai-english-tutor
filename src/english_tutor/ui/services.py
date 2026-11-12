@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+import os
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ from typing import Any
 from ..application.preferences import SettingsService
 from ..application.ptt_gate import PttGate
 from ..domain.models import MistakeRecord, SessionReport
+from ..ports import AutoStart
 from ..settings.model import UserSettings
 
 Confirm = Callable[..., bool]
@@ -18,9 +20,9 @@ Confirm = Callable[..., bool]
 
 ENABLED_ACTIONS = frozenset({
     "open_data_folder", "open_logs_folder", "restore_defaults",
-    "export_report", "export_mistakes", "clear_logs", "clear_mistakes",
+    "export_report", "export_mistakes", "clear_logs", "clear_mistakes", "autostart",
 })  # fmt: skip
-"""Action rows that exist so far; later phases add test and auto-start."""
+"""Action rows that exist so far; a later phase adds the connection test."""
 
 
 def ask_yes_no(title: str, message: str, parent: Any = None) -> bool:
@@ -74,3 +76,7 @@ class UiServices:
     last_report: Callable[[], SessionReport | None] = lambda: None  # noqa: E731
     mistakes: Callable[[], Sequence[MistakeRecord]] = lambda: ()  # noqa: E731
     clock: Callable[[], datetime] = datetime.now
+    autostart: AutoStart | None = None
+    """Windows auto-start registration; ``None`` where it does not exist (row disabled)."""
+    env: Mapping[str, str] = field(default_factory=lambda: os.environ)
+    """Environment consulted for the start-up warnings (relative TUTOR_PIPER_* paths)."""

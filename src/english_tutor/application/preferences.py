@@ -42,6 +42,7 @@ class SaveOutcome:
 
     restart_keys: tuple[str, ...]
     errors: tuple[str, ...]
+    autostart_failed: bool = False
 
 
 class SettingsService:
@@ -105,7 +106,8 @@ class SettingsService:
             and f.name not in locked
             and getattr(new, f.name) != getattr(old, f.name)
         )
-        return SaveOutcome(restart, self._apply_autostart(autostart))
+        auto_errors = self._apply_autostart(autostart)
+        return SaveOutcome(restart, auto_errors, bool(auto_errors))
 
     def _apply_autostart(self, wanted: bool | None) -> tuple[str, ...]:
         if wanted is None or self._autostart is None:

@@ -239,6 +239,69 @@ def fake_log() -> FakeLog:
     return FakeLog()
 
 
+class FakeWinreg:
+    """In-memory stand-in for the ``winreg`` module; the real registry is never touched.
+
+    ``values`` maps (hive, sub key) to {name: data}. ``fail`` is raised by every call
+    that writes, ``read_fail`` by every call that opens a key to read.
+    """
+
+    HKEY_CURRENT_USER = "HKCU"
+    HKEY_LOCAL_MACHINE = "HKLM"
+    KEY_READ = 0x20019
+    KEY_SET_VALUE = 0x2
+    REG_SZ = 1
+
+    def __init__(self, values=None, fail=None, read_fail=None):
+        self.keys = {k: dict(v) for k, v in (values or {}).items()}
+        self.fail, self.read_fail = fail, read_fail
+        self.hives_used: set[str] = set()
+        self.writes: list[tuple] = []
+
+    class _Handle:
+        def __init__(self, values, hive_path):
+            self.values, self.hive_path = values, hive_path
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def OpenKey(self, hive, path, reserved=0, access=0):  # noqa: N802
+        self.hives_used.add(hive)
+        if self.read_fail is not None:
+            raise self.read_fail
+        if (hive, path) not in self.keys:
+            raise FileNotFoundError(path)
+        return self._Handle(self.keys[(hive, path)], (hive, path))
+
+    def CreateKeyEx(self, hive, path, reserved=0, access=0):  # noqa: N802
+        self.hives_used.add(hive)
+        if self.fail is not None:
+            raise self.fail
+        return self._Handle(self.keys.setdefault((hive, path), {}), (hive, path))
+
+    def QueryValueEx(self, key, name):  # noqa: N802
+        if name not in key.values:
+            raise FileNotFoundError(name)
+        return key.values[name], self.REG_SZ
+
+    def SetValueEx(self, key, name, reserved, kind, data):  # noqa: N802
+        if self.fail is not None:
+            raise self.fail
+        key.values[name] = data
+        self.writes.append(("set", key.hive_path, name, kind, data))
+
+    def DeleteValue(self, key, name):  # noqa: N802
+        if self.fail is not None:
+            raise self.fail
+        if name not in key.values:
+            raise FileNotFoundError(name)
+        del key.values[name]
+        self.writes.append(("delete", key.hive_path, name))
+
+
 @pytest.fixture
 def make_harness():
     """Factory building a ready (IDLE) session around fakes."""

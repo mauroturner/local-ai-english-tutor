@@ -10,7 +10,7 @@ import customtkinter as ctk
 
 from ...i18n import t
 from ...settings.model import FIELD_BOUNDS
-from ...settings.registry import Control, SettingSpec
+from ...settings.registry import TOGGLE_ACTIONS, Control, SettingSpec
 from .. import theme
 from .focus import enable_keyboard
 from .values import format_scale, index_of_nearest, option_labels, value_for_label
@@ -115,7 +115,7 @@ class Row(ctk.CTkFrame):
             Control.SLIDER: lambda: self._slider(value),
             Control.COMBO: lambda: self._combo(value),
             Control.PATH: lambda: self._entry(value, browse=True),
-            Control.ACTION: lambda: self._action_button(top),
+            Control.ACTION: lambda: self._action_control(top, value),
             Control.KEY: lambda: self._entry(value, record=True),
             Control.SHORTCUT: lambda: self._entry(value, record=True),
         }
@@ -220,6 +220,12 @@ class Row(ctk.CTkFrame):
         chosen = filedialog.askdirectory(parent=self, initialdir=var.get() or None)
         if chosen:
             var.set(chosen)
+
+    def _action_control(self, top: Any, value: Any) -> None:
+        if self.spec.key in TOGGLE_ACTIONS:
+            self._switch(top, value)
+        else:
+            self._action_button(top)
 
     def _action_button(self, top: Any) -> None:
         text_key = _BUTTON_TEXT.get(self.spec.key, "button.open")

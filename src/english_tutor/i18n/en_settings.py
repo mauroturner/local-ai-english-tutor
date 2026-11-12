@@ -160,6 +160,17 @@ SETTINGS_STRINGS: dict[str, str] = {
     "statistics will be permanently deleted. Conversation logs and settings are not affected. "
     "This cannot be undone.",
     "settings.folder_error": "This folder cannot be used: {error}",
+    "autostart.unavailable": "Not available on this system.",
+    "autostart.read_failed": "The current start-up setting could not be read: {error}",
+    "autostart.change_failed": "Could not change the start-up setting: {error}",
+    "autostart.name_data_dir": "the data folder",
+    "autostart.stale": "The saved start-up entry points to a different location (the app or "
+    "its Python environment may have moved). Save to update it.",
+    "autostart.warn_relative": "Relative path in: {names}. Windows starts the app from "
+    "another folder at sign-in, so use absolute paths or the app will not find its files.",
+    "autostart.warn_startup": "At sign-in, Ollama may not be running yet and loading the "
+    "speech model slows the first minutes. Connection problems are reported once the app "
+    "is open.",
     "data.cleared_logs": "Deleted {count} conversation log file(s).",
     "data.cleared_mistakes": "Mistake history deleted ({count} mistakes).",
 }

@@ -61,6 +61,9 @@ ACTION_KEYS = frozenset({
     "test_connection", "open_logs_folder", "restore_defaults", "autostart",
 })  # fmt: skip
 
+TOGGLE_ACTIONS = frozenset({"autostart"})
+"""Action rows drawn as an on/off switch (their state lives outside settings.json)."""
+
 SearchResult = dict[Category, tuple[SettingSpec, ...]]
 
 

@@ -165,6 +165,18 @@ SETTINGS_STRINGS: dict[str, str] = {
     "registrados y sus estadísticas de práctica. Los registros de conversación y los ajustes "
     "no se ven afectados. Esta acción no se puede deshacer.",
     "settings.folder_error": "No se puede usar esta carpeta: {error}",
+    "autostart.unavailable": "No está disponible en este sistema.",
+    "autostart.read_failed": "No se pudo leer el ajuste de inicio actual: {error}",
+    "autostart.change_failed": "No se pudo cambiar el ajuste de inicio: {error}",
+    "autostart.name_data_dir": "la carpeta de datos",
+    "autostart.stale": "La entrada de inicio guardada apunta a otra ubicación (la aplicación "
+    "o su entorno de Python pueden haberse movido). Guarda para actualizarla.",
+    "autostart.warn_relative": "Ruta relativa en: {names}. Windows inicia la aplicación desde "
+    "otra carpeta al iniciar sesión; usa rutas absolutas o la aplicación no encontrará sus "
+    "archivos.",
+    "autostart.warn_startup": "Al iniciar sesión, es posible que Ollama aún no esté en "
+    "ejecución y que la carga del modelo de voz ralentice los primeros minutos. Los problemas "
+    "de conexión se indican cuando la aplicación esté abierta.",
     "data.cleared_logs": "Se eliminaron {count} archivo(s) de registro de conversación.",
     "data.cleared_mistakes": "Historial de errores eliminado ({count} errores).",
 }

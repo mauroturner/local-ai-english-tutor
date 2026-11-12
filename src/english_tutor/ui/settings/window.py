@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 import customtkinter as ctk
 
 from ...i18n import t
+from ...settings.autostart import AutostartDraft
 from ...settings.draft import SettingsDraft
 from ...settings.model import ENV_VARS
 from ...settings.registry import Category, Control, SettingSpec
@@ -70,6 +71,7 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
         loaded = services.settings.load()
         self._effective = loaded.effective
         self._draft = SettingsDraft(loaded.settings, loaded.effective, loaded.locked)
+        self._autostart = AutostartDraft.read(services.autostart)  # the real registry state
         self._category = Category.GENERAL
         self._query = ""
         self._rows: dict[str, Row] = {}
@@ -170,24 +172,33 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
         is_action = spec.control is Control.ACTION
         locked = not is_action and self._draft.is_locked(spec.key)
         value = None if is_action else self._draft.value(spec.key)
+        unavailable = self._storage.unavailable(spec.key)
+        if spec.key == "autostart":
+            value, unavailable = self._autostart.wanted, self._autostart.unavailable_text()
         return Row(
             parent, spec, value, self._on_change, self._actions.get(spec.key),
-            ENV_VARS[spec.key] if locked else None, self._capture,
-            self._storage.unavailable(spec.key),
+            ENV_VARS[spec.key] if locked else None, self._capture, unavailable,
         )  # fmt: skip
 
     def _refresh_status(self) -> None:
         errors, warnings = {**self._draft.errors, **self._folder_errors}, self._draft.warnings
+        auto_error, auto_warning = self._autostart.notes(
+            str(self._draft.value("data_dir")), self._services.env
+        )
+        errors["autostart"], warnings["autostart"] = auto_error or "", auto_warning or ""
         for key, row in self._rows.items():
-            row.set_note(errors.get(key), warnings.get(key))
-        count = len(self._draft.dirty_keys)
+            row.set_note(errors.get(key) or None, warnings.get(key) or None)
+        count = self.pending_changes
         self.footer.set_dirty(count)
         self.footer.set_save_enabled(count > 0 and not self._draft.has_errors)
         self.title(t("settings.title") + (" •" if count else ""))
 
     # ------------------------------------------------------------------ events
     def _on_change(self, key: str, value: Any) -> None:
-        self._draft.set(key, value)
+        if key == "autostart":
+            self._autostart.set(bool(value))
+        else:
+            self._draft.set(key, value)
         self._folder_errors.pop(key, None)  # an edited folder is checked again on Save
         if key in PREVIEW_KEYS:
             self._preview(key)
