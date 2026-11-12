@@ -8,7 +8,14 @@ from typing import Any
 
 import requests
 
-from ..domain.models import ChatMessage, SessionFeedback, Turn, TutorReply
+from ..domain.models import (
+    ChatMessage,
+    MistakeRecord,
+    PracticeReply,
+    SessionFeedback,
+    Turn,
+    TutorReply,
+)
 from ..domain.prompts import (
     REPORT_SCHEMA,
     REPORT_SYSTEM_PROMPT,
@@ -16,8 +23,9 @@ from ..domain.prompts import (
     TURN_SYSTEM_PROMPT,
     build_report_user_message,
 )
+from ..domain.practice_prompts import PRACTICE_SCHEMA, build_practice_system_prompt
 from ..ports import LlmUnavailable
-from .ollama_parsing import parse_feedback, parse_tutor_reply
+from .ollama_parsing import parse_feedback, parse_practice_reply, parse_tutor_reply
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +90,17 @@ class OllamaTutorModel:
             ChatMessage("user", build_report_user_message(turns)),
         ]
         return parse_feedback(self._chat(messages, REPORT_SCHEMA))
+
+    def practice(
+        self, target: MistakeRecord, history: Sequence[ChatMessage], learner_text: str
+    ) -> PracticeReply:
+        """Judge one practice answer about ``target`` and ask the next question."""
+        messages = [
+            ChatMessage("system", build_practice_system_prompt(target)),
+            *history,
+            ChatMessage("user", learner_text),
+        ]
+        return parse_practice_reply(self._chat(messages, PRACTICE_SCHEMA))
 
     def _chat(self, messages: Sequence[ChatMessage], schema: dict[str, Any]) -> str:
         payload = {

@@ -5,7 +5,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from ..domain.models import Correction, MistakeRecord, SessionReport, SessionState
+from ..domain.models import (
+    Correction,
+    MistakeRecord,
+    PracticeOutcome,
+    SessionReport,
+    SessionState,
+)
 
 
 @dataclass(frozen=True)
@@ -59,6 +65,22 @@ class MistakesChanged:
     mistakes: tuple[MistakeRecord, ...]
 
 
+@dataclass(frozen=True)
+class PracticeChanged:
+    """A practice drill started (``target`` set) or stopped (``None``)."""
+
+    target: MistakeRecord | None
+
+
+@dataclass(frozen=True)
+class PracticeFeedback:
+    """The coach's verdict on one practice answer plus the next question."""
+
+    outcome: PracticeOutcome
+    feedback: str
+    prompt: str
+
+
 SessionEvent = (
     StateChanged
     | UserSaid
@@ -67,5 +89,7 @@ SessionEvent = (
     | ErrorRaised
     | LevelChanged
     | MistakesChanged
+    | PracticeChanged
+    | PracticeFeedback
 )
 EventSink = Callable[[SessionEvent], None]

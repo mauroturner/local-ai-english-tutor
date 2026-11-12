@@ -11,6 +11,7 @@ import numpy as np
 from .domain.models import (
     ChatMessage,
     MistakeRecord,
+    PracticeReply,
     SessionFeedback,
     Transcript,
     Turn,
@@ -132,4 +133,14 @@ class MistakeStore(Protocol):
 
     def save(self, records: Sequence[MistakeRecord]) -> None:
         """Replace the stored records; raises StorageError on failure."""
+        ...
+
+
+class PracticeCoach(Protocol):
+    """Runs one turn of a targeted practice drill."""
+
+    def practice(
+        self, target: MistakeRecord, history: Sequence[ChatMessage], learner_text: str
+    ) -> PracticeReply:
+        """Judge ``learner_text`` against ``target`` and ask the next question."""
         ...

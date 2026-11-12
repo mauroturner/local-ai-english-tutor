@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Callable, Literal
+from typing import Callable, Literal, TypeVar
 
 from ..audio.processing import prepare_for_stt
 from ..domain.corrections import filter_corrections, pick_live, spoken_line
@@ -15,8 +15,8 @@ from ..ports import (
     AudioRecorder,
     ConversationLog,
     LlmUnavailable,
-    LogSpeaker,
     MistakeStore,
+    PracticeCoach,
     SpeechSynthesizer,
     SpeechToText,
     TtsError,
@@ -27,18 +27,22 @@ from .events import (
     EventSink,
     LevelChanged,
     MistakesChanged,
+    PracticeChanged,
     ReportReady,
     StateChanged,
     TutorSaid,
     UserSaid,
 )
 from .history import ChatHistory
-from .journal import NullConversationLog, NullMistakeStore
+from .journal import NullConversationLog, NullMistakeStore, SafeJournal
 from .mistake_book import MistakeBook
+from .practice import PracticeDrill, PracticeServices, open_practice, run_practice_turn
 from .report import make_report
 from .worker import Runner, SerialWorker
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
 
 
 class ConversationSession:
@@ -65,6 +69,7 @@ class ConversationSession:
         ptt_label: str = "Right Ctrl",
         conversation_log: ConversationLog | None = None,
         mistakes: MistakeStore | None = None,
+        coach: PracticeCoach | None = None,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -73,8 +78,16 @@ class ConversationSession:
         self._emit = emit
         self._runner: Runner = runner if runner is not None else SerialWorker()
         self._ptt_label = ptt_label
-        self._log: ConversationLog = conversation_log or NullConversationLog()
         self._warned: set[str] = set()
+        self._journal = SafeJournal(
+            conversation_log or NullConversationLog(),
+            lambda message: self._warn_once("log", message),
+        )
+        self._coach = coach
+        self._drill: PracticeDrill | None = None
+        self._practice = PracticeServices(
+            self._ask, self._emit, self._journal.record, self._speak
+        )
         self._book = MistakeBook(
             mistakes or NullMistakeStore(),
             lambda message: self._warn_once("mistakes", message),
@@ -125,17 +138,6 @@ class ConversationSession:
         if source not in self._warned:
             self._warned.add(source)
             self._emit(ErrorRaised(message))
-
-    def _journal(self, speaker: LogSpeaker, text: str) -> None:
-        """Append to the conversation log; a failing log never affects the turn."""
-        self._guard_log(lambda: self._log.record(speaker, text))
-
-    def _guard_log(self, action: Callable[[], None]) -> None:
-        try:
-            action()
-        except Exception as exc:  # any storage problem must leave the turn untouched
-            logger.warning("Conversation log failed: %s", exc)
-            self._warn_once("log", f"Conversation log unavailable: {exc}")
 
     def _submit(self, job: Callable[[], None]) -> None:
         """Run ``job`` on the worker; an unexpected error always ends in IDLE."""
@@ -265,17 +267,15 @@ class ConversationSession:
             self._set_state(SessionState.IDLE, "Didn't catch that, try again")
             return
         self._emit(UserSaid(raw))
-        self._journal("you", raw)
-        self._set_state(SessionState.THINKING, "Thinking...")
-        try:
-            reply = self._tutor.reply(self._history.messages(), raw)
-        except LlmUnavailable as exc:
-            logger.warning("Tutor model unavailable: %s", exc)
-            self._fail(str(exc))
+        self._journal.record("you", raw)
+        with self._lock:
+            drill = self._drill
+        if drill is not None:  # practice answers skip the normal correction pipeline
+            self._practice_turn(drill, raw)
             return
-        except AdapterError as exc:
-            logger.exception("Tutor model failed")
-            self._fail(f"Tutor model failed: {exc}")
+        self._set_state(SessionState.THINKING, "Thinking...")
+        reply = self._ask(lambda: self._tutor.reply(self._history.messages(), raw))
+        if reply is None:
             return
         corrections = filter_corrections(raw, reply.corrections)
         live, _ = pick_live(corrections)
@@ -284,12 +284,24 @@ class ConversationSession:
         )
         self._history.add_exchange(raw, reply.reply)
         self._emit(TutorSaid(reply.reply, live))
-        self._journal("tutor", reply.reply)
+        self._journal.record("tutor", reply.reply)
         if live is not None:
-            self._journal("tip", correction_text(live))
+            self._journal.record("tip", correction_text(live))
         self._record_mistakes(corrections, raw)
         self._speak(self._compose_speech(reply.reply, live))
         self._set_state(SessionState.IDLE, "Ready")
+
+    def _ask(self, call: Callable[[], _T]) -> _T | None:
+        """Run a model call; on failure show the error, return to IDLE and give None."""
+        try:
+            return call()
+        except LlmUnavailable as exc:
+            logger.warning("Tutor model unavailable: %s", exc)
+            self._fail(str(exc))
+        except AdapterError as exc:
+            logger.exception("Tutor model failed")
+            self._fail(f"Tutor model failed: {exc}")
+        return None
 
     def _record_mistakes(self, corrections: tuple[Correction, ...], sentence: str) -> None:
         """Add this turn's corrections to the history and tell the UI."""
@@ -314,17 +326,67 @@ class ConversationSession:
             logger.exception("Unexpected speech synthesis error")
             self._emit(ErrorRaised(f"Voice output failed: {exc}"))
 
+    # --------------------------------------------------------------- practice
+    def start_practice(self, key: str) -> None:
+        """Start a drill on the mistake ``key``; ignored unless idle and not practicing."""
+        with self._lock:
+            if self._state is not SessionState.IDLE or self._drill is not None:
+                return
+            self._state = SessionState.THINKING
+        self._emit(StateChanged(SessionState.THINKING, "Preparing practice..."))
+        self._submit(lambda: self._open_practice(key))
+
+    def _open_practice(self, key: str) -> None:
+        record = self._book.get(key)
+        if self._coach is None or record is None:
+            self._fail("Practice is not available for that mistake.")
+            return
+        drill = PracticeDrill(record)
+        if open_practice(drill, self._coach, self._practice):
+            with self._lock:
+                self._drill = drill
+            self._set_state(SessionState.IDLE, self._ready_message())
+
+    def _practice_turn(self, drill: PracticeDrill, raw: str) -> None:
+        if self._coach is None:
+            self._fail("Practice is not available.")
+            return
+        self._set_state(SessionState.THINKING, "Checking your answer...")
+        if run_practice_turn(drill, self._coach, raw, self._book, self._practice):
+            self._set_state(SessionState.IDLE, self._ready_message())
+
+    def stop_practice(self) -> None:
+        """Leave the drill and go back to the conversation; ignored unless idle and practicing."""
+        with self._lock:
+            if self._state is not SessionState.IDLE or self._drill is None:
+                return
+            self._drill = None
+        self._emit(PracticeChanged(None))
+        self._emit(StateChanged(SessionState.IDLE, self._ready_message()))
+        self._submit(lambda: self._journal.record("practice", "Stopped practice"))
+
+    def _ready_message(self) -> str:
+        with self._lock:
+            practicing = self._drill is not None
+        if practicing:
+            return f"Practice: hold {self._ptt_label} to answer"
+        return f"Ready: hold {self._ptt_label}"
+
     # ----------------------------------------------------------------- report
     def end_session(self) -> None:
-        """Build the end-of-session report; ignored unless the session is idle."""
-        if self._transition(SessionState.IDLE, SessionState.REPORTING, "Writing feedback..."):
-            self._submit(self._build_report)
+        """Build the end-of-session report; ignored unless idle and not practicing."""
+        with self._lock:
+            if self._state is not SessionState.IDLE or self._drill is not None:
+                return
+            self._state = SessionState.REPORTING
+        self._emit(StateChanged(SessionState.REPORTING, "Writing feedback..."))
+        self._submit(self._build_report)
 
     def _build_report(self) -> None:
         report = make_report(self._tutor, tuple(self._turns))
         self._emit(ReportReady(report))
-        self._journal("report", format_report(report))
-        self._guard_log(self._log.new_session)
+        self._journal.record("report", format_report(report))
+        self._journal.new_session()
         if report.feedback is not None and report.feedback.summary:
             self._speak(report.feedback.summary)
         self._turns.clear()

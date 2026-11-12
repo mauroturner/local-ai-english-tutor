@@ -6,12 +6,20 @@ import json
 import logging
 from typing import Any
 
-from ..domain.models import Correction, SessionFeedback, Severity, TutorReply
+from ..domain.models import (
+    Correction,
+    PracticeOutcome,
+    PracticeReply,
+    SessionFeedback,
+    Severity,
+    TutorReply,
+)
 
 logger = logging.getLogger(__name__)
 
 FALLBACK_REPLY = "Sorry, I lost my train of thought. Could you say that again?"
 FALLBACK_SUMMARY = "I could not write the feedback this time."
+FALLBACK_PROMPT = "Let's keep going. Tell me about your day."
 
 
 def _first_json_object(raw: str) -> dict[str, Any] | None:
@@ -99,4 +107,27 @@ def parse_feedback(raw: str) -> SessionFeedback:
         summary=data["summary"].strip() or FALLBACK_SUMMARY,
         strengths=_string_list(data.get("strengths")),
         focus_areas=_string_list(data.get("focus_areas")),
+    )
+
+
+def _outcome(value: Any) -> PracticeOutcome:
+    try:
+        return PracticeOutcome(str(value).strip().lower())
+    except ValueError:
+        return PracticeOutcome.NOT_USED
+
+
+def parse_practice_reply(raw: str) -> PracticeReply:
+    """Parse a practice answer; never raises. Unparseable text becomes the next question."""
+    data = _load_object(raw)
+    if data is None or not {"target_used", "feedback", "next_prompt"} & data.keys():
+        logger.warning("Practice answer was not valid JSON; using raw text")
+        return PracticeReply(
+            PracticeOutcome.NOT_USED, "", raw.strip() or FALLBACK_PROMPT, parsed_ok=False
+        )
+    feedback, prompt = data.get("feedback"), data.get("next_prompt")
+    return PracticeReply(
+        outcome=_outcome(data.get("target_used")),
+        feedback=feedback.strip() if isinstance(feedback, str) else "",
+        next_prompt=(prompt.strip() if isinstance(prompt, str) else "") or FALLBACK_PROMPT,
     )

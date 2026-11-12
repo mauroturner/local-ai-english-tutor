@@ -15,6 +15,7 @@ from english_tutor.domain.models import (
     ChatMessage,
     Correction,
     MistakeRecord,
+    PracticeReply,
     SessionFeedback,
     Severity,
     Transcript,
@@ -153,6 +154,23 @@ class FakeMistakeStore:
         self.saves.append(list(records))
 
 
+class FakeCoach:
+    """Scripted PracticeCoach; items may be PracticeReply or an exception to raise."""
+
+    def __init__(self, replies: Sequence[PracticeReply | Exception] = ()) -> None:
+        self.replies = list(replies)
+        self.calls: list[tuple[MistakeRecord, list[ChatMessage], str]] = []
+
+    def practice(
+        self, target: MistakeRecord, history: Sequence[ChatMessage], learner_text: str
+    ) -> PracticeReply:
+        self.calls.append((target, list(history), learner_text))
+        item = self.replies.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+
 class FakeRecorder:
     """Returns a fixed audible clip; ``start`` can fail or run a hook."""
 
@@ -226,7 +244,8 @@ def make_harness():
     """Factory building a ready (IDLE) session around fakes."""
 
     def _make(
-        texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None
+        texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None,
+        coach=None,
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -237,6 +256,7 @@ def make_harness():
             runner=runner if runner is not None else InlineRunner(),
             conversation_log=log,
             mistakes=store,
+            coach=coach,
         )
         session.start()
         if isinstance(runner, ManualRunner):
