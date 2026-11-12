@@ -1,0 +1,58 @@
+"""Events emitted by the conversation session for the UI to render."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass
+
+from ..domain.models import Correction, SessionReport, SessionState
+
+
+@dataclass(frozen=True)
+class StateChanged:
+    """The session moved to a new state."""
+
+    state: SessionState
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class UserSaid:
+    """The learner's raw Whisper transcript."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class TutorSaid:
+    """The tutor's reply plus the single live correction, if any."""
+
+    text: str
+    correction: Correction | None = None
+
+
+@dataclass(frozen=True)
+class ReportReady:
+    """The end-of-session report."""
+
+    report: SessionReport
+
+
+@dataclass(frozen=True)
+class ErrorRaised:
+    """A recoverable problem worth showing to the learner."""
+
+    message: str
+
+
+@dataclass(frozen=True)
+class LevelChanged:
+    """Microphone level between 0.0 and 1.0."""
+
+    value: float
+
+
+SessionEvent = (
+    StateChanged | UserSaid | TutorSaid | ReportReady | ErrorRaised | LevelChanged
+)
+EventSink = Callable[[SessionEvent], None]
