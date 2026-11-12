@@ -8,18 +8,47 @@ from typing import Any
 import customtkinter as ctk
 
 from ..domain.formatting import format_report
-from ..domain.models import Correction, MistakeRecord, PracticeOutcome, SessionReport
+from ..domain.models import Correction, MistakeRecord, PracticeOutcome, SessionReport, SessionState
 from ..i18n import t, translate_status
 from . import theme
+from .state_style import state_style
 
 
 class ChatView(ctk.CTkScrollableFrame):
-    """Scrollable conversation with user, tutor, correction and report cards."""
+    """Scrollable conversation with user, tutor, correction and report cards.
 
-    def __init__(self, master: Any, **kwargs: Any) -> None:
+    While no bubble has been shown it displays ``empty_text`` as a hint.
+    """
+
+    def __init__(self, master: Any, empty_text: str = "", **kwargs: Any) -> None:
         super().__init__(master, fg_color=theme.CHAT_BG, border_width=1, **kwargs)
+        self._empty_text = empty_text
+        self._empty: ctk.CTkLabel | None = None
+        self._show_empty()
 
-    def _bubble(self, text: str, color: str, anchor: str, font: Any = None) -> ctk.CTkFrame:
+    @property
+    def empty_visible(self) -> bool:
+        """Whether the empty-state hint is currently shown."""
+        return self._empty is not None
+
+    def _show_empty(self) -> None:
+        if self._empty_text and self._empty is None:
+            self._empty = ctk.CTkLabel(
+                self,
+                text=self._empty_text,
+                text_color=theme.MUTED_TEXT,
+                font=theme.body_font(),
+                wraplength=theme.BUBBLE_WRAP,
+            )
+            self._empty.pack(pady=(theme.SPACE_XL, 0))
+
+    def _hide_empty(self) -> None:
+        if self._empty is not None:
+            self._empty.destroy()
+            self._empty = None
+
+    def _bubble(self, text: str, color: Any, anchor: str, font: Any = None) -> ctk.CTkFrame:
+        self._hide_empty()
         frame = ctk.CTkFrame(self, fg_color=color, corner_radius=10)
         frame.pack(fill="x", padx=10, pady=4, anchor=anchor)
         label = ctk.CTkLabel(
@@ -28,7 +57,7 @@ class ChatView(ctk.CTkScrollableFrame):
             wraplength=theme.BUBBLE_WRAP,
             justify="left",
             text_color=theme.TEXT,
-            font=font or theme.FONT_BODY,
+            font=font or theme.body_font(),
         )
         label.pack(padx=10, pady=6, anchor="w")
         self._scroll_to_end()
@@ -78,34 +107,42 @@ class ChatView(ctk.CTkScrollableFrame):
         self._bubble(format_report(report), theme.REPORT_BG, "w")
 
     def clear(self) -> None:
-        """Remove everything from the conversation."""
+        """Remove everything from the conversation and show the hint again."""
         for child in self.winfo_children():
             child.destroy()
+        self._empty = None
+        self._show_empty()
 
 
 class PracticeBanner(ctk.CTkFrame):
-    """Strip shown while a practice drill is active, with a Stop button."""
+    """Strip shown while a practice drill is active, with a Stop button.
+
+    The parent places it with ``grid`` and ``grid_remove``; ``show``/``hide``
+    only toggle it.
+    """
 
     def __init__(self, master: Any, on_stop: Callable[[], None]) -> None:
         super().__init__(master, fg_color=theme.PRACTICE_OK, corner_radius=8)
         self._label = ctk.CTkLabel(
             self, text="", text_color=theme.TEXT, font=theme.FONT_BODY,
             wraplength=360, justify="left",
-        )
+        )  # fmt: skip
         self._label.pack(side="left", padx=10, pady=6)
-        self._button = ctk.CTkButton(self, text=t("button.stop_practice"), width=110, command=on_stop)
+        self._button = ctk.CTkButton(
+            self, text=t("button.stop_practice"), width=110, command=on_stop
+        )
         self._button.pack(side="right", padx=10, pady=6)
 
-    def show(self, target: MistakeRecord, before: Any) -> None:
-        """Display the banner for ``target`` just above the ``before`` widget."""
+    def show(self, target: MistakeRecord) -> None:
+        """Display the banner for ``target``."""
         self._label.configure(
             text=t("practice.banner", original=target.original, corrected=target.corrected)
         )
-        self.pack(before=before, fill="x", padx=20, pady=(0, 6))
+        self.grid()
 
     def hide(self) -> None:
         """Remove the banner."""
-        self.pack_forget()
+        self.grid_remove()
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the Stop button."""
@@ -119,12 +156,15 @@ class MicSelector(ctk.CTkFrame):
         self, master: Any, names: Sequence[str], default: str, on_change: Callable[[str], None]
     ) -> None:
         super().__init__(master, fg_color="transparent")
-        ctk.CTkLabel(self, text=t("mic.label")).pack()
+        self.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(self, text=t("mic.label"), text_color=theme.MUTED_TEXT).grid(
+            row=0, column=0, padx=(0, theme.SPACE_S), sticky="w"
+        )
         self._var = ctk.StringVar(value=default)
         menu = ctk.CTkOptionMenu(
-            self, values=list(names) or [t("mic.none")], variable=self._var, width=350, command=on_change
+            self, values=list(names) or [t("mic.none")], variable=self._var, command=on_change
         )
-        menu.pack(pady=5)
+        menu.grid(row=0, column=1, sticky="ew")
 
 
 class LevelMeter(ctk.CTkFrame):
@@ -132,36 +172,68 @@ class LevelMeter(ctk.CTkFrame):
 
     def __init__(self, master: Any) -> None:
         super().__init__(master, fg_color="transparent")
-        ctk.CTkLabel(self, text=t("level.label")).pack()
-        self._bar = ctk.CTkProgressBar(self, width=400)
+        self.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(self, text=t("level.label"), text_color=theme.MUTED_TEXT).grid(
+            row=0, column=0, padx=(0, theme.SPACE_S)
+        )
+        self._bar = ctk.CTkProgressBar(self, width=60)
         self._bar.set(0)
-        self._bar.pack(pady=5)
+        self._bar.grid(row=0, column=1, sticky="ew")
 
     def set(self, value: float) -> None:
         """Show a level between 0.0 and 1.0."""
         self._bar.set(max(0.0, min(value, 1.0)))
 
 
-class StatusBar(ctk.CTkLabel):
-    """One-line status text."""
+class StatusChip(ctk.CTkLabel):
+    """Coloured pill with the session state: green idle, red recording, amber busy."""
 
     def __init__(self, master: Any) -> None:
-        initial = t("status.prefix", text=translate_status("Initializing..."))
-        super().__init__(master, text=initial, text_color=theme.MUTED_TEXT)
+        super().__init__(
+            master, text="", text_color="white", corner_radius=10, width=110, font=theme.FONT_HINT
+        )
+        self.set_state(SessionState.LOADING)
+
+    def set_state(self, state: SessionState) -> None:
+        """Show ``state`` with its translated name and colour."""
+        key, colour = state_style(state)
+        self.configure(text=t(key), fg_color=colour)
+
+
+class StatusBar(ctk.CTkLabel):
+    """One-line status detail (for example ``Ready: hold V``)."""
+
+    def __init__(self, master: Any) -> None:
+        super().__init__(
+            master, text=translate_status("Initializing..."), text_color=theme.MUTED_TEXT,
+            anchor="w", font=theme.FONT_HINT,
+        )  # fmt: skip
 
     def set(self, text: str) -> None:
         """Replace the status text (known session messages are translated)."""
-        self.configure(text=t("status.prefix", text=translate_status(text)))
+        self.configure(text=translate_status(text))
 
 
 class ControlBar(ctk.CTkFrame):
-    """Row with the End session button."""
+    """Holds the End session button."""
 
     def __init__(self, master: Any, on_end_session: Callable[[], None]) -> None:
         super().__init__(master, fg_color="transparent")
+        self._enabled = False
         self._button = ctk.CTkButton(self, text=t("button.end_session"), command=on_end_session)
-        self._button.pack(pady=5)
+        self._button.pack()
+
+    @property
+    def button(self) -> ctk.CTkButton:
+        """The End session button (for tooltips)."""
+        return self._button
+
+    @property
+    def enabled(self) -> bool:
+        """Whether End session is currently available."""
+        return self._enabled
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the End session button."""
+        self._enabled = enabled
         self._button.configure(state="normal" if enabled else "disabled")

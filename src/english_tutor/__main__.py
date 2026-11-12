@@ -59,6 +59,7 @@ def main() -> int:
     configure_logging(cfg.log_level, cfg.data_dir / "logs")
     set_language(loaded.settings.language)
     # Imported here so configuration errors are reported without loading Tk.
+    from .ui import theme
     from .ui.app_window import TutorWindow
 
     devices, default_device = list_input_devices()
@@ -89,7 +90,8 @@ def main() -> int:
         mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
         coach=tutor,
     )
-    window = TutorWindow(cfg, session, devices, default_device)
+    theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)
+    window = TutorWindow(cfg, session, devices, default_device, loaded.settings)
     window_ref.append(window)
     for warning in loaded.warnings:
         window.post(ErrorRaised(warning))

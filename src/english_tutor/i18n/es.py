@@ -13,10 +13,19 @@ STRINGS: dict[str, str] = {
     "mic.label": "Seleccionar micrófono:",
     "mic.none": "Ninguno",
     "level.label": "Nivel de audio:",
-    "status.prefix": "Estado: {text}",
     "button.end_session": "Finalizar sesión",
     "button.stop_practice": "Detener práctica",
     "button.practice": "Practicar",
+    "tooltip.settings": "Ajustes ({shortcut})",
+    "tooltip.end_session_disabled": "Disponible cuando Alex no esté ocupado",
+    # Status chip (one per session state)
+    "chip.loading": "Cargando",
+    "chip.idle": "Listo",
+    "chip.recording": "Grabando",
+    "chip.transcribing": "Transcribiendo",
+    "chip.thinking": "Pensando",
+    "chip.speaking": "Hablando",
+    "chip.reporting": "Redactando",
     # Status messages (see i18n.translate_status)
     "status.initializing": "Iniciando...",
     "status.ready": "Listo",
@@ -33,6 +42,7 @@ STRINGS: dict[str, str] = {
     "status.too_short": "Muy corto o con poco volumen, inténtalo de nuevo",
     "status.not_caught": "No te he entendido, inténtalo de nuevo",
     # Chat bubbles
+    "chat.empty": "Mantén pulsada {key} y habla para empezar la conversación.",
     "chat.you": "Tú: {text}",
     "chat.alex": "Alex: {text}",
     "chat.tip": 'Consejo: "{original}"  ->  "{corrected}"',
