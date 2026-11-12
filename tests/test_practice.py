@@ -84,7 +84,7 @@ def test_start_opens_the_drill_and_speaks(ready, old_record):
     assert h.tts.spoken == ["Let's practice. Where is she?"]
     last = h.of_type(StateChanged)[-1]
     assert last.state is SessionState.IDLE
-    assert last.message == "Practice: hold Right Ctrl to answer"
+    assert last.message == "Practice: hold V to answer"
 
 
 def test_start_is_journaled(ready, fake_log):

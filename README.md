@@ -71,12 +71,12 @@ python main.py
 
 `main.py` at the repository root is the entry point. It works even without `pip install -e`, because it adds `src/` to the import path. After `pip install -e ".[dev]"` the `english-tutor` command and `python -m english_tutor` start the same app.
 
-The first start loads Whisper (the status line shows `Loading speech model...`) and then `Ready: hold Right Ctrl`. If Ollama or the model is missing, the chat shows a notice but the app stays open; see [docs/troubleshooting.md](docs/troubleshooting.md).
+The first start loads Whisper (the status line shows `Loading speech model...`) and then `Ready: hold V`. If Ollama or the model is missing, the chat shows a notice but the app stays open; see [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Usage
 
 1. Choose your microphone in the **Select Microphone** drop-down (the system default is preselected; duplicate entries from different Windows audio APIs are merged).
-2. **Hold the push-to-talk key** (default **Right Ctrl**), speak, and release to send. The key is global: it works even when the app window is not focused. The left Ctrl key is ignored. To use another key, set `TUTOR_PTT_KEY` (for example `v` for the previous default); see [docs/configuration.md](docs/configuration.md).
+2. **Hold the push-to-talk key** (default **V**), speak, and release to send. The key is global: it works even when the app window is not focused, and because it is not suppressed, a focused text field in another application also receives the letter. To use another key, set `TUTOR_PTT_KEY` (for example `right ctrl`, a non-printing key; the left Ctrl is then ignored); see [docs/configuration.md](docs/configuration.md).
 3. Your transcript appears as `You: ...`, then the tutor's reply as `Alex: ...`. When a clearly marked mistake was found, a highlighted `Tip: "..." -> "..."` card follows, and the tip is spoken before the reply.
 4. Click **End session** (enabled only when the app is idle and no practice is running) to get the session report. Starting a new conversation afterwards begins with an empty chat history.
 
@@ -109,7 +109,7 @@ To wipe your history, close the app and delete the `data` folder (or just `data\
 All settings are optional environment variables prefixed with `TUTOR_` (Ollama URL and model, Whisper model and device, Piper paths, push-to-talk key, history length, data folder, log level, and more). Numeric values are range-checked at start-up. Example:
 
 ```powershell
-$env:TUTOR_PTT_KEY = "v"   # use the V key instead of Right Ctrl
+$env:TUTOR_PTT_KEY = "right ctrl"   # use Right Ctrl instead of V
 python main.py
 ```
 

@@ -21,7 +21,7 @@ If a value is invalid the app prints `Configuration error: <message>` to standar
 | `TUTOR_TTS` | boolean | `1` | Voice output. Accepted: `1`, `true`, `yes`, `on` / `0`, `false`, `no`, `off` (case-insensitive). When off, the app is text-only and logs `Voice output disabled (TUTOR_TTS=0).` |
 | `TUTOR_PIPER_EXE` | path | auto-detected | Path to `piper.exe`. See [Piper resolution order](#piper-resolution-order) |
 | `TUTOR_PIPER_VOICE` | path | `<folder of piper.exe>\voices\en_US-lessac-medium.onnx` | Voice model. A file with the same name plus `.json` (for example `en_US-lessac-medium.onnx.json`) must sit next to it |
-| `TUTOR_PTT_KEY` | string | `right ctrl` | Push-to-talk key, as a key name understood by the `keyboard` package. Shown capitalised (`Right Ctrl`, `V`) in the window hint and in the `Ready: hold <KEY>` status. See [Push-to-talk key](#push-to-talk-key) |
+| `TUTOR_PTT_KEY` | string | `v` | Push-to-talk key, as a key name understood by the `keyboard` package. Shown capitalised (`V`, `Right Ctrl`) in the window hint and in the `Ready: hold <KEY>` status. See [Push-to-talk key](#push-to-talk-key) |
 | `TUTOR_DATA_DIR` | path | `<project root>\data` | Folder for the conversation logs and the mistake history. A relative path is relative to the working directory. See [Local data](#local-data) |
 | `TUTOR_LOG_LEVEL` | string | `INFO` | Python logging level name (`DEBUG`, `INFO`, `WARNING`, ...). Upper-cased; an unknown name falls back to `INFO`. Logs go to the console |
 
@@ -32,11 +32,11 @@ Notes:
 
 ## Push-to-talk key
 
-The default is **Right Ctrl** (`TUTOR_PTT_KEY=right ctrl`). It was chosen because it is a non-printing key, so holding it does not type anything into the window that has focus. Set `TUTOR_PTT_KEY=v` to get the previous default (a letter key *is* typed into other applications, because the hook does not suppress key presses). Names such as `f9` or `space` are standard `keyboard` names but were not exercised while writing this document.
+The default is **V** (`TUTOR_PTT_KEY=v`). The hook does not suppress key presses, so while you hold V with another application focused, that application also receives the letter. If that bothers you, use a non-printing key such as `TUTOR_PTT_KEY=right ctrl`. Names such as `f9` or `space` are standard `keyboard` names but were not exercised while writing this document.
 
 Left and right Ctrl share one scan code, and the `keyboard` package matches modifier keys by scan code, so a plain registration for "right ctrl" would also fire on **left** Ctrl (every Ctrl+C). To avoid that, when the configured key is exactly `left ctrl`, `right ctrl`, `left alt` or `right alt`, the app asks Windows (`GetKeyNameTextW`) for the localized name of that side and accepts only events whose name is either the configured text or the localized one. For example, on Spanish Windows the right Ctrl key reports `CTRL DERECHA`, while the left one reports `CTRL`. If the lookup fails, no side filter is applied and push-to-talk still works (but the other side also triggers it). Any other key (for example `v` or `f9`) has no filter.
 
-The key is not suppressed, so shortcuts that include Right Ctrl still reach the focused application and will also start a recording.
+The key is not suppressed, so if you choose Right Ctrl, shortcuts that include it still reach the focused application and will also start a recording.
 
 ## Piper resolution order
 

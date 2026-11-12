@@ -29,7 +29,7 @@ def test_start_loads_models_and_becomes_idle(make_harness):
 
 def test_ready_status_names_the_configured_ptt_label(make_harness):
     h = make_harness()
-    assert h.of_type(StateChanged)[-1].message == "Ready: hold Right Ctrl"
+    assert h.of_type(StateChanged)[-1].message == "Ready: hold V"
     events: list = []
     session = ConversationSession(
         FakeSTT(), FakeTutor(), FakeTTS(True), FakeRecorder(), events.append,

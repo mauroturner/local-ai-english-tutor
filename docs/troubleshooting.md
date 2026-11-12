@@ -49,10 +49,10 @@ If playback fails on a single turn, the failure is logged (`Speech synthesis fai
 ## Push-to-talk does not respond
 
 - The key is a **global keyboard hook** (the `keyboard` package). On some systems installing the hook needs elevated rights: run the terminal as administrator. If the hook cannot be installed the chat shows `PTT unavailable: <error>`.
-- The default key is **Right Ctrl**. Wait for the status `Ready: hold Right Ctrl` (or `Practice: hold Right Ctrl to answer` during a drill). Presses are ignored while the app is loading, transcribing, thinking, speaking or writing the report.
+- The default key is **V**. Wait for the status `Ready: hold V` (or `Practice: hold V to answer` during a drill). Presses are ignored while the app is loading, transcribing, thinking, speaking or writing the report.
 - Hold the key until you finish speaking, then release. Auto-repeat is ignored.
-- **Left Ctrl is ignored on purpose.** The app tells the two Ctrl keys apart by the localized key name Windows reports (for example `CTRL DERECHA` for the right key on Spanish Windows). If that lookup fails, there is no side filter and either Ctrl key triggers recording.
-- Change the key with `TUTOR_PTT_KEY`, for example `$env:TUTOR_PTT_KEY = "v"` for the old default or `"f9"`. The window hint and status line show the configured key. Side filtering applies only to `left`/`right` `ctrl`/`alt`.
+- Change the key with `TUTOR_PTT_KEY`, for example `$env:TUTOR_PTT_KEY = "right ctrl"` (non-printing) or `"f9"`. The window hint and status line show the configured key.
+- **With `right ctrl`, left Ctrl is ignored on purpose.** The app tells the two Ctrl keys apart by the localized key name Windows reports (for example `CTRL DERECHA` for the right key on Spanish Windows). If that lookup fails, there is no side filter and either Ctrl key triggers recording. Side filtering applies only to `left`/`right` `ctrl`/`alt`.
 - The key press is not suppressed. A letter key such as `v` is typed into the focused application, and shortcuts that use Right Ctrl also start a recording.
 
 ## Wrong or duplicated microphone

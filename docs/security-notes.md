@@ -36,7 +36,7 @@ Synthesised speech is written to a temporary WAV file created with `tempfile.mks
 
 ## Global keyboard hook
 
-Push-to-talk uses the `keyboard` package, which installs a system-wide hook. The app only reacts to the configured key (`TUTOR_PTT_KEY`, default Right Ctrl) and does not store or log other key presses, but the hook is active while the app runs, including when other windows have focus. Some security software flags such hooks.
+Push-to-talk uses the `keyboard` package, which installs a system-wide hook. The app only reacts to the configured key (`TUTOR_PTT_KEY`, default V) and does not store or log other key presses, but the hook is active while the app runs, including when other windows have focus. Some security software flags such hooks.
 
 ## Git hygiene
 

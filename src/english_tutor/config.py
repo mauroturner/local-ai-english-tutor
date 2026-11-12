@@ -30,7 +30,7 @@ class AppConfig:
     tts_enabled: bool = True
     piper_exe: Path | None = None
     piper_voice: Path = Path("piper/voices/en_US-lessac-medium.onnx")
-    ptt_key: str = "right ctrl"
+    ptt_key: str = "v"
     log_level: str = "INFO"
     data_dir: Path = Path("data")
 
@@ -159,7 +159,7 @@ def load_config(
         tts_enabled=_bool(env, "TUTOR_TTS", True),
         piper_exe=exe,
         piper_voice=voice,
-        ptt_key=_str(env, "TUTOR_PTT_KEY", "right ctrl"),
+        ptt_key=_str(env, "TUTOR_PTT_KEY", "v"),
         log_level=_str(env, "TUTOR_LOG_LEVEL", "INFO").upper(),
         data_dir=Path(data_raw) if data_raw else root / "data",
     )

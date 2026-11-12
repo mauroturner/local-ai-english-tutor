@@ -66,7 +66,7 @@ class ConversationSession:
         *,
         history_exchanges: int = 6,
         runner: Runner | None = None,
-        ptt_label: str = "Right Ctrl",
+        ptt_label: str = "V",
         conversation_log: ConversationLog | None = None,
         mistakes: MistakeStore | None = None,
         coach: PracticeCoach | None = None,

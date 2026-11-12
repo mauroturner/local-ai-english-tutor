@@ -19,7 +19,7 @@ sequenceDiagram
     participant TTS as PiperSynthesizer
     participant UI as TutorWindow (Tk thread)
 
-    User->>KB: hold PTT key (default Right Ctrl)
+    User->>KB: hold PTT key (default V)
     KB->>S: on_ptt_press()
     S->>S: IDLE -> RECORDING
     S-->>UI: StateChanged "Listening..."
@@ -108,7 +108,7 @@ sequenceDiagram
     W-->>UI: TutorSaid(feedback + next_prompt)
     W->>LOG: record PRACTICE "Started: ..." and ALEX
     W->>TTS: speak(feedback + next_prompt)
-    W-->>UI: StateChanged IDLE "Practice: hold Right Ctrl to answer"
+    W-->>UI: StateChanged IDLE "Practice: hold V to answer"
 
     User->>S: hold PTT key, speak, release (same recording path as a normal turn)
     W->>W: transcribe, UserSaid(raw), record YOU
@@ -122,11 +122,11 @@ sequenceDiagram
     W-->>UI: PracticeFeedback(outcome, feedback, next_prompt)
     W->>LOG: record PRACTICE "[outcome] feedback" and ALEX next_prompt
     W->>TTS: speak(feedback + next_prompt)
-    W-->>UI: StateChanged IDLE "Practice: hold Right Ctrl to answer"
+    W-->>UI: StateChanged IDLE "Practice: hold V to answer"
 
     User->>UI: click Stop practice
     UI->>S: stop_practice()
-    S-->>UI: PracticeChanged(None), StateChanged IDLE "Ready: hold Right Ctrl"
+    S-->>UI: PracticeChanged(None), StateChanged IDLE "Ready: hold V"
     S->>W: submit(log "Stopped practice")
 ```
 

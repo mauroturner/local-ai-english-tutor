@@ -28,8 +28,8 @@ def test_defaults(tmp_path):
     assert cfg.whisper_cpu_compute_type == "int8"
     assert cfg.whisper_beam_size == 5
     assert cfg.tts_enabled is True
-    assert cfg.ptt_key == "right ctrl"
-    assert cfg.ptt_label == "Right Ctrl"
+    assert cfg.ptt_key == "v"
+    assert cfg.ptt_label == "V"
     assert cfg.log_level == "INFO"
     assert cfg.piper_exe is None
     assert cfg.data_dir == tmp_path / "data"

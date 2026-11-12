@@ -54,7 +54,7 @@ class KeyboardPushToTalk:
     """
 
     def __init__(
-        self, key: str = "right ctrl", key_name_text: KeyNameText = _windows_key_name
+        self, key: str = "v", key_name_text: KeyNameText = _windows_key_name
     ) -> None:
         self._key = key
         self._key_name_text = key_name_text
