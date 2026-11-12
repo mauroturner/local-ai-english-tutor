@@ -33,3 +33,6 @@ dist/
 
 # CodeGraph index
 .codegraph/
+
+# Local agent tooling
+.atl/
