@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Sequence
 from typing import Any
 
 from ...i18n import t
@@ -61,25 +62,42 @@ class SettingsCommands:
         outcome = self._services.settings.save(
             new, self._effective, autostart=self._autostart.to_save()
         )
-        if outcome.errors:
-            message = t("settings.save_failed", error="; ".join(outcome.errors))
-            if outcome.autostart_failed:  # the settings were saved; only start-up failed
-                self._autostart.fail("; ".join(outcome.errors))
-                message = self._autostart.error or message
-                self._refresh_status()  # shows the failure under the row
+        if outcome.autostart_failed:
+            # The settings file was written; only the start-up entry failed. Apply what
+            # was saved and keep just the auto-start change pending, so Cancel cannot
+            # pretend to discard settings that are already stored.
+            self._apply_saved(new, outcome.restart_keys)
+            self._rebase_on_saved()
+            self._autostart.fail("; ".join(outcome.errors))
+            self._refresh_page()  # shows the failure under the row
+            message = self._autostart.error or "; ".join(outcome.errors)
             self.footer.set_status(message, error=True)
             return False
-        draft = self._draft
-        live = [k for k in draft.dirty_keys if k in LIVE_KEYS and not draft.is_locked(k)]
-        shown = dataclasses.replace(new, **{k: self._draft.value(k) for k in live})
+        if outcome.errors:
+            message = t("settings.save_failed", error="; ".join(outcome.errors))
+            self.footer.set_status(message, error=True)
+            return False
         try:
-            apply_live(live, shown, self._services.apply_log_level)
-            if outcome.restart_keys:
-                self._services.on_restart_needed(outcome.restart_keys)
-            self._services.on_applied(shown)
+            self._apply_saved(new, outcome.restart_keys)
         finally:
             self._close()
         return True
+
+    def _apply_saved(self, new: UserSettings, restart_keys: Sequence[str]) -> None:
+        """Apply live settings, announce restart-only ones and notify the main window."""
+        draft = self._draft
+        live = [k for k in draft.dirty_keys if k in LIVE_KEYS and not draft.is_locked(k)]
+        shown = dataclasses.replace(new, **{k: draft.value(k) for k in live})
+        apply_live(live, shown, self._services.apply_log_level)
+        if restart_keys:
+            self._services.on_restart_needed(restart_keys)
+        self._services.on_applied(shown)
+
+    def _rebase_on_saved(self) -> None:
+        """Make the stored settings the new baseline (nothing left unsaved but auto-start)."""
+        loaded = self._services.settings.load()
+        self._effective = loaded.effective
+        self._draft = SettingsDraft(loaded.settings, loaded.effective, loaded.locked)
 
     def cancel(self) -> bool:
         """Close without saving (asks first if there are changes); reverts previews."""

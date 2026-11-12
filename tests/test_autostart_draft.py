@@ -194,3 +194,64 @@ def test_existing_save_behaviour_is_unchanged_and_never_touches_the_registry():
     assert set(outcome.restart_keys) == {"language", "ollama_model"}
     assert outcome.errors == () and outcome.autostart_failed is False
     assert registry.writes == [] and registry.keys[RUN] == {"EnglishTutor": COMMAND}
+
+
+# ------------------------------------------------- Save when only auto-start fails
+class _Footer:
+    def __init__(self):
+        self.status = None
+
+    def set_status(self, text, error=False):
+        self.status = (text, error)
+
+
+def _commands_window(service, auto):
+    from english_tutor.settings.draft import SettingsDraft
+    from english_tutor.ui.settings.commands import SettingsCommands
+
+    applied: list[UserSettings] = []
+
+    class Window(SettingsCommands):
+        closed = False
+
+        def _preview(self, key=None):
+            pass
+
+        def _refresh_page(self):
+            pass
+
+        def _refresh_status(self):
+            pass
+
+        def _close(self):
+            self.closed = True
+
+    window = Window()
+    window._services = UiServices(
+        service, None, lambda _path: None, confirm=lambda *a, **k: True,
+        on_applied=applied.append, autostart=auto,
+    )  # fmt: skip
+    loaded = service.load()
+    window._effective = loaded.effective
+    window._draft = SettingsDraft(loaded.settings, loaded.effective, loaded.locked)
+    window._autostart = AutostartDraft.read(auto)
+    window._folder_errors = {}
+    window.footer = _Footer()
+    return window, applied
+
+
+def test_saved_settings_stay_saved_when_only_autostart_fails():
+    auto, registry = port({}, fail=PermissionError("denied"))
+    store = MemoryStore()
+    window, applied = _commands_window(SettingsService(store, auto, {}), auto)
+    window._draft.set("language", "es")
+    window._autostart.set(True)
+
+    assert window.save() is False  # the window stays open to show the failure
+    assert store.data["language"] == "es"  # the settings file was written
+    assert window._draft.dirty_keys == ()  # ...so they are no longer unsaved
+    assert window._effective.language == "es"
+    assert [s.language for s in applied] == ["es"]  # and applied like a normal save
+    assert window.pending_changes == 1  # only the auto-start change is left
+    assert window.footer.status[1] is True and "denied" in window.footer.status[0]
+    assert window.closed is False and registry.keys[RUN] == {}
