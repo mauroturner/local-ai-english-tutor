@@ -69,3 +69,25 @@ def test_spawn_restart_reports_failure_instead_of_raising():
         raise OSError("no such file")
 
     assert spawn_restart(["python", "main.py"], "C:\\missing\\python.exe", popen=broken) is False
+
+
+def test_finish_restart_returns_zero_without_notice_when_spawn_succeeds():
+    from english_tutor.restart import finish_restart
+
+    notices: list[str] = []
+    assert finish_restart(spawn=lambda: True, notify=notices.append) == 0
+    assert notices == []
+
+
+def test_finish_restart_tells_the_user_and_fails_when_spawn_fails():
+    from english_tutor.i18n import set_language
+    from english_tutor.restart import finish_restart
+
+    notices: list[str] = []
+    set_language("es")
+    try:
+        assert finish_restart(spawn=lambda: False, notify=notices.append) == 1
+    finally:
+        set_language("en")
+    assert len(notices) == 1 and "main.py" in notices[0]
+    assert "reiniciar" in notices[0].lower()

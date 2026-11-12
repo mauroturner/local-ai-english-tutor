@@ -62,3 +62,36 @@ def spawn_restart(
         return False
     logger.info("Restarting: %s", command)
     return True
+
+
+def _show_error(message: str) -> None:
+    """Native error dialog; the main window is already gone at this point."""
+    try:
+        import tkinter
+        from tkinter import messagebox
+
+        root = tkinter.Tk()
+        root.withdraw()
+        messagebox.showerror("AI English Tutor", message, parent=root)
+        root.destroy()
+    except Exception:  # no display or Tk broken: the log entry is all we can leave
+        logger.exception("Could not show the restart failure dialog")
+
+
+def finish_restart(
+    spawn: Callable[[], bool] = spawn_restart,
+    notify: Callable[[str], None] = _show_error,
+) -> int:
+    """Relaunch the app; if that fails, tell the user and return exit code 1.
+
+    The user explicitly asked for the restart, so a failed relaunch must never
+    look like a normal exit.
+    """
+    from .i18n import t
+
+    if spawn():
+        return 0
+    message = t("restart.failed")
+    logger.error(message)
+    notify(message)
+    return 1

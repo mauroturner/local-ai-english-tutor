@@ -57,6 +57,10 @@ STRINGS: dict[str, str] = {
     "mistakes.stats": "x{count}   last seen {date}   practice {successes}/{attempts}",
     "severity.major": "MAJOR",
     "severity.minor": "MINOR",
+    "restart.failed": (
+        "The app could not restart itself. Your settings were saved; "
+        "start it again with: python main.py"
+    ),
 }
 
 STRINGS.update(SETTINGS_STRINGS)

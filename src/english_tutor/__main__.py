@@ -29,7 +29,7 @@ from .config import (
 from .i18n import set_language
 from .logging_setup import configure_logging
 from .ports import SpeechSynthesizer
-from .restart import spawn_restart
+from .restart import finish_restart
 from .settings.model import settings_env
 
 logger = logging.getLogger("english_tutor")
@@ -128,14 +128,15 @@ def main() -> int:
         window.post(ErrorRaised(f"PTT unavailable: {exc}"))
 
     session.start()
+    exit_code = 0
     try:
         window.mainloop()
     finally:
         ptt.stop()
         session.shutdown()
         if window.restart_requested:
-            spawn_restart()
-    return 0
+            exit_code = finish_restart()
+    return exit_code
 
 
 if __name__ == "__main__":
