@@ -38,6 +38,7 @@ class LearnerProfile:
     name: str = "Mauro"
     pronouns: str = "he"
     level: str = DEFAULT_LEVEL
+    explain_in: str = "en"  # language of the explanation of each correction ("en" or "es")
 
 
 def name_error(text: str) -> str | None:
@@ -74,6 +75,16 @@ def profile_block(profile: LearnerProfile) -> str:
     level = profile.level if profile.level in LEVEL_RULES else DEFAULT_LEVEL
     lines.append(f"- English level (CEFR): {level}. {LEVEL_RULES[level]}")
     return "\n".join(lines)
+
+
+def explanation_rule(profile: LearnerProfile) -> str:
+    """The turn-prompt line asking for Spanish explanations; empty for English."""
+    if profile.explain_in != "es":
+        return ""
+    return (
+        'EXPLANATION LANGUAGE: write the "explanation" of every error in simple Spanish. '
+        'Keep "original", "corrected" and "reply" in English.'
+    )
 
 
 def speech_scale(level: str) -> float:

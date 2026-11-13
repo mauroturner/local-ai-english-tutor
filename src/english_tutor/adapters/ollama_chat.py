@@ -8,7 +8,7 @@ from typing import Any
 
 import requests
 
-from ..domain.learner import LearnerProfile, with_profile
+from ..domain.learner import LearnerProfile, explanation_rule, with_profile
 from ..domain.scenarios import FREE, with_scenario
 from ..domain.models import (
     ChatMessage,
@@ -80,13 +80,16 @@ class OllamaTutorModel:
                 f"Model {self._model} not found: run `ollama pull {self._model}`"
             )
 
+    def _turn_prompt(self) -> str:
+        profile = self._profile()
+        prompt = with_scenario(with_profile(TURN_SYSTEM_PROMPT, profile), self._scenario())
+        rule = explanation_rule(profile)
+        return f"{prompt}\n\n{rule}" if rule else prompt
+
     def reply(self, history: Sequence[ChatMessage], user_text: str) -> TutorReply:
         """Send system prompt + history + the raw learner text."""
         messages = [
-            ChatMessage(
-                "system",
-                with_scenario(with_profile(TURN_SYSTEM_PROMPT, self._profile()), self._scenario()),
-            ),
+            ChatMessage("system", self._turn_prompt()),
             *history,
             ChatMessage("user", user_text),
         ]

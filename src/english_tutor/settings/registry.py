@@ -113,6 +113,8 @@ REGISTRY: tuple[SettingSpec, ...] = (
              "he", "she", "they", "profile", "perfil"), ("he", "she", "they")),
     _setting("level", _G, Control.CHOICE, ("cefr", "a2", "b1", "b2", "c1", "nivel", "difficulty",
              "dificultad", "speed", "velocidad"), LEVELS),
+    _setting("explain_language", _G, Control.CHOICE, ("explanation", "spanish", "english", "translate",
+             "explicacion", "espanol", "ingles", "traducir"), ("en", "es")),
     _setting("track_pauses", _G, _SWITCH, ("hesitation", "fluency", "silence", "pause", "pausa",
              "fluidez", "silencio", "practice", "practicar")),
     _setting("suggest_natural", _G, _SWITCH, ("native", "natural", "rephrase", "phrasing", "style",

@@ -33,6 +33,7 @@ class UserSettings:
     learner_name: str = "Mauro"
     learner_pronouns: str = "he"
     level: str = DEFAULT_LEVEL
+    explain_language: str = "en"
     track_pauses: bool = True
     suggest_natural: bool = True
     session_memory: bool = True
@@ -107,6 +108,7 @@ _RULES: dict[str, _Rule] = {
     "language": _Rule("str", ("en", "es"), lower=True),
     "learner_pronouns": _Rule("str", tuple(PRONOUNS), lower=True),
     "level": _Rule("str", LEVELS, upper=True),
+    "explain_language": _Rule("str", ("en", "es"), lower=True),
     "appearance_mode": _Rule("str", ("system", "light", "dark"), lower=True),
     "ui_scale": _Rule("float", _SCALES),
     "chat_font_size": _Rule("int", bounds=(10, 22)),
@@ -199,7 +201,9 @@ def parse_settings(raw: Mapping[str, Any]) -> tuple[UserSettings, tuple[str, ...
 
 def learner_profile(settings: UserSettings) -> LearnerProfile:
     """The name and pronouns the tutor uses, taken from ``settings``."""
-    return LearnerProfile(settings.learner_name, settings.learner_pronouns, settings.level)
+    return LearnerProfile(
+        settings.learner_name, settings.learner_pronouns, settings.level, settings.explain_language
+    )
 
 
 def to_json_dict(settings: UserSettings) -> dict[str, Any]:

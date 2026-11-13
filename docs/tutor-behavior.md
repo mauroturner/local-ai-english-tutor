@@ -127,6 +127,7 @@ The reply is asked to be one to three short sentences, plain text (no lists, emo
 | Setting | Effect on the tutor |
 | --- | --- |
 | Interface language (English / Spanish) | Only the app's own text (buttons, labels, status messages, dates in the Mistakes tab). Alex always speaks and corrects in **English**; the report, tips, practice questions and conversation logs stay English |
+| Explain corrections in | With Spanish, adds an `EXPLANATION LANGUAGE` line to the **turn** prompt only (after the `LEARNER` and scenario sections) asking for the `explanation` of each error in simple Spanish; `original`, `corrected` and the reply stay English. It is a request to the model and is not checked by the code |
 | English level | Adds the level line to the `LEARNER` section of every prompt (turn, report, practice) and, at A2, makes Piper speak about 15 % slower (`length_scale` 1.15). **Repeat** and **Slower** say the tutor's last words again (Slower multiplies the pace by 1.35). Nothing else changes: mistakes are still judged by the same rules |
 | Your name and pronouns | Added to the end of every prompt (turn, report, practice) as a `LEARNER` section; the next model call after **Save** uses them. They never change how mistakes are judged |
 | Sound cues | Short beeps for recording start, stop and errors. They are played on a separate audio stream and never alter, delay or replace a transcript |

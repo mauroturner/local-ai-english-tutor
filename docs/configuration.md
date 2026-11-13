@@ -47,7 +47,7 @@ User settings are saved in `settings.json`. Environment variables keep working a
 {
   "version": 1,
   "settings": {
-    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "level": "B1", "track_pauses": true, "suggest_natural": true, "session_memory": true, "daily_goal_minutes": 10,
+    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "level": "B1", "explain_language": "en", "track_pauses": true, "suggest_natural": true, "session_memory": true, "daily_goal_minutes": 10,
     "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
     "density": "comfortable", "tts_enabled": true,
     "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
@@ -91,6 +91,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Interface language | `en`, `es` (`en`) | Restart | Buttons, labels, status messages and dates in the Mistakes tab (`Nov 12, 2026` / `12 nov 2026`). The tutor, corrections, reports and conversation logs stay English |
 | Your name | text, up to 40 characters (`Mauro`) | Save | The tutor uses it now and then. Leave it empty to not be called by name. Quotes, braces, angle brackets, backslashes, backticks and control characters are refused |
 | Your pronouns | `he` (he/him), `she` (she/her), `they` (they/them) (`he`) | Save | Used when the tutor refers to you in the third person, for example in the report |
+| Explain corrections in | `en` (English), `es` (Spanish) (`en`) | Save | Language of the short explanation shown with each correction (and stored with the mistake). The corrected sentence and everything spoken stay in English. Applies to the next message |
 | English level | `A2`, `B1`, `B2`, `C1` (`B1`) | Save | Tells the tutor how simple its words should be and how many corrections to give per message; at A2 the voice also speaks about 15 % slower. Applies to the next message. See [Prompts](tutor-behavior.md#prompts) |
 | Track long pauses | on / off (on) | Save | Adds pauses of 1.2 s or more inside a sentence to the Mistakes tab and lists slow starts (3 s or more) in the report; never counted as errors. The same word timings feed the [pronunciation hints](tutor-behavior.md#pronunciation-hints) of the report. See [Long pauses](tutor-behavior.md#long-pauses) |
 | Remember earlier sessions | on / off (on) | Save | At the end of a session the tutor writes a few short notes about what you shared and the next conversations can ask about them (the last 3 sessions' notes are used). Off stops writing and using notes; it does not delete them. See [Session memory](tutor-behavior.md#session-memory) |

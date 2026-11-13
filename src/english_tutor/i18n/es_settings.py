@@ -13,6 +13,8 @@ SETTINGS_STRINGS: dict[str, str] = {
     # Nombres de las opciones
     "option.language.en": "English",
     "option.language.es": "Español",
+    "option.explain_language.en": "Inglés",
+    "option.explain_language.es": "Español",
     "option.level.A2": "A2 - Elemental",
     "option.level.B1": "B1 - Intermedio",
     "option.level.B2": "B2 - Intermedio alto",
@@ -41,6 +43,9 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.level.label": "Nivel de inglés",
     "setting.level.help": "Define qué tan simples son las palabras del tutor, cuántas correcciones "
     "da por mensaje y, en A2, qué tan rápido habla. Se aplica al próximo mensaje.",
+    "setting.explain_language.label": "Explicar las correcciones en",
+    "setting.explain_language.help": "Idioma de la explicación corta que acompaña cada corrección. "
+    "La frase corregida y todo lo que el tutor dice en voz alta siguen en inglés.",
     "setting.track_pauses.label": "Registrar pausas largas",
     "setting.track_pauses.help": "Detecta dónde te detienes mucho dentro de una frase (1,2 s o "
     "más) y agrega esa frase a Errores para practicar decirla de corrido. También muestra en el "
