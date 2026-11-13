@@ -17,6 +17,8 @@ from .shortcuts import Conflict, find_conflicts, format_combo, parse_combo
 _FIELD_NAMES = tuple(f.name for f in dataclasses.fields(UserSettings))
 _SHORTCUT_KEYS = tuple(name for name in _FIELD_NAMES if name.startswith("shortcut_"))
 _DEFAULTS = dataclasses.asdict(UserSettings())
+_MAY_BE_EMPTY = frozenset({"learner_name"})
+"""Text settings where empty is a real choice even though the default is not empty."""
 
 
 def _conflict_message(conflict: Conflict) -> str:
@@ -71,7 +73,8 @@ class SettingsDraft:
 
     @staticmethod
     def _parse(key: str, raw: Any) -> Any:
-        if isinstance(raw, str) and not raw.strip() and _DEFAULTS[key] != "":
+        empty_ok = _DEFAULTS[key] == "" or key in _MAY_BE_EMPTY
+        if isinstance(raw, str) and not raw.strip() and not empty_ok:
             raise ValueError("This value cannot be empty.")
         if key in _SHORTCUT_KEYS:
             return format_combo(parse_combo(str(raw)))

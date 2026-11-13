@@ -112,3 +112,12 @@ def test_every_model_call_reads_the_current_profile():
     session._post = answer(json.dumps(verdict))
     tutor.practice(target(), [], "I went")
     assert '"Sam"' in _system_prompt(session)
+
+
+def test_settings_window_accepts_an_empty_name_but_not_other_empty_texts():
+    from english_tutor.settings.draft import SettingsDraft
+
+    draft = SettingsDraft(UserSettings(), UserSettings(), frozenset())
+    assert draft.set("learner_name", "  ") is None
+    assert draft.to_settings().learner_name == ""
+    assert draft.set("ollama_model", "") == "This value cannot be empty."
