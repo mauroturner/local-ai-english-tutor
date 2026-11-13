@@ -23,7 +23,7 @@ If a value is invalid the app prints `Configuration error: <message>` to standar
 | `TUTOR_PIPER_VOICE` | path | `<folder of piper.exe>\voices\en_US-lessac-medium.onnx` | Voice model. A file with the same name plus `.json` (for example `en_US-lessac-medium.onnx.json`) must sit next to it |
 | `TUTOR_PTT_KEY` | string | `v` | Push-to-talk key, as a key name understood by the `keyboard` package. Shown capitalised (`V`, `Right Ctrl`) in the window's hold hint. See [Push-to-talk key](#push-to-talk-key) |
 | `TUTOR_DATA_DIR` | path | `<project root>\data` | Folder for the conversation logs and the mistake history. A relative path is relative to the working directory. See [Local data](#local-data) |
-| `TUTOR_LOG_LEVEL` | string | `INFO` | Python logging level name (`DEBUG`, `INFO`, `WARNING`, ...). Upper-cased; an unknown name falls back to `INFO`. Logs go to the console and to [`logspp.log`](#application-log) |
+| `TUTOR_LOG_LEVEL` | string | `INFO` | Python logging level name (`DEBUG`, `INFO`, `WARNING`, ...). Upper-cased; an unknown name falls back to `INFO`. Logs go to the console and to [`logs\app.log`](#application-log) |
 | `TUTOR_SETTINGS_FILE` | path | `<data folder>\settings.json` | Location of the settings file. See [Settings file](#settings-file) |
 
 Notes:
@@ -214,7 +214,7 @@ Piper counts as available only if the executable, the `.onnx` voice and the `.on
 
 ## Local data
 
-The app writes these files under the data folder (`TUTOR_DATA_DIR` or the **Data folder** setting, default `<project root>\data`, which is `data\` in the repository when running from source): the conversation logs and the mistake history described below, plus `settings.json` ([Settings file](#settings-file)) and `logspp.log` ([Application log](#application-log)). `data/`, `logs/` and `*.log` are git-ignored.
+The app writes these files under the data folder (`TUTOR_DATA_DIR` or the **Data folder** setting, default `<project root>\data`, which is `data\` in the repository when running from source): the conversation logs and the mistake history described below, plus `settings.json` ([Settings file](#settings-file)) and `logs\app.log` ([Application log](#application-log)). `data/`, `logs/` and `*.log` are git-ignored.
 
 ### Conversation logs
 
