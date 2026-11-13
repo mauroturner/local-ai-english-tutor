@@ -6,6 +6,7 @@ import logging
 
 from ..domain.categories import count_categories
 from ..domain.corrections import dedupe
+from ..domain.fillers import ranked, total_fillers
 from ..domain.hesitation import last_question
 from ..domain.models import Correction, Hesitation, SessionReport, Severity, Turn
 from ..domain.scenarios import FREE, unused_vocabulary
@@ -61,5 +62,5 @@ def make_report(
     uncertain = tuple(dict.fromkeys(w for turn in turns for w in turn.uncertain))
     return SessionReport(
         len(turns), majors, minors, feedback, feedback_error, pauses, starts, categories, unused,
-        uncertain,
+        uncertain, ranked(total_fillers(turn.user_text for turn in turns)),
     )

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from .categories import category_label
+from .fillers import filler_line
 from .hesitation import explanation
 from .models import Correction, PracticeReply, SessionReport
 
@@ -75,6 +76,8 @@ def format_report(report: SessionReport) -> str:
         lines.append(vocabulary_line(report))
     if report.uncertain_words:
         lines.append(uncertain_line(report))
+    if report.fillers:
+        lines.append(filler_line(report.fillers))
     lines += pause_lines(report)
     lines.append("")
     feedback = report.feedback

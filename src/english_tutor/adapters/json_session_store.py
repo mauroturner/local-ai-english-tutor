@@ -140,6 +140,8 @@ def _to_dict(stats: SessionStats) -> dict[str, Any]:
         data["scenario"] = stats.scenario
     if stats.memory:
         data["memory"] = stats.memory
+    if stats.fillers:
+        data["fillers"] = stats.fillers
     return data
 
 
@@ -167,6 +169,14 @@ def _count(entry: Any, key: str) -> int:
     return value
 
 
+def _optional_count(entry: Any, key: str) -> int:
+    """A count that older files do not have; a damaged value counts as 0."""
+    try:
+        return max(0, int(entry.get(key, 0)))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _seconds(entry: Any, key: str) -> float:
     value = float(entry[key])
     if not value >= 0:  # also rejects NaN
@@ -187,5 +197,6 @@ def _parse_entry(entry: Any) -> SessionStats:
         slow_starts=_count(entry, "slow_starts"),
         categories=_parse_categories(entry),
         scenario=_parse_scenario(entry),
+        fillers=_optional_count(entry, "fillers"),
         memory=clean_memory(entry.get("memory") if isinstance(entry.get("memory"), str) else None),
     )

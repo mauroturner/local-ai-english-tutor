@@ -294,13 +294,13 @@ Multi-line entries (the report) continue on following lines indented by four spa
       "turns": 5, "words": 80, "speech_s": 40.0,
       "major": 2, "minor": 3, "pauses": 1, "slow_starts": 1,
       "categories": {"prepositions": 2, "verb_tense": 1}, "scenario": "restaurant",
-      "memory": "Visited Cordoba with his sister.\nWorks at a bank."
+      "memory": "Visited Cordoba with his sister.\nWorks at a bank.", "fillers": 4
     }
   ]
 }
 ```
 
-- **Numbers.** `duration_s` runs from the first answer to the end of the session; `speech_s` is the recorded speech (used for words per minute); `major` / `minor` count every correction made, repeats included; `pauses` and `slow_starts` count long pauses inside sentences and before the first word; `categories` (optional) counts the corrections per kind of mistake, leaving out `other`; `scenario` (optional) is the role-play practised; `memory` (optional) holds the notes written for the next session (personal data, up to 5 lines). Quitting without pressing **End session** stores nothing for that run.
+- **Numbers.** `duration_s` runs from the first answer to the end of the session; `speech_s` is the recorded speech (used for words per minute); `major` / `minor` count every correction made, repeats included; `pauses` and `slow_starts` count long pauses inside sentences and before the first word; `categories` (optional) counts the corrections per kind of mistake, leaving out `other`; `scenario` (optional) is the role-play practised; `memory` (optional) holds the notes written for the next session (personal data, up to 5 lines); `fillers` (optional) counts um / uh / er / hmm. Quitting without pressing **End session** stores nothing for that run.
 - **Saving, corrupt file, failures.** Same rules as the mistake history: atomic swap of `sessions.json.tmp`, a bad file is renamed to `sessions.json.corrupt-YYYYmmdd-HHMMSS` and a new one starts, bad entries are skipped, and a failed save shows `Session statistics not saved: ...` once and never blocks the report.
 
 ### Wiping the data

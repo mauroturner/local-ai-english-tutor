@@ -90,6 +90,12 @@ When a session ends, the same call that writes the feedback also returns `memory
 
 Controls: **Settings > General > Remember earlier sessions** (on by default, read live) stops both writing new notes and using stored ones; **Settings > Storage > Delete session memory** erases every stored note (session numbers and charts stay). Turning the switch off does not delete notes already stored. The notes come from a small model summarising what you said, so they can be wrong or oddly phrased; they are personal data, see [security-notes.md](security-notes.md#stored-data-is-unencrypted).
 
+## Filler words
+
+The report lists the filler sounds in your answers: `Filler words: um (3), uh (2)`. They are counted from the literal transcript (which is never changed) by `domain/fillers.py`: `um`, `uh`, `er`, `hmm` and their spelling variants. Never errors, never stored in the mistake history; the total goes to the session statistics (`fillers`).
+
+Deliberately not counted: `like` and `you know` (they are ordinary words most of the time) and the Spanish `eh` (in a test with real audio Whisper turned it into other letters, such as `A`). Whether Whisper writes a filler it heard is up to the model, so the count is a lower bound.
+
 ## Pronunciation hints
 
 The word timings used for [long pauses](#long-pauses) also carry how sure the recogniser was of each word (its probability, 0 to 1). Words under **0.35**, with at least 3 letters, are collected per turn and listed once in the report as `Check your pronunciation (the recogniser was unsure about): ...`. They are hints: never stored in the mistake history, never counted as errors, never sent to the model. They exist only when **Track long pauses** is on, because that switch is what asks for word timings.

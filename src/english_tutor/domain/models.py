@@ -141,6 +141,7 @@ class SessionReport:
     categories: tuple[tuple[str, int], ...] = ()  # most frequent kinds of mistake, with counts
     unused_vocabulary: tuple[str, ...] = ()  # scenario phrases the learner did not use
     uncertain_words: tuple[str, ...] = ()  # words the recogniser was unsure about
+    fillers: tuple[tuple[str, int], ...] = ()  # filler sounds (um, uh...) with counts
 
 
 class PracticeOutcome(str, Enum):

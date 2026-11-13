@@ -7,6 +7,7 @@ import io
 from collections.abc import Sequence
 from datetime import datetime
 
+from .fillers import filler_line
 from .formatting import category_line, uncertain_line, vocabulary_line
 from .hesitation import explanation
 from .models import Correction, MistakeRecord, SessionReport
@@ -77,6 +78,7 @@ def report_markdown(report: SessionReport, when: datetime) -> str:
         *([category_line(report), ""] if report.categories else []),
         *([vocabulary_line(report), ""] if report.unused_vocabulary else []),
         *([uncertain_line(report), ""] if report.uncertain_words else []),
+        *([filler_line(report.fillers), ""] if report.fillers else []),
         *_pause_lines(report),
         "## Feedback",
         "",

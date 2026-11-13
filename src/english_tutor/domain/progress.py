@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 
 from .categories import count_categories
+from .fillers import total_fillers
 from .models import Severity, Turn
 
 MIN_WORDS = 20
@@ -41,6 +42,7 @@ class SessionStats:
     categories: tuple[tuple[str, int], ...] = ()  # mistakes per kind, most frequent first
     scenario: str | None = None  # the role-play practised, None for a free conversation
     memory: str | None = None  # notes for the next session (personal data, see domain.memory)
+    fillers: int = 0  # filler sounds said (um, uh, er, hmm)
 
     @property
     def words_per_minute(self) -> float:
@@ -81,6 +83,7 @@ def build_stats(
         categories=count_categories(corrections),
         scenario=scenario,
         memory=memory,
+        fillers=sum(total_fillers(turn.user_text for turn in turns).values()),
     )
 
 
