@@ -62,6 +62,10 @@ def _load_object(raw: str) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else _first_json_object(raw)
 
 
+_MODEL_SEVERITIES = (Severity.MAJOR, Severity.MINOR)
+"""What the model may report; long pauses are measured by the app, never reported."""
+
+
 def _parse_correction(item: Any) -> Correction | None:
     if not isinstance(item, dict):
         return None
@@ -72,7 +76,7 @@ def _parse_correction(item: Any) -> Correction | None:
         explanation = str(item["explanation"]).strip()
     except (KeyError, ValueError):
         return None
-    if not original or not corrected:
+    if severity not in _MODEL_SEVERITIES or not original or not corrected:
         return None
     return Correction(original, corrected, explanation, severity)
 

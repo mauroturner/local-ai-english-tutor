@@ -86,3 +86,11 @@ def test_parse_feedback_valid_and_fallback():
     assert ok.summary == "Good." and ok.strengths == ("a",) and ok.focus_areas == ("b",)
     bad = parse_feedback("Plain words only")
     assert bad.summary == "Plain words only" and bad.strengths == ()
+
+
+def test_the_model_cannot_report_a_pause():
+    from english_tutor.adapters.ollama_parsing import parse_tutor_reply
+
+    raw = ('{"reply": "Hi!", "errors": [{"original": "I go", "corrected": "I went", '
+           '"explanation": "x", "severity": "hesitation"}]}')
+    assert parse_tutor_reply(raw).corrections == ()  # pauses come only from measured timings
