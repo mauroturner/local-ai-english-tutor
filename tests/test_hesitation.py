@@ -294,3 +294,14 @@ def test_a_word_is_kept_inside_its_stretch_of_speech():
     (word,) = restore_times(stretched, [(3.0, 4.0), (6.0, 7.0)])
     assert (word.start_s, word.end_s) == (3.5, 4.0)
     assert restore_times(stretched, []) == ()
+
+
+def test_a_slow_start_is_kept_on_the_turn_but_not_logged_or_stored(make_harness, fake_store):
+    log = FakeLog()
+    slow = words((" Well", 3.4, 3.7), (" fine", 3.8, 4.1))
+    h = make_harness([Transcript("Well fine", 4.2, slow)], [TutorReply("ok")], store=fake_store,
+                     log=log)  # fmt: skip
+    h.say()
+    assert h.session.turns[0].hesitations[0].at_start  # still reaches the report
+    assert [e for e in log.entries if e[0] == "pause"] == []
+    assert fake_store.saves == []

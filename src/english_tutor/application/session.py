@@ -304,8 +304,9 @@ class ConversationSession:
 
     def _record_mistakes(self, turn: Turn) -> None:
         """Add the turn's corrections and long pauses to the history and tell the UI."""
-        for pause in turn.hesitations:
-            self._journal.record("pause", f"{pause.marked} ({explanation(pause)})")
+        for pause in turn.hesitations:  # slow starts only go to the report
+            if not pause.at_start:
+                self._journal.record("pause", f"{pause.marked} ({explanation(pause)})")
         found = turn.corrections + as_corrections(turn.hesitations)
         if not found:
             return
