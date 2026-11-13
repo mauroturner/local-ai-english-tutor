@@ -42,6 +42,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.suggest_natural.help": "When your sentence is correct but a native speaker would "
     "say it differently, shows a more natural version under the reply. It is never counted as a "
     "mistake.",
+    "setting.daily_goal_minutes.label": "Daily goal",
+    "setting.daily_goal_minutes.help": "Minutes of conversation to aim for each day, from 0 to "
+    "60. The main window shows today's minutes and your streak of days in a row. 0 switches the "
+    "goal off.",
     "setting.autostart.label": "Start with Windows",
     "setting.autostart.help": "Open the app automatically when you sign in.",
     # Appearance
@@ -138,6 +142,7 @@ SETTINGS_STRINGS: dict[str, str] = {
     "button.browse": "Browse...",
     "button.open": "Open",
     "unit.points": "{value} pt",
+    "unit.minutes": "{value} min",
     # Restart banner
     "banner.restart": "Restart the app to apply: {names}",
     "banner.restart_now": "Restart now",

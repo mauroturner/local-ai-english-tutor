@@ -19,6 +19,9 @@ OnChange = Callable[[str, Any], None]
 Capture = Callable[[str, Callable[[str], None]], None]
 """``capture(setting_key, apply)``: ask for a key press and pass the result to ``apply``."""
 WRAP = 500
+_UNITS = {"daily_goal_minutes": "unit.minutes"}
+"""i18n key of the unit shown next to a slider (points when not listed)."""
+
 _BUTTON_TEXT = {
     "restore_defaults": "button.restore_defaults",
     "export_report": "button.export",
@@ -175,7 +178,7 @@ class Row(ctk.CTkFrame):
             position = int(value)
 
             def convert(raw: float) -> tuple[int, str]:  # type: ignore[misc]
-                return round(raw), t("unit.points", value=round(raw))
+                return round(raw), t(_UNITS.get(key, "unit.points"), value=round(raw))
 
         shown = ctk.CTkLabel(self._control_frame, text=convert(position)[1], width=60, anchor="w")
 

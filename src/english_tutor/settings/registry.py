@@ -113,6 +113,8 @@ REGISTRY: tuple[SettingSpec, ...] = (
              "fluidez", "silencio", "practice", "practicar")),
     _setting("suggest_natural", _G, _SWITCH, ("native", "natural", "rephrase", "phrasing", "style",
              "nativo", "frase", "sugerir")),
+    _setting("daily_goal_minutes", _G, Control.SLIDER, ("goal", "minutes", "streak", "daily",
+             "habit", "meta", "minutos", "racha", "diaria", "habito")),
     _action("autostart", _G, ("startup", "boot", "sign in", "registry", "inicio", "windows")),
     # Appearance
     _setting("appearance_mode", _A, Control.CHOICE, ("dark mode", "light", "night", "theme",

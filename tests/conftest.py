@@ -166,8 +166,11 @@ class FakeSessionStatsStore:
     def __init__(self) -> None:
         self.sessions: list[SessionStats] = []
         self.error: Exception | None = None
+        self.load_error: Exception | None = None
 
     def load(self) -> list[SessionStats]:
+        if self.load_error is not None:
+            raise self.load_error
         return list(self.sessions)
 
     def append(self, stats: SessionStats) -> None:

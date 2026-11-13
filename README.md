@@ -84,6 +84,10 @@ The first start loads Whisper (the status line shows `Loading speech model...`) 
 
 Details of what is shown, spoken and recorded: [docs/tutor-behavior.md](docs/tutor-behavior.md).
 
+### Progress tab, daily goal and streak
+
+Every time you press **End session**, the app stores a few numbers about that session (minutes, words, mistakes, long pauses; no sentences). The **Progress** tab turns them into three small charts over your last 20 sessions: mistakes per 100 words, long pauses per 100 words and words per minute, each with a short verdict (getting better, getting worse, about the same; at least 4 sessions are needed). Sessions under 20 words are left out of the charts because their rates mean little. Under the title, the main window shows today's minutes against your **Daily goal** (Settings > General, 10 minutes by default, 0 turns it off) and your **streak**: days in a row with at least one session (it stays alive until the end of the day after your last session).
+
 ### Mistakes tab and practice mode
 
 Every correction the tutor finds (major and minor) is added to a persistent list, grouped by the normalised `original -> corrected` pair, with a counter. It survives restarts and is not cleared by **End session**.

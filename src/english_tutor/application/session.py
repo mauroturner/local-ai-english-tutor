@@ -29,6 +29,7 @@ from .events import (
     EventSink,
     MistakesChanged,
     PracticeChanged,
+    ProgressChanged,
     ReportReady,
     StateChanged,
     TutorSaid,
@@ -103,6 +104,7 @@ class ConversationSession:
         self._stats = StatsRecorder(
             session_stats or NullSessionStatsStore(),
             lambda message: self._warn_once("stats", message),
+            lambda sessions: self._emit(ProgressChanged(sessions)),
         )
         self._history = ChatHistory(history_exchanges)
         self._turns: list[Turn] = []
@@ -172,6 +174,7 @@ class ConversationSession:
         self._set_state(SessionState.LOADING, "Loading speech model...")
         self._book.load()
         self._emit(MistakesChanged(self._book.snapshot()))
+        self._stats.load()
         try:
             device = self._stt.load()
         except Exception as exc:  # any load failure must be shown, not crash the worker

@@ -126,7 +126,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `domain/practice_prompts.py` | `PRACTICE_SYSTEM_PROMPT`, `PRACTICE_SCHEMA`, `PRACTICE_START`, `build_practice_system_prompt` |
 | `domain/learner.py` | `LearnerProfile`, `profile_block`, `with_profile`: the name and pronouns added to every prompt |
 | `domain/hesitation.py` | `find_hesitations`, `as_corrections`, `pause_inside`, `restore_times`, `matching_words`: long pauses from word timings |
-| `domain/progress.py` | `SessionStats` (the numbers of one finished session), `build_stats`, `count_words` |
+| `domain/progress.py` | `SessionStats` (the numbers of one finished session, with per-100-word rates), `build_stats`, `count_words`, `trend`, `week_summary`, `best_session`, `streak_days`, `goal_met` |
 | `domain/formatting.py` | Plain-text renderings shared by the UI and the log: `format_report`, `correction_text`, `practice_speech` |
 | `audio/processing.py` | `to_mono`, `resample` (polyphase), `peak_normalize`, `prepare_for_stt` |
 | `audio/devices.py` | `InputDevice`, `dedupe_input_devices` (WASAPI > DirectSound > MME), `resolve_default`, `list_input_devices` |
@@ -134,9 +134,9 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `application/practice.py` | `PracticeDrill` (target + its own bounded history), `open_practice`, `run_practice_turn` |
 | `application/mistake_book.py` | `MistakeBook`: in-memory mistake history backed by a `MistakeStore`; storage errors go to a warning callback |
 | `application/journal.py` | `SafeJournal` (a conversation log whose failures warn instead of raising), `NullConversationLog`, `NullMistakeStore`, `NullSessionStatsStore` |
-| `application/session_stats.py` | `StatsRecorder`: marks the session start and stores its `SessionStats` through the `SessionStatsStore` port when the session ends; failures warn once |
+| `application/session_stats.py` | `StatsRecorder`: marks the session start, stores its `SessionStats` through the `SessionStatsStore` port when the session ends, keeps every stored session in memory and announces the list with `ProgressChanged` (after loading and after each session); failures warn once |
 | `application/report.py` | `collect_errors`, `make_report` (end-of-session report; feedback failures kept as text) |
-| `application/events.py` | Event dataclasses sent to the UI: `StateChanged`, `UserSaid`, `TutorSaid`, `ReportReady`, `ErrorRaised`, `LevelChanged`, `MistakesChanged`, `PracticeChanged`, `PracticeFeedback`, `DataCleared` |
+| `application/events.py` | Event dataclasses sent to the UI: `StateChanged`, `UserSaid`, `TutorSaid`, `ReportReady`, `ErrorRaised`, `LevelChanged`, `MistakesChanged`, `ProgressChanged`, `PracticeChanged`, `PracticeFeedback`, `DataCleared` |
 | `application/history.py` | `ChatHistory`: bounded memory of user/assistant pairs |
 | `application/worker.py` | `SerialWorker` (one daemon thread, one job at a time) and `InlineRunner` (runs jobs on the caller's thread, for tests) |
 | `adapters/whisper_stt.py` | `build_transcribe_kwargs`, `WhisperTranscriber` (lazy import, CUDA warm-up, CPU fallback; `with_words` adds word timings) |
@@ -162,6 +162,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `ui/settings/` | `SettingsWindow` and its parts: `rows`, `pages`, `chrome` (sidebar, footer), `commands` (Save, Cancel, restore), `actions` (folders, export, delete), `connection` (Test connection), `key_capture`, `live` |
 | `ui/services.py` | `UiServices`: everything the Settings window needs from the rest of the app, injected by `main()` |
 | `ui/widgets.py` | `ChatView`, `PracticeBanner`, `MicSelector`, `LevelMeter`, `StatusBar`, `ControlBar` (presentational) |
+| `ui/progress_view.py`, `ui/charts.py`, `ui/goal.py` | `ProgressView` (the Progress tab: totals and three line charts drawn on a Tk canvas), `scale_points` (pure chart maths), `goal_text` (the "today and streak" line under the title) |
 | `ui/mistakes_view.py` | `MistakesView`: ranked list of mistakes with a Practice button per row (first 50) |
 | `ui/theme.py` | Every colour as a (light, dark) pair, spacing tokens by density, fonts, appearance mode and scale |
 
@@ -245,7 +246,7 @@ The session never calls Tk. It calls an `EventSink` (`emit`) with immutable even
 _pump():  get_nowait() until queue.Empty  ->  _dispatch(event)  ->  self.after(30, _pump)
 ```
 
-`_dispatch` maps events to widgets: `StateChanged` updates the state chip, the status line (via `status_line`) and the controls, `UserSaid` / `TutorSaid` add chat bubbles (plus the correction card), `ReportReady` adds the report, `ErrorRaised` adds a notice line, `LevelChanged` updates the meter, `MistakesChanged` rebuilds the Mistakes tab, `PracticeChanged` shows or hides the practice banner (and switches to the Chat tab), and `PracticeFeedback` adds the verdict bubble followed by the next question, and `DataCleared` adds a notice (and updates the open Settings footer). Each event also goes to `Feedback`, which may play a cue or show the report toast. Events emitted before the window exists are dropped by the sink.
+`_dispatch` maps events to widgets: `StateChanged` updates the state chip, the status line (via `status_line`) and the controls, `UserSaid` / `TutorSaid` add chat bubbles (plus the correction card), `ReportReady` adds the report, `ErrorRaised` adds a notice line, `LevelChanged` updates the meter, `MistakesChanged` rebuilds the Mistakes tab, `ProgressChanged` rebuilds the Progress tab and the goal line, `PracticeChanged` shows or hides the practice banner (and switches to the Chat tab), and `PracticeFeedback` adds the verdict bubble followed by the next question, and `DataCleared` adds a notice (and updates the open Settings footer). Each event also goes to `Feedback`, which may play a cue or show the report toast. Events emitted before the window exists are dropped by the sink.
 
 Control enabling (`_refresh_controls`): **End session** and every **Practice** button need an idle session outside a drill; **Stop practice** needs only an idle session. Microphone selection is handled on the Tk thread (`_on_mic_change` calls `session.set_input_device`). Closing the window calls `session.shutdown()` and then `destroy()`.
 

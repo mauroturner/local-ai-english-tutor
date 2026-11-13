@@ -17,6 +17,7 @@ from ..application.events import (
     MistakesChanged,
     PracticeChanged,
     PracticeFeedback,
+    ProgressChanged,
     ReportReady,
     SessionEvent,
     StateChanged,
@@ -34,7 +35,9 @@ from ..settings.model import UserSettings
 from . import theme
 from .banners import RestartBanner
 from .feedback import Feedback
+from .goal import goal_text
 from .mistakes_view import MistakesView
+from .progress_view import ProgressView
 from .widgets import (
     ChatView,
     ControlBar,
@@ -144,6 +147,10 @@ class TutorWindow(ctk.CTk):
             self._settings_button,
             lambda: t("tooltip.settings", shortcut=self._settings.shortcut_settings),
         )
+        self._goal_label = ctk.CTkLabel(
+            header, text="", text_color=theme.MUTED_TEXT, font=theme.FONT_BODY, anchor="w"
+        )
+        self._goal_label.grid(row=2, column=0, columnspan=2, sticky="w", pady=(sp.xs, 0))
         default_name = default_device.name if default_device else t("mic.none")
         MicSelector(header, [d.name for d in devices], default_name, self._on_mic_change).grid(
             row=1, column=0, columnspan=2, sticky="ew", pady=(sp.s, 0)
@@ -163,6 +170,9 @@ class TutorWindow(ctk.CTk):
             mistakes_tab, on_practice=self._on_practice, on_review_due=self._on_review_due
         )
         self._mistakes.pack(fill="both", expand=True)
+        progress_tab = self._tabs.add(t("tab.progress"))
+        self._progress = ProgressView(progress_tab)
+        self._progress.pack(fill="both", expand=True)
 
     def _build_footer(self) -> None:
         sp = self._sp
@@ -211,6 +221,9 @@ class TutorWindow(ctk.CTk):
                 self._chat.add_correction(event.correction)
             if event.natural is not None:
                 self._chat.add_natural(event.natural)
+        elif isinstance(event, ProgressChanged):
+            self._progress.show(event.sessions)
+            self._refresh_goal()
         elif isinstance(event, ReportReady):
             self._chat.add_report(event.report)
         elif isinstance(event, ErrorRaised):
@@ -270,9 +283,14 @@ class TutorWindow(ctk.CTk):
 
     # ------------------------------------------------- settings, restart, shortcuts
     def apply_settings(self, settings: UserSettings) -> None:
-        """Take over saved settings that the main window itself uses (shortcuts)."""
+        """Take over saved settings that the main window itself uses (shortcuts, goal)."""
         self._settings = settings
         self._binder.apply(settings)
+        self._refresh_goal()
+
+    def _refresh_goal(self) -> None:
+        text = goal_text(self.snapshot.sessions, self._settings.daily_goal_minutes, date.today())
+        self._goal_label.configure(text=text)
 
     def _shortcut_end_session(self) -> None:
         if self._controls.enabled:  # same rule as the button

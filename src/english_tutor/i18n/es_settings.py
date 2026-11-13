@@ -42,6 +42,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.suggest_natural.label": "Sugerir frases más naturales",
     "setting.suggest_natural.help": "Cuando tu frase es correcta pero un nativo la diría "
     "distinto, muestra una versión más natural debajo de la respuesta. Nunca cuenta como error.",
+    "setting.daily_goal_minutes.label": "Meta diaria",
+    "setting.daily_goal_minutes.help": "Minutos de conversación que quieres lograr cada día, de 0 "
+    "a 60. La ventana principal muestra los minutos de hoy y tu racha de días seguidos. 0 "
+    "desactiva la meta.",
     "setting.autostart.label": "Iniciar con Windows",
     "setting.autostart.help": "Abre la aplicación automáticamente al iniciar sesión.",
     # Apariencia
@@ -142,6 +146,7 @@ SETTINGS_STRINGS: dict[str, str] = {
     "button.browse": "Examinar...",
     "button.open": "Abrir",
     "unit.points": "{value} pt",
+    "unit.minutes": "{value} min",
     # Aviso de reinicio
     "banner.restart": "Reinicia la aplicación para aplicar: {names}",
     "banner.restart_now": "Reiniciar ahora",

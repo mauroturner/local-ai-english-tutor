@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
-from ..application.events import DataCleared, MistakesChanged, ReportReady, SessionEvent
+from ..application.events import (
+    DataCleared,
+    MistakesChanged,
+    ProgressChanged,
+    ReportReady,
+    SessionEvent,
+)
 from ..domain.models import MistakeRecord, SessionReport
+from ..domain.progress import SessionStats
 from ..i18n import t
 
 
@@ -13,6 +20,7 @@ class SessionSnapshot:
     def __init__(self) -> None:
         self.report: SessionReport | None = None
         self.mistakes: tuple[MistakeRecord, ...] = ()
+        self.sessions: tuple[SessionStats, ...] = ()
 
     def observe(self, event: SessionEvent) -> None:
         """Update from ``event``; events that do not matter are ignored."""
@@ -20,6 +28,8 @@ class SessionSnapshot:
             self.report = event.report
         elif isinstance(event, MistakesChanged):
             self.mistakes = tuple(event.mistakes)
+        elif isinstance(event, ProgressChanged):
+            self.sessions = tuple(event.sessions)
 
 
 def cleared_message(event: DataCleared) -> str:

@@ -27,6 +27,7 @@ class UserSettings:
     learner_pronouns: str = "he"
     track_pauses: bool = True
     suggest_natural: bool = True
+    daily_goal_minutes: int = 10  # 0 switches the goal off
     appearance_mode: str = "system"
     ui_scale: float = 1.0
     chat_font_size: int = 13
@@ -97,6 +98,7 @@ _RULES: dict[str, _Rule] = {
     "appearance_mode": _Rule("str", ("system", "light", "dark"), lower=True),
     "ui_scale": _Rule("float", _SCALES),
     "chat_font_size": _Rule("int", bounds=(10, 22)),
+    "daily_goal_minutes": _Rule("int", bounds=(0, 60)),
     "density": _Rule("str", ("comfortable", "compact"), lower=True),
     "whisper_device": _Rule("str", ("auto", "cuda", "cpu"), lower=True),
     "log_level": _Rule("str", ("DEBUG", "INFO", "WARNING", "ERROR"), upper=True),

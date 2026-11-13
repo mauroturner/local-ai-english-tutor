@@ -13,6 +13,7 @@ from ..domain.models import (
     SessionReport,
     SessionState,
 )
+from ..domain.progress import SessionStats
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,13 @@ class TutorSaid:
     text: str
     correction: Correction | None = None
     natural: str | None = None  # a more natural way to say what the learner said
+
+
+@dataclass(frozen=True)
+class ProgressChanged:
+    """Every stored session, oldest first (sent after loading and after each session)."""
+
+    sessions: tuple[SessionStats, ...]
 
 
 @dataclass(frozen=True)
@@ -100,6 +108,7 @@ SessionEvent = (
     | LevelChanged
     | MistakesChanged
     | PracticeChanged
+    | ProgressChanged
     | PracticeFeedback
     | DataCleared
 )
