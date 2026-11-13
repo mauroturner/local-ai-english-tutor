@@ -60,6 +60,7 @@ STRINGS: dict[str, str] = {
     "mistakes.none_due": "Nada para repasar hoy.",
     "mistakes.due_badge": "REPASAR",
     "button.review_due": "Repasar pendientes",
+    "button.weekly_review": "Repaso semanal ({count})",
     "mistakes.all_categories": "Todas las categorías",
     "category.verb_tense": "Tiempo verbal",
     "category.agreement": "Concordancia",

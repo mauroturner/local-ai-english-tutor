@@ -108,6 +108,8 @@ Long pauses inside a sentence (1.2 s or more) are added too, as `PAUSE` items su
 3. Answer by holding the push-to-talk key. For each answer the coach judges **only the target structure**: `correct`, `incorrect` (you get the corrected sentence) or `not_used` (a reminder), then asks the next question.
 4. Click **Stop practice** to return to the normal conversation.
 
+**Weekly review.** The **Weekly review (N)** button of the Mistakes tab picks up to 5 items: what you made or paused on in the last 7 days, those of your most frequent categories first (then the due and the most repeated ones), and any other due item to fill the list. Each click starts a drill on the next item of the list, after the one practised last.
+
 **Spaced repetition.** Each item has a review date. A new mistake is due the next day; every `correct` practice answer moves the next review further away (1, 3, 7, 14, then 30 days), an `incorrect` answer or making the mistake again starts over at 1 day, and `not_used` changes nothing. The top of the tab says how many items are due today, and **Review due items** starts a drill on the next one. Items stored before this feature count as due until you practise them.
 
 Practice turns do not run the general correction pipeline: other mistakes in your answer are ignored, nothing is added to the session report, and the normal chat memory is untouched. Only `correct` and `incorrect` results change the practice score.

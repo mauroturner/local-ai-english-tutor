@@ -11,6 +11,7 @@ import customtkinter as ctk
 from ..domain.categories import filter_by_category, present_categories
 from ..domain.models import MistakeRecord, Severity
 from ..domain.review_schedule import due_first, due_items
+from ..domain.weekly import weekly_selection
 from ..i18n import format_date, t
 from . import theme
 
@@ -37,11 +38,13 @@ class MistakesView(ctk.CTkScrollableFrame):
         master: Any,
         on_practice: Callable[[str], None],
         on_review_due: Callable[[], None] = lambda: None,
+        on_weekly: Callable[[], None] = lambda: None,
         **kwargs: Any,
     ) -> None:
         super().__init__(master, fg_color=theme.CHAT_BG, **kwargs)
         self._on_practice = on_practice
         self._on_review_due = on_review_due
+        self._on_weekly = on_weekly
         self._enabled = False
         self._buttons: list[ctk.CTkButton] = []
         self._due_keys: frozenset[str] = frozenset()
@@ -99,6 +102,16 @@ class MistakesView(ctk.CTkScrollableFrame):
             )
             button.grid(row=0, column=1, sticky="e")
             self._buttons.append(button)
+        week = weekly_selection(self._records, self._today)
+        if week:
+            weekly = ctk.CTkButton(
+                header,
+                text=t("button.weekly_review", count=len(week)),
+                state="normal" if self._enabled else "disabled",
+                command=self._on_weekly,
+            )
+            weekly.grid(row=0, column=2, sticky="e", padx=(6, 0))
+            self._buttons.append(weekly)
         if categories:
             everything = t("mistakes.all_categories")
             picker = ctk.CTkOptionMenu(
@@ -107,7 +120,7 @@ class MistakesView(ctk.CTkScrollableFrame):
                 command=self._pick_category,
             )
             picker.set(everything if self._category is None else t(f"category.{self._category}"))
-            picker.grid(row=1, column=0, columnspan=2, sticky="w", padx=4, pady=(4, 0))
+            picker.grid(row=1, column=0, columnspan=3, sticky="w", padx=4, pady=(4, 0))
 
     def _add_row(self, record: MistakeRecord) -> None:
         row = ctk.CTkFrame(self, fg_color=theme.USER_BUBBLE, corner_radius=8)

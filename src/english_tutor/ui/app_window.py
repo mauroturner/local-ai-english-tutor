@@ -34,6 +34,7 @@ from ..domain.drills import DrillKind
 from ..domain.models import PracticeOutcome, SessionState
 from ..domain.reminder import should_remind
 from ..domain.review_schedule import next_due
+from ..domain.weekly import next_in, weekly_selection
 from ..domain.scenarios import KEYS as SCENARIO_KEYS
 from ..i18n import t
 from ..ports import CuePlayer, Notifier
@@ -199,7 +200,10 @@ class TutorWindow(ctk.CTk):
         self._chat = ChatView(chat_tab, empty_text=t("chat.empty", key=cfg.ptt_label))
         self._chat.pack(fill="both", expand=True)
         self._mistakes = MistakesView(
-            mistakes_tab, on_practice=self._on_practice, on_review_due=self._on_review_due
+            mistakes_tab,
+            on_practice=self._on_practice,
+            on_review_due=self._on_review_due,
+            on_weekly=self._on_weekly_review,
         )
         self._mistakes.pack(fill="both", expand=True)
         progress_tab = self._tabs.add(t("tab.progress"))
@@ -333,6 +337,13 @@ class TutorWindow(ctk.CTk):
         self._last_practiced = key
         self._tabs.set(self._chat_tab_name)
         self._session.start_practice(key)
+
+    def _on_weekly_review(self) -> None:
+        """Practise the next item of this week's review, after the one practised last."""
+        selection = weekly_selection(self.snapshot.mistakes, date.today())
+        target = next_in(selection, self._last_practiced)
+        if target is not None:
+            self._on_practice(target.key)
 
     def _on_review_due(self) -> None:
         """Practise the next mistake due today, after the one practised last."""
