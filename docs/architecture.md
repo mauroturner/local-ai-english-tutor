@@ -133,6 +133,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `domain/formatting.py` | Plain-text renderings shared by the UI and the log: `format_report`, `correction_text`, `practice_speech` |
 | `audio/processing.py` | `to_mono`, `resample` (polyphase), `peak_normalize`, `prepare_for_stt` |
 | `audio/devices.py` | `InputDevice`, `dedupe_input_devices` (WASAPI > DirectSound > MME), `resolve_default`, `list_input_devices` |
+| `application/session_actions.py` | `SessionActions`, a mixin of `ConversationSession`: the actions the learner can ask for while idle (scenario, replay, listening drills, practice drills) |
 | `application/session.py` | `ConversationSession`: PTT handling, turn pipeline, practice entry points, report, failure guard |
 | `application/practice.py` | `PracticeDrill` (target + its own bounded history), `open_practice`, `run_practice_turn` |
 | `application/mistake_book.py` | `MistakeBook`: in-memory mistake history backed by a `MistakeStore`; storage errors go to a warning callback |
