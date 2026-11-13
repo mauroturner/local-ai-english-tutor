@@ -49,12 +49,12 @@ class StatsRecorder:
         if self._started is None:
             self._started = self._clock()
 
-    def finish(self, turns: Sequence[Turn]) -> None:
+    def finish(self, turns: Sequence[Turn], scenario: str | None = None) -> None:
         """Store the statistics of ``turns`` (nothing when there were none) and reset."""
         started, self._started = self._started, None
         if not turns or started is None:
             return
-        stats = build_stats(turns, started, self._clock())
+        stats = build_stats(turns, started, self._clock(), scenario)
         try:
             self._store.append(stats)
         except Exception as exc:  # StorageError by contract; anything else is also non-fatal

@@ -48,6 +48,13 @@ def category_line(report: SessionReport, limit: int = 3) -> str:
     return f"Most frequent: {top}" if top else ""
 
 
+def vocabulary_line(report: SessionReport) -> str:
+    """``Useful for this situation (not used yet): menu, order``; empty without a scenario."""
+    if not report.unused_vocabulary:
+        return ""
+    return "Useful for this situation (not used yet): " + ", ".join(report.unused_vocabulary)
+
+
 def format_report(report: SessionReport) -> str:
     """Render the end-of-session report as text."""
     lines = [f"SESSION REPORT ({report.turn_count} turns)", ""]
@@ -55,6 +62,8 @@ def format_report(report: SessionReport) -> str:
     lines += _format_errors("Minor errors", report.minor_errors)
     if report.categories:
         lines.append(category_line(report))
+    if report.unused_vocabulary:
+        lines.append(vocabulary_line(report))
     lines += pause_lines(report)
     lines.append("")
     feedback = report.feedback

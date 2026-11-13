@@ -121,7 +121,14 @@ def _to_dict(stats: SessionStats) -> dict[str, Any]:
     }
     if stats.categories:  # optional, written only when there is something to say
         data["categories"] = dict(stats.categories)
+    if stats.scenario:
+        data["scenario"] = stats.scenario
     return data
+
+
+def _parse_scenario(entry: Any) -> str | None:
+    value = entry.get("scenario")
+    return (value.strip() or None) if isinstance(value, str) else None
 
 
 def _parse_categories(entry: Any) -> tuple[tuple[str, int], ...]:
@@ -162,4 +169,5 @@ def _parse_entry(entry: Any) -> SessionStats:
         pauses=_count(entry, "pauses"),
         slow_starts=_count(entry, "slow_starts"),
         categories=_parse_categories(entry),
+        scenario=_parse_scenario(entry),
     )

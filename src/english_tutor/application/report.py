@@ -8,6 +8,7 @@ from ..domain.categories import count_categories
 from ..domain.corrections import dedupe
 from ..domain.hesitation import last_question
 from ..domain.models import Correction, Hesitation, SessionReport, Severity, Turn
+from ..domain.scenarios import FREE, unused_vocabulary
 from ..ports import TutorModel
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,9 @@ def collect_pauses(
     return tuple(pauses.values()), tuple(starts)
 
 
-def make_report(tutor: TutorModel, turns: tuple[Turn, ...]) -> SessionReport:
+def make_report(
+    tutor: TutorModel, turns: tuple[Turn, ...], scenario: str = FREE
+) -> SessionReport:
     """Collect the errors and ask the tutor for feedback (failures are kept as text)."""
     majors, minors = collect_errors(turns)
     feedback = None
@@ -54,6 +57,7 @@ def make_report(tutor: TutorModel, turns: tuple[Turn, ...]) -> SessionReport:
             feedback_error = str(exc)
     pauses, starts = collect_pauses(turns)
     categories = count_categories(c for turn in turns for c in turn.corrections)
+    unused = unused_vocabulary(scenario, (turn.user_text for turn in turns)) if turns else ()
     return SessionReport(
-        len(turns), majors, minors, feedback, feedback_error, pauses, starts, categories
+        len(turns), majors, minors, feedback, feedback_error, pauses, starts, categories, unused
     )

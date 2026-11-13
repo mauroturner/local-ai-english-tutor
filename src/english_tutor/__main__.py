@@ -23,6 +23,7 @@ from .adapters.windows_autostart import NullAutoStart, WindowsAutoStart, autosta
 from .adapters.windows_notifier import WindowsNotifier, tk_hwnd
 from .application.events import ErrorRaised, LevelChanged, SessionEvent
 from .application.maintenance import clear_logs, clear_mistakes
+from .application.scenario_choice import ScenarioChoice
 from .application.preferences import SettingsService
 from .application.ptt_gate import PttGate
 from .application.session import ConversationSession
@@ -108,9 +109,11 @@ def main() -> int:
 
     recorder = SoundDeviceRecorder(on_level=lambda value: emit(LevelChanged(value)))
     current = [loaded.settings]  # replaced on Save; read by the worker on every turn
+    scenario = ScenarioChoice()
     tutor = OllamaTutorModel(
         cfg.ollama_url, cfg.ollama_model, cfg.ollama_timeout_s, cfg.llm_temperature,
         profile=lambda: learner_profile(current[0]),
+        scenario=lambda: scenario.key,
     )
 
     def on_applied(saved: UserSettings) -> None:
@@ -133,6 +136,7 @@ def main() -> int:
         track_pauses=lambda: current[0].track_pauses,
         suggest_natural=lambda: current[0].suggest_natural,
         speech_scale=lambda: speech_scale(current[0].level),
+        scenario=scenario,
     )
     gate = PttGate(session.on_ptt_press, session.on_ptt_release)
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)

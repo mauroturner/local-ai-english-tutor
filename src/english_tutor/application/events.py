@@ -48,6 +48,13 @@ class ProgressChanged:
 
 
 @dataclass(frozen=True)
+class ScenarioChanged:
+    """The role-play scenario in use changed (``free`` means none)."""
+
+    key: str
+
+
+@dataclass(frozen=True)
 class ReportReady:
     """The end-of-session report."""
 
@@ -109,6 +116,7 @@ SessionEvent = (
     | MistakesChanged
     | PracticeChanged
     | ProgressChanged
+    | ScenarioChanged
     | PracticeFeedback
     | DataCleared
 )

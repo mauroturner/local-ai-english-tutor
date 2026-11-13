@@ -127,6 +127,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `domain/learner.py` | `LearnerProfile`, `profile_block`, `with_profile`: the name and pronouns added to every prompt |
 | `domain/hesitation.py` | `find_hesitations`, `as_corrections`, `pause_inside`, `restore_times`, `matching_words`: long pauses from word timings |
 | `domain/progress.py` | `SessionStats` (the numbers of one finished session, with per-100-word rates), `build_stats`, `count_words`, `trend`, `week_summary`, `best_session`, `streak_days`, `goal_met` |
+| `domain/scenarios.py` | `Scenario`, `SCENARIOS`, `with_scenario` (the SCENARIO prompt section), `unused_vocabulary` |
 | `domain/formatting.py` | Plain-text renderings shared by the UI and the log: `format_report`, `correction_text`, `practice_speech` |
 | `audio/processing.py` | `to_mono`, `resample` (polyphase), `peak_normalize`, `prepare_for_stt` |
 | `audio/devices.py` | `InputDevice`, `dedupe_input_devices` (WASAPI > DirectSound > MME), `resolve_default`, `list_input_devices` |
@@ -134,6 +135,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `application/practice.py` | `PracticeDrill` (target + its own bounded history), `open_practice`, `run_practice_turn` |
 | `application/mistake_book.py` | `MistakeBook`: in-memory mistake history backed by a `MistakeStore`; storage errors go to a warning callback |
 | `application/journal.py` | `SafeJournal` (a conversation log whose failures warn instead of raising), `NullConversationLog`, `NullMistakeStore`, `NullSessionStatsStore` |
+| `application/scenario_choice.py` | `ScenarioChoice`: the scenario of the running session, shared by `ConversationSession` and `OllamaTutorModel` |
 | `application/session_stats.py` | `StatsRecorder`: marks the session start, stores its `SessionStats` through the `SessionStatsStore` port when the session ends, keeps every stored session in memory and announces the list with `ProgressChanged` (after loading and after each session); failures warn once |
 | `application/report.py` | `collect_errors`, `make_report` (end-of-session report; feedback failures kept as text) |
 | `application/events.py` | Event dataclasses sent to the UI: `StateChanged`, `UserSaid`, `TutorSaid`, `ReportReady`, `ErrorRaised`, `LevelChanged`, `MistakesChanged`, `ProgressChanged`, `PracticeChanged`, `PracticeFeedback`, `DataCleared` |

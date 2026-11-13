@@ -7,7 +7,7 @@ import io
 from collections.abc import Sequence
 from datetime import datetime
 
-from .formatting import category_line
+from .formatting import category_line, vocabulary_line
 from .hesitation import explanation
 from .models import Correction, MistakeRecord, SessionReport
 
@@ -75,6 +75,7 @@ def report_markdown(report: SessionReport, when: datetime) -> str:
         *_error_lines("Major errors", report.major_errors),
         *_error_lines("Minor errors", report.minor_errors),
         *([category_line(report), ""] if report.categories else []),
+        *([vocabulary_line(report), ""] if report.unused_vocabulary else []),
         *_pause_lines(report),
         "## Feedback",
         "",

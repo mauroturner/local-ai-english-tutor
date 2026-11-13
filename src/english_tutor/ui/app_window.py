@@ -18,6 +18,7 @@ from ..application.events import (
     PracticeChanged,
     PracticeFeedback,
     ProgressChanged,
+    ScenarioChanged,
     ReportReady,
     SessionEvent,
     StateChanged,
@@ -29,6 +30,7 @@ from ..audio.devices import InputDevice
 from ..config import AppConfig
 from ..domain.models import SessionState
 from ..domain.review_schedule import next_due
+from ..domain.scenarios import KEYS as SCENARIO_KEYS
 from ..i18n import t
 from ..ports import CuePlayer, Notifier
 from ..settings.model import UserSettings
@@ -44,6 +46,7 @@ from .widgets import (
     LevelMeter,
     MicSelector,
     PracticeBanner,
+    ScenarioPicker,
     StatusBar,
     StatusChip,
 )
@@ -157,6 +160,8 @@ class TutorWindow(ctk.CTk):
         MicSelector(header, [d.name for d in devices], default_name, self._on_mic_change).grid(
             row=1, column=0, columnspan=2, sticky="ew", pady=(sp.s, 0)
         )
+        self._scenario = ScenarioPicker(header, SCENARIO_KEYS, self._session.set_scenario)
+        self._scenario.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(sp.s, 0))
 
     def _build_tabs(self, cfg: AppConfig) -> None:
         sp = self._sp
@@ -231,6 +236,8 @@ class TutorWindow(ctk.CTk):
         elif isinstance(event, ProgressChanged):
             self._progress.show(event.sessions)
             self._refresh_goal()
+        elif isinstance(event, ScenarioChanged):
+            self._scenario.show(event.key)
         elif isinstance(event, ReportReady):
             self._chat.add_report(event.report)
         elif isinstance(event, ErrorRaised):
@@ -269,6 +276,7 @@ class TutorWindow(ctk.CTk):
         free = self.is_free
         self._controls.set_enabled(free)
         self._controls.set_replay_enabled(self._idle)
+        self._scenario.set_enabled(free and not self._session.turns)
         self._mistakes.set_enabled(free)
         self._banner.set_enabled(self._idle)
 

@@ -171,6 +171,45 @@ class MicSelector(ctk.CTkFrame):
         menu.grid(row=0, column=1, sticky="ew")
 
 
+class ScenarioPicker(ctk.CTkFrame):
+    """Label plus drop-down to pick a role-play scenario (``keys`` are domain keys)."""
+
+    def __init__(
+        self, master: Any, keys: Sequence[str], on_pick: Callable[[str], None]
+    ) -> None:
+        super().__init__(master, fg_color="transparent")
+        self.grid_columnconfigure(1, weight=1)
+        self._keys = tuple(keys)
+        self._on_pick = on_pick
+        ctk.CTkLabel(self, text=t("scenario.label"), text_color=theme.MUTED_TEXT).grid(
+            row=0, column=0, padx=(0, theme.SPACE_S), sticky="w"
+        )
+        self._var = ctk.StringVar(value=self._label_for(self._keys[0]))
+        self._menu = ctk.CTkOptionMenu(
+            self,
+            values=[self._label_for(k) for k in self._keys],
+            variable=self._var,
+            command=self._picked,
+        )
+        self._menu.grid(row=0, column=1, sticky="ew")
+
+    @staticmethod
+    def _label_for(key: str) -> str:
+        return t(f"scenario.{key}")
+
+    def _picked(self, label: str) -> None:
+        key = next((k for k in self._keys if self._label_for(k) == label), self._keys[0])
+        self._on_pick(key)
+
+    def show(self, key: str) -> None:
+        """Show ``key`` as the current choice without triggering ``on_pick``."""
+        self._var.set(self._label_for(key if key in self._keys else self._keys[0]))
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Enable or disable the drop-down."""
+        self._menu.configure(state="normal" if enabled else "disabled")
+
+
 class LevelMeter(ctk.CTkFrame):
     """Microphone level bar."""
 

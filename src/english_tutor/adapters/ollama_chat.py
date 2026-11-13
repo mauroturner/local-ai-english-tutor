@@ -9,6 +9,7 @@ from typing import Any
 import requests
 
 from ..domain.learner import LearnerProfile, with_profile
+from ..domain.scenarios import FREE, with_scenario
 from ..domain.models import (
     ChatMessage,
     MistakeRecord,
@@ -47,6 +48,7 @@ class OllamaTutorModel:
         temperature: float,
         session: requests.Session | None = None,
         profile: Callable[[], LearnerProfile] = LearnerProfile,
+        scenario: Callable[[], str] = lambda: FREE,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
@@ -54,6 +56,7 @@ class OllamaTutorModel:
         self._temperature = temperature
         self._http = session if session is not None else requests.Session()
         self._profile = profile  # read on every call, so a saved change applies at once
+        self._scenario = scenario  # same for the scenario picked in the main window
 
     def check(self) -> None:
         """Raise LlmUnavailable if Ollama is down or the model is not pulled."""
@@ -80,7 +83,10 @@ class OllamaTutorModel:
     def reply(self, history: Sequence[ChatMessage], user_text: str) -> TutorReply:
         """Send system prompt + history + the raw learner text."""
         messages = [
-            ChatMessage("system", with_profile(TURN_SYSTEM_PROMPT, self._profile())),
+            ChatMessage(
+                "system",
+                with_scenario(with_profile(TURN_SYSTEM_PROMPT, self._profile()), self._scenario()),
+            ),
             *history,
             ChatMessage("user", user_text),
         ]

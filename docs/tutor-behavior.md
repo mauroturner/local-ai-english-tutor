@@ -66,6 +66,12 @@ The model's output is not trusted blindly. `domain/corrections.py` applies these
 
 The code does **not** check that a `corrected` phrase is actually right, and it does not re-classify severity; those depend on the model.
 
+## Role-play scenarios
+
+The **Scenario** drop-down in the main window (enabled when the app is idle, not practising and before your first answer of the session) picks one of: free conversation (default), job interview, restaurant, doctor's appointment, airport, small talk, team meeting. Picking one makes Alex say a fixed opening line (shown, spoken and logged as `ALEX:`) and adds a `SCENARIO (role-play)` section to the **turn** prompt only: who Alex plays, the opening line already said, and the reminder that the role never changes how mistakes are reported. The report and practice prompts are unchanged.
+
+Rules enforced by the code (`domain/scenarios.py`): the section is empty for the free conversation and for unknown keys; the scenario returns to free when the session ends (the drop-down follows); the scenario key is stored in the session statistics. The report adds `Useful for this situation (not used yet): ...` with up to 6 key phrases of the scenario that none of your sentences contained. Matching is on whole words after normalising (case and punctuation ignored), so `menus` does not count as `menu`; it is a hint, not a test. Whether the 8B model keeps the role is up to the model.
+
 ## Natural phrasing
 
 Besides `errors`, the tutor answers with a `natural` string. It is filled only when the sentence has **no** error but a native speaker would clearly say it differently (stiff or translated-from-Spanish wording); otherwise it is empty. The app shows it as `More natural: "..."` below the reply when **Settings > General > Suggest more natural phrasing** is on (read on every turn, no restart).

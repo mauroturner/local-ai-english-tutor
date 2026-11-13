@@ -11,6 +11,7 @@ from ..domain.corrections import compose_speech, filter_corrections, pick_live, 
 from ..domain.formatting import correction_text, format_report
 from ..domain.hesitation import as_corrections, explanation, find_hesitations
 from ..domain.models import Hesitation, SessionState, Turn
+from ..domain.scenarios import FREE, get_scenario
 from ..ports import (
     AdapterError,
     AudioRecorder,
@@ -31,6 +32,7 @@ from .events import (
     PracticeChanged,
     ProgressChanged,
     ReportReady,
+    ScenarioChanged,
     StateChanged,
     TutorSaid,
     UserSaid,
@@ -40,6 +42,7 @@ from .journal import NullConversationLog, NullMistakeStore, NullSessionStatsStor
 from .mistake_book import MistakeBook
 from .practice import PracticeDrill, PracticeServices, open_practice, run_practice_turn
 from .report import make_report
+from .scenario_choice import ScenarioChoice
 from .session_stats import StatsRecorder
 from .worker import Runner, SerialWorker
 
@@ -80,6 +83,7 @@ class ConversationSession:
         track_pauses: Callable[[], bool] = lambda: True,
         suggest_natural: Callable[[], bool] = lambda: True,
         speech_scale: Callable[[], float] = lambda: 1.0,
+        scenario: ScenarioChoice | None = None,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -98,6 +102,7 @@ class ConversationSession:
         self._suggest_natural = suggest_natural  # read every turn, like track_pauses
         self._speech_scale = speech_scale  # Piper length_scale for the learner's level
         self._last_spoken = ""
+        self._scenario = scenario or ScenarioChoice()  # shared with the tutor model
         self._drill: PracticeDrill | None = None
         self._practice = PracticeServices(
             self._ask, self._emit, self._journal.record, self._speak
@@ -126,6 +131,11 @@ class ConversationSession:
         """Current state of the session."""
         with self._lock:
             return self._state
+
+    @property
+    def scenario(self) -> str:
+        """The role-play scenario in use (``free`` for an ordinary conversation)."""
+        return self._scenario.key
 
     @property
     def turns(self) -> tuple[Turn, ...]:
@@ -349,6 +359,28 @@ class ConversationSession:
             logger.exception("Unexpected speech synthesis error")
             self._emit(ErrorRaised(f"Voice output failed: {exc}"))
 
+    def set_scenario(self, key: str) -> None:
+        """Pick a role-play scenario; ignored unless idle, not practicing and before any answer.
+
+        The tutor opens the scenario with its first line (shown, logged and spoken).
+        """
+        with self._lock:
+            if self._state is not SessionState.IDLE or self._drill is not None or self._turns:
+                return
+            self._state = SessionState.THINKING
+        self._emit(StateChanged(SessionState.THINKING, "Setting the scene..."))
+        self._submit(lambda: self._start_scenario(key))
+
+    def _start_scenario(self, key: str) -> None:
+        chosen = self._scenario.set(key)
+        self._emit(ScenarioChanged(chosen))
+        scenario = get_scenario(chosen)
+        if scenario is not None:
+            self._emit(TutorSaid(scenario.opening))
+            self._journal.record("tutor", scenario.opening)
+            self._speak(scenario.opening)
+        self._set_state(SessionState.IDLE, self._ready_message())
+
     def repeat_last(self, slower: bool = False) -> None:
         """Say the tutor's last words again (``slower`` stretches them); ignored unless idle."""
         with self._lock:
@@ -428,13 +460,16 @@ class ConversationSession:
         self._submit(self._build_report)
 
     def _build_report(self) -> None:
-        report = make_report(self._tutor, tuple(self._turns))
+        scenario = self._scenario.key
+        report = make_report(self._tutor, tuple(self._turns), scenario)
         self._emit(ReportReady(report))
         self._journal.record("report", format_report(report))
         self._journal.new_session()
         if report.feedback is not None and report.feedback.summary:
             self._speak(report.feedback.summary)
-        self._stats.finish(tuple(self._turns))
+        self._stats.finish(tuple(self._turns), None if scenario == FREE else scenario)
         self._turns.clear()
         self._history.clear()
+        if self._scenario.set(FREE) != scenario:  # a new session starts as a free conversation
+            self._emit(ScenarioChanged(FREE))
         self._set_state(SessionState.IDLE, "Ready")

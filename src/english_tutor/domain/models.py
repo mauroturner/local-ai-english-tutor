@@ -136,6 +136,7 @@ class SessionReport:
     pauses: tuple[Hesitation, ...] = ()  # inside sentences
     slow_starts: tuple[tuple[str, float], ...] = ()  # (tutor question, seconds to start)
     categories: tuple[tuple[str, int], ...] = ()  # most frequent kinds of mistake, with counts
+    unused_vocabulary: tuple[str, ...] = ()  # scenario phrases the learner did not use
 
 
 class PracticeOutcome(str, Enum):
