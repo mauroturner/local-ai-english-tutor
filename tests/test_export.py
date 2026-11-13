@@ -97,6 +97,22 @@ def test_csv_quotes_commas_quotes_and_newlines_and_round_trips():
     assert rows[1][9] == 'one, two | q"uote'
 
 
+def test_csv_neutralizes_cells_a_spreadsheet_would_run_as_formulas():
+    risky = record(
+        original="=1+1", corrected="+cmd|' /C calc'!A0", explanation="@SUM(A1)",
+        examples=("-2+3", "fine"),
+    )  # fmt: skip
+    row = parse(mistakes_csv([risky]))[1]
+    assert row[1:4] == ["'=1+1", "'+cmd|' /C calc'!A0", "'@SUM(A1)"]
+    assert row[9] == "'-2+3 | fine"
+    assert row[4] == "3"  # numbers are never touched
+
+
+def test_csv_leaves_ordinary_text_unchanged():
+    row = parse(mistakes_csv([record(original="I go", explanation="Past tense.")]))[1]
+    assert row[1] == "I go" and row[3] == "Past tense."
+
+
 def test_csv_of_nothing_is_just_the_header():
     assert len(parse(mistakes_csv([]))) == 1
 

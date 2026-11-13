@@ -66,6 +66,18 @@ def report_markdown(report: SessionReport, when: datetime) -> str:
     return "\n".join(lines).rstrip("\n") + "\n"
 
 
+_FORMULA_STARTS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _text_cell(value: str) -> str:
+    """Prefix ``'`` so a spreadsheet shows the text instead of running it as a formula.
+
+    The text comes from speech transcription and the language model, so it must
+    never be able to start a formula when the CSV is opened in Excel or similar.
+    """
+    return f"'{value}" if value.startswith(_FORMULA_STARTS) else value
+
+
 def mistakes_csv(records: Sequence[MistakeRecord]) -> str:
     """Render the mistakes as CSV: English headers, ISO timestamps, examples joined by `` | ``."""
     out = io.StringIO(newline="")
@@ -73,8 +85,9 @@ def mistakes_csv(records: Sequence[MistakeRecord]) -> str:
     writer.writerow(_CSV_HEADERS)
     for r in records:
         writer.writerow((
-            r.severity.value, r.original, r.corrected, r.explanation, r.count,
+            r.severity.value, _text_cell(r.original), _text_cell(r.corrected),
+            _text_cell(r.explanation), r.count,
             r.first_seen.isoformat(timespec="seconds"), r.last_seen.isoformat(timespec="seconds"),
-            r.practice_attempts, r.practice_successes, " | ".join(r.examples),
+            r.practice_attempts, r.practice_successes, _text_cell(" | ".join(r.examples)),
         ))  # fmt: skip
     return out.getvalue()

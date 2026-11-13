@@ -17,6 +17,7 @@ The app keeps your history on disk in plain text under `data\` (or `TUTOR_DATA_D
 - `data\mistakes.json` contains your recurring mistakes, up to three example sentences of yours per mistake, and your practice scores.
 - `data\settings.json` contains your preferences and `data\logs\app.log` the application log (see [below](#settings-and-the-application-log)).
 - Files you export (report as Markdown, mistakes as CSV) contain the same text and live wherever you saved them; the app does not track or clean them up.
+- In the mistakes CSV, a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'`, so a spreadsheet shows it as text instead of running it as a formula (the text comes from transcription and the language model).
 
 Neither file is encrypted or protected beyond normal Windows file permissions. Anyone who can read your user folder can read them. The `data/`, `logs/` and `*.log` paths are git-ignored, so they are not committed by accident.
 
