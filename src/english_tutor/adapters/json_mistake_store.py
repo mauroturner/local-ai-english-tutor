@@ -143,7 +143,7 @@ def _to_dict(record: MistakeRecord) -> dict[str, Any]:
 
 def _parse_category(entry: Any) -> str | None:
     value = entry.get("category")
-    return value.strip() or None if isinstance(value, str) else None
+    return (value.strip() or None) if isinstance(value, str) else None
 
 
 def _parse_review(entry: Any) -> ReviewState | None:

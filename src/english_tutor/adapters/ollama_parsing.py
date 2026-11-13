@@ -102,7 +102,7 @@ def parse_tutor_reply(raw: str) -> TutorReply:
         reply=data["reply"].strip() or FALLBACK_REPLY,
         corrections=corrections,
         parsed_ok=True,
-        natural=natural.strip() or None if isinstance(natural, str) else None,
+        natural=(natural.strip() or None) if isinstance(natural, str) else None,
     )
 
 

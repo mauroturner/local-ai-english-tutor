@@ -112,7 +112,7 @@ REGISTRY: tuple[SettingSpec, ...] = (
     _setting("track_pauses", _G, _SWITCH, ("hesitation", "fluency", "silence", "pause", "pausa",
              "fluidez", "silencio", "practice", "practicar")),
     _setting("suggest_natural", _G, _SWITCH, ("native", "natural", "rephrase", "phrasing", "style",
-             "nativo", "natural", "frase", "sugerir")),
+             "nativo", "frase", "sugerir")),
     _action("autostart", _G, ("startup", "boot", "sign in", "registry", "inicio", "windows")),
     # Appearance
     _setting("appearance_mode", _A, Control.CHOICE, ("dark mode", "light", "night", "theme",
