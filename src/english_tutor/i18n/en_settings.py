@@ -38,6 +38,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.track_pauses.help": "Notes where you stop for a long time in a sentence (1.2 s or "
     "more) and adds that phrase to Mistakes to practise saying it in one go. Also reports slow "
     "starts (3 s or more) in the session report. Pauses are never counted as errors.",
+    "setting.suggest_natural.label": "Suggest more natural phrasing",
+    "setting.suggest_natural.help": "When your sentence is correct but a native speaker would "
+    "say it differently, shows a more natural version under the reply. It is never counted as a "
+    "mistake.",
     "setting.autostart.label": "Start with Windows",
     "setting.autostart.help": "Open the app automatically when you sign in.",
     # Appearance

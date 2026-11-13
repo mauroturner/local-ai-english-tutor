@@ -26,8 +26,9 @@ TURN_SCHEMA = {
     "properties": {
         "reply": {"type": "string"},
         "errors": {"type": "array", "items": _ERR},
+        "natural": {"type": "string"},
     },
-    "required": ["reply", "errors"],
+    "required": ["reply", "errors", "natural"],
 }
 
 REPORT_SCHEMA = {
@@ -65,15 +66,22 @@ ERRORS ("errors"):
   word_order, word_choice, false_friend (a Spanish word or structure used in English), plural,
   pronoun, other.
 
-Answer ONLY with JSON: {"reply": "...", "errors": [{"original": "...", "corrected": "...", "explanation": "...", "severity": "major" or "minor", "category": "..."}]}
+NATURAL ("natural"):
+- Only when "errors" is empty and a native speaker would clearly say the sentence differently
+  (stiff, translated-from-Spanish or unusual wording), write the more natural version of the WHOLE
+  sentence the learner said. Otherwise use "". Never use it to repeat the same sentence.
+
+Answer ONLY with JSON: {"reply": "...", "errors": [{"original": "...", "corrected": "...", "explanation": "...", "severity": "major" or "minor", "category": "..."}], "natural": "..."}
 
 Examples:
 Learner: Hi. Could you hear me?
-{"reply": "Yes, I can hear you perfectly! How is your day going so far?", "errors": []}
+{"reply": "Yes, I can hear you perfectly! How is your day going so far?", "errors": [], "natural": ""}
+Learner: The movie was very good but the final was a little bit sad for me
+{"reply": "I know what you mean. Did the sad ending surprise you?", "errors": [], "natural": "The movie was very good, but the ending was a bit sad for me."}
 Learner: yesterday I go to the park with my sister
-{"reply": "That sounds lovely! What did you two do at the park?", "errors": [{"original": "I go", "corrected": "I went", "explanation": "Use the past tense for yesterday.", "severity": "major", "category": "verb_tense"}]}
+{"reply": "That sounds lovely! What did you two do at the park?", "errors": [{"original": "I go", "corrected": "I went", "explanation": "Use the past tense for yesterday.", "severity": "major", "category": "verb_tense"}], "natural": ""}
 Learner: I live in the Buenos Aires since five years
-{"reply": "Five years is a long time! What do you like most about living there?", "errors": [{"original": "since five years", "corrected": "for five years", "explanation": "Use 'for' with a length of time.", "severity": "major", "category": "prepositions"}, {"original": "the Buenos Aires", "corrected": "Buenos Aires", "explanation": "City names don't take 'the'.", "severity": "minor", "category": "articles"}]}
+{"reply": "Five years is a long time! What do you like most about living there?", "errors": [{"original": "since five years", "corrected": "for five years", "explanation": "Use 'for' with a length of time.", "severity": "major", "category": "prepositions"}, {"original": "the Buenos Aires", "corrected": "Buenos Aires", "explanation": "City names don't take 'the'.", "severity": "minor", "category": "articles"}], "natural": ""}
 """
 
 REPORT_SYSTEM_PROMPT = """\

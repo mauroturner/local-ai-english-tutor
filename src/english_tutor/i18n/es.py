@@ -47,6 +47,7 @@ STRINGS: dict[str, str] = {
     "chat.empty": "Mantén pulsada {key} y habla para empezar la conversación.",
     "chat.you": "Tú: {text}",
     "chat.alex": "Alex: {text}",
+    "chat.natural": "Más natural: \"{text}\"",
     "chat.tip": 'Consejo: "{original}"  ->  "{corrected}"',
     "practice.correct": "¡Correcto!",
     "practice.retry": "Inténtalo de nuevo:",

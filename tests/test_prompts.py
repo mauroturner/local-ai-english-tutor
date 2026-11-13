@@ -14,7 +14,7 @@ from english_tutor.domain.prompts import (
 
 
 def test_turn_schema_required_fields_and_severity_enum():
-    assert TURN_SCHEMA["required"] == ["reply", "errors"]
+    assert TURN_SCHEMA["required"] == ["reply", "errors", "natural"]
     item = TURN_SCHEMA["properties"]["errors"]["items"]
     assert item["required"] == ["original", "corrected", "explanation", "severity", "category"]
     assert item["properties"]["severity"]["enum"] == ["major", "minor"]

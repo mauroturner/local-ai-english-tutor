@@ -7,7 +7,7 @@ import threading
 from typing import Callable, Literal, TypeVar
 
 from ..audio.processing import prepare_for_stt
-from ..domain.corrections import compose_speech, filter_corrections, pick_live
+from ..domain.corrections import compose_speech, filter_corrections, pick_live, pick_natural
 from ..domain.formatting import correction_text, format_report
 from ..domain.hesitation import as_corrections, explanation, find_hesitations
 from ..domain.models import Hesitation, SessionState, Turn
@@ -75,6 +75,7 @@ class ConversationSession:
         session_stats: SessionStatsStore | None = None,
         coach: PracticeCoach | None = None,
         track_pauses: Callable[[], bool] = lambda: True,
+        suggest_natural: Callable[[], bool] = lambda: True,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -90,6 +91,7 @@ class ConversationSession:
         )
         self._coach = coach
         self._track_pauses = track_pauses  # read every turn, so the setting applies at once
+        self._suggest_natural = suggest_natural  # read every turn, like track_pauses
         self._drill: PracticeDrill | None = None
         self._practice = PracticeServices(
             self._ask, self._emit, self._journal.record, self._speak
@@ -292,10 +294,13 @@ class ConversationSession:
         self._turns.append(turn)
         self._stats.turn_done()
         self._history.add_exchange(raw, reply.reply)
-        self._emit(TutorSaid(reply.reply, live))
+        natural = pick_natural(reply.natural, raw, corrections) if self._suggest_natural() else None
+        self._emit(TutorSaid(reply.reply, live, natural))
         self._journal.record("tutor", reply.reply)
         if live is not None:
             self._journal.record("tip", correction_text(live))
+        if natural is not None:
+            self._journal.record("natural", natural)
         self._record_mistakes(turn)
         self._speak(compose_speech(reply.reply, live))
         self._set_state(SessionState.IDLE, "Ready")

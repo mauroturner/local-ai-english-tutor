@@ -15,6 +15,7 @@ _LABELS: dict[str, str] = {
     "you": "YOU",
     "tutor": "ALEX",
     "tip": "TIP",
+    "natural": "NATURAL",
     "pause": "PAUSE",
     "report": "REPORT",
     "practice": "PRACTICE",

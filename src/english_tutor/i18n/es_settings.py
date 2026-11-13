@@ -39,6 +39,9 @@ SETTINGS_STRINGS: dict[str, str] = {
     "más) y agrega esa frase a Errores para practicar decirla de corrido. También muestra en el "
     "informe las respuestas que tardaste en empezar (3 s o más). Las pausas nunca cuentan como "
     "errores.",
+    "setting.suggest_natural.label": "Sugerir frases más naturales",
+    "setting.suggest_natural.help": "Cuando tu frase es correcta pero un nativo la diría "
+    "distinto, muestra una versión más natural debajo de la respuesta. Nunca cuenta como error.",
     "setting.autostart.label": "Iniciar con Windows",
     "setting.autostart.help": "Abre la aplicación automáticamente al iniciar sesión.",
     # Apariencia

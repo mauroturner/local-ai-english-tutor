@@ -97,8 +97,12 @@ def parse_tutor_reply(raw: str) -> TutorReply:
     errors = data.get("errors")
     parsed = [_parse_correction(e) for e in errors] if isinstance(errors, list) else []
     corrections = tuple(c for c in parsed if c is not None)
+    natural = data.get("natural")
     return TutorReply(
-        reply=data["reply"].strip() or FALLBACK_REPLY, corrections=corrections, parsed_ok=True
+        reply=data["reply"].strip() or FALLBACK_REPLY,
+        corrections=corrections,
+        parsed_ok=True,
+        natural=natural.strip() or None if isinstance(natural, str) else None,
     )
 
 

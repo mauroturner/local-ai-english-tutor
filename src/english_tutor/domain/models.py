@@ -46,6 +46,7 @@ class TutorReply:
     reply: str
     corrections: tuple[Correction, ...] = ()
     parsed_ok: bool = True
+    natural: str | None = None  # a more natural way to say a correct sentence
 
 
 PAUSE_MARK = "…"

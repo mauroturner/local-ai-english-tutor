@@ -130,6 +130,7 @@ def main() -> int:
         session_stats=JsonSessionStore(cfg.data_dir / "sessions.json"),
         coach=tutor,
         track_pauses=lambda: current[0].track_pauses,
+        suggest_natural=lambda: current[0].suggest_natural,
     )
     gate = PttGate(session.on_ptt_press, session.on_ptt_release)
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)

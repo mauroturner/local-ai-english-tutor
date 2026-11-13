@@ -66,6 +66,12 @@ The model's output is not trusted blindly. `domain/corrections.py` applies these
 
 The code does **not** check that a `corrected` phrase is actually right, and it does not re-classify severity; those depend on the model.
 
+## Natural phrasing
+
+Besides `errors`, the tutor answers with a `natural` string. It is filled only when the sentence has **no** error but a native speaker would clearly say it differently (stiff or translated-from-Spanish wording); otherwise it is empty. The app shows it as `More natural: "..."` below the reply when **Settings > General > Suggest more natural phrasing** is on (read on every turn, no restart).
+
+Rules enforced by the code (`pick_natural`): it is dropped when the turn has any real correction, when it is empty, and when it only repeats the learner's sentence (ignoring case and punctuation). It is never spoken, never stored in the mistake history or the statistics, and it is written to the conversation log as `NATURAL`. Whether a sentence "sounds unnatural" is the model's opinion; an 8B model also misses some real errors, so treat the suggestion as a hint.
+
 ## What is shown, what is spoken
 
 | Item | Chat | Voice |
@@ -301,7 +307,7 @@ Message order for a practice call: this system prompt, the drill history (last 4
 
 ### Output schemas
 
-`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]` and `category` in the ten model categories). `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings). `PRACTICE_SCHEMA`: object with required `target_used` (one of `correct`, `incorrect`, `not_used`), `feedback` and `next_prompt` (strings).
+`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]` and `category` in the ten model categories) plus a required `natural` string. `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings). `PRACTICE_SCHEMA`: object with required `target_used` (one of `correct`, `incorrect`, `not_used`), `feedback` and `next_prompt` (strings).
 
 If the model still returns something unparseable, the raw text is used as the reply with no corrections (or as the summary, for the report). If even that is empty, the app uses `Sorry, I lost my train of thought. Could you say that again?` or `I could not write the feedback this time.` (for practice: `Let's keep going. Tell me about your day.`)
 

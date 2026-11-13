@@ -209,6 +209,8 @@ class TutorWindow(ctk.CTk):
             self._chat.add_tutor(event.text)
             if event.correction is not None:
                 self._chat.add_correction(event.correction)
+            if event.natural is not None:
+                self._chat.add_natural(event.natural)
         elif isinstance(event, ReportReady):
             self._chat.add_report(event.report)
         elif isinstance(event, ErrorRaised):

@@ -336,7 +336,7 @@ def make_harness():
 
     def _make(
         texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None,
-        coach=None, track_pauses=None, session_stats=None,
+        coach=None, track_pauses=None, session_stats=None, suggest_natural=None,
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -350,6 +350,7 @@ def make_harness():
             session_stats=session_stats,
             coach=coach,
             track_pauses=track_pauses or (lambda: True),
+            suggest_natural=suggest_natural or (lambda: True),
         )
         session.start()
         if isinstance(runner, ManualRunner):

@@ -36,6 +36,7 @@ class TutorSaid:
 
     text: str
     correction: Correction | None = None
+    natural: str | None = None  # a more natural way to say what the learner said
 
 
 @dataclass(frozen=True)

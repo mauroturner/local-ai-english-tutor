@@ -47,7 +47,7 @@ User settings are saved in `settings.json`. Environment variables keep working a
 {
   "version": 1,
   "settings": {
-    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "track_pauses": true,
+    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "track_pauses": true, "suggest_natural": true,
     "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
     "density": "comfortable", "tts_enabled": true,
     "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
@@ -91,6 +91,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Your name | text, up to 40 characters (`Mauro`) | Save | The tutor uses it now and then. Leave it empty to not be called by name. Quotes, braces, angle brackets, backslashes, backticks and control characters are refused |
 | Your pronouns | `he` (he/him), `she` (she/her), `they` (they/them) (`he`) | Save | Used when the tutor refers to you in the third person, for example in the report |
 | Track long pauses | on / off (on) | Save | Adds pauses of 1.2 s or more inside a sentence to the Mistakes tab and lists slow starts (3 s or more) in the report; never counted as errors. See [Long pauses](tutor-behavior.md#long-pauses) |
+| Suggest more natural phrasing | on / off (on) | Save | When a sentence has no error but a native speaker would say it differently, shows `More natural: "..."` under the reply. Never a mistake, never spoken, never stored in the history; see [Natural phrasing](tutor-behavior.md#natural-phrasing) |
 | Start with Windows | on / off (off) | Save | Not stored in `settings.json`; see [Start with Windows](#start-with-windows) |
 
 ### Appearance
@@ -231,6 +232,7 @@ The first line is `# English tutor conversation - <timestamp>`. Every entry is `
 | `YOU` | After each transcription, **before** the tutor is called. The raw Whisper text is written verbatim |
 | `ALEX` | The tutor reply (or, in practice mode, the next question) |
 | `TIP` | The live correction, as `"original" -> "corrected" (explanation) [major]` |
+| `NATURAL` | A more natural way to say a correct sentence (only when [Suggest more natural phrasing](#general) is on) |
 | `PAUSE` | A long pause inside the sentence just said, as `think how's … everything (You paused 1.7 s between 'how's' and 'everything'.)` |
 | `REPORT` | The end-of-session report text |
 | `PRACTICE` | `Started: 'orig' -> 'corr'`, each verdict as `[correct] feedback` (or `[incorrect]`, `[not_used]`), and `Stopped practice` |

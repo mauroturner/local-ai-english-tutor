@@ -68,6 +68,20 @@ def pick_live(
     return live, rest
 
 
+def pick_natural(
+    natural: str | None, transcript: str, corrections: Iterable[Correction]
+) -> str | None:
+    """The "more natural" phrasing worth showing, or None.
+
+    It only makes sense for a sentence with no real error, and only when it
+    says something different from what the learner said.
+    """
+    if not natural or any(True for _ in corrections):
+        return None
+    text = natural.strip()
+    return text if text and normalize(text) != normalize(transcript) else None
+
+
 def spoken_line(correction: Correction) -> str:
     """Short sentence read aloud before the tutor reply."""
     return (

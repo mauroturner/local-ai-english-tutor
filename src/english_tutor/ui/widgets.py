@@ -82,6 +82,10 @@ class ChatView(ctk.CTkScrollableFrame):
         text = f"{tip}\n{correction.explanation}"
         self._bubble(text, theme.CORRECTION_BUBBLE, "w")
 
+    def add_natural(self, text: str) -> None:
+        """Show a more natural way to say a correct sentence (never a mistake)."""
+        self._bubble(t("chat.natural", text=text), theme.REPORT_BG, "w")
+
     def add_practice_feedback(self, outcome: PracticeOutcome, feedback: str) -> None:
         """Show the coach's verdict on a practice answer."""
         if not feedback:
