@@ -56,6 +56,10 @@ class StatsRecorder:
         if self._started is None:
             self._started = self._clock()
 
+    def known_words(self) -> frozenset[str]:
+        """Every content word any stored session used."""
+        return frozenset(w for s in self._sessions for w in s.vocabulary)
+
     def recent_memory(self) -> tuple[str, ...]:
         """The notes of the latest sessions that have some, oldest first."""
         notes = [s.memory for s in self._sessions if s.memory]

@@ -10,6 +10,7 @@ from enum import Enum
 
 from .categories import count_categories
 from .fillers import total_fillers
+from .vocabulary_range import session_words
 from .models import Severity, Turn
 
 MIN_WORDS = 20
@@ -43,6 +44,7 @@ class SessionStats:
     scenario: str | None = None  # the role-play practised, None for a free conversation
     memory: str | None = None  # notes for the next session (personal data, see domain.memory)
     fillers: int = 0  # filler sounds said (um, uh, er, hmm)
+    vocabulary: tuple[str, ...] = ()  # the distinct content words said (see vocabulary_range)
 
     @property
     def words_per_minute(self) -> float:
@@ -84,6 +86,7 @@ def build_stats(
         scenario=scenario,
         memory=memory,
         fillers=sum(total_fillers(turn.user_text for turn in turns).values()),
+        vocabulary=session_words(turn.user_text for turn in turns),
     )
 
 

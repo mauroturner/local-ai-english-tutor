@@ -90,6 +90,12 @@ When a session ends, the same call that writes the feedback also returns `memory
 
 Controls: **Settings > General > Remember earlier sessions** (on by default, read live) stops both writing new notes and using stored ones; **Settings > Storage > Delete session memory** erases every stored note (session numbers and charts stay). Turning the switch off does not delete notes already stored. The notes come from a small model summarising what you said, so they can be wrong or oddly phrased; they are personal data, see [security-notes.md](security-notes.md#stored-data-is-unencrypted).
 
+## Vocabulary range
+
+The report adds a line such as `Vocabulary: 54 different words (3+ new: alpha, beta, gamma). Used often: good (7)`. Only content words count (`domain/vocabulary_range.py`): words under 3 letters and a list of very common words (the, and, very, don't...) are ignored, apostrophes are dropped, nothing is stemmed (so `visit` and `visited` are different words). **New** means no earlier stored session used the word (it is not shown for the very first session, and at most 8 are listed); **used often** means 4 or more times in this session (at most 3 listed). Suggesting alternatives for overused words with the model is not implemented.
+
+The distinct words of each session (at most 400) are stored in `data/sessions.json` under `vocabulary`; that is what makes the comparison possible.
+
 ## Filler words
 
 The report lists the filler sounds in your answers: `Filler words: um (3), uh (2)`. They are counted from the literal transcript (which is never changed) by `domain/fillers.py`: `um`, `uh`, `er`, `hmm` and their spelling variants. Never errors, never stored in the mistake history; the total goes to the session statistics (`fillers`).

@@ -415,7 +415,8 @@ class ConversationSession(SessionActions):
 
     def _build_report(self) -> None:
         scenario = self._scenario.key
-        report = make_report(self._tutor, tuple(self._turns), scenario)
+        known = self._stats.known_words()
+        report = make_report(self._tutor, tuple(self._turns), scenario, known)
         self._emit(ReportReady(report))
         self._journal.record("report", format_report(report))
         self._journal.new_session()

@@ -65,6 +65,18 @@ def uncertain_line(report: SessionReport) -> str:
     )
 
 
+def vocabulary_summary(report: SessionReport) -> str:
+    """``Vocabulary: 54 different words (12 new: ...). Used often: very (7)``; empty if no words."""
+    if not report.vocabulary_unique:
+        return ""
+    text = f"Vocabulary: {report.vocabulary_unique} different words"
+    if report.vocabulary_new:
+        text += f" ({len(report.vocabulary_new)}+ new: {', '.join(report.vocabulary_new)})"
+    if report.overused_words:
+        text += ". Used often: " + ", ".join(f"{w} ({n})" for w, n in report.overused_words)
+    return text
+
+
 def format_report(report: SessionReport) -> str:
     """Render the end-of-session report as text."""
     lines = [f"SESSION REPORT ({report.turn_count} turns)", ""]
@@ -78,6 +90,8 @@ def format_report(report: SessionReport) -> str:
         lines.append(uncertain_line(report))
     if report.fillers:
         lines.append(filler_line(report.fillers))
+    if report.vocabulary_unique:
+        lines.append(vocabulary_summary(report))
     lines += pause_lines(report)
     lines.append("")
     feedback = report.feedback

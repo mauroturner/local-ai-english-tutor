@@ -13,6 +13,7 @@ from typing import Any
 
 from ..domain.memory import clean_memory
 from ..domain.progress import SessionStats
+from ..domain.vocabulary_range import MAX_STORED
 from ..ports import StorageError
 from .atomic_io import atomic_write_text
 
@@ -142,6 +143,8 @@ def _to_dict(stats: SessionStats) -> dict[str, Any]:
         data["memory"] = stats.memory
     if stats.fillers:
         data["fillers"] = stats.fillers
+    if stats.vocabulary:
+        data["vocabulary"] = list(stats.vocabulary)
     return data
 
 
@@ -167,6 +170,14 @@ def _count(entry: Any, key: str) -> int:
     if value < 0:
         raise ValueError(f"{key} must not be negative")
     return value
+
+
+def _parse_vocabulary(entry: Any) -> tuple[str, ...]:
+    """The stored words; anything that is not a list of words is dropped."""
+    raw = entry.get("vocabulary")
+    if not isinstance(raw, list):
+        return ()
+    return tuple(w for w in raw[:MAX_STORED] if isinstance(w, str) and w.isalpha())
 
 
 def _optional_count(entry: Any, key: str) -> int:
@@ -198,5 +209,6 @@ def _parse_entry(entry: Any) -> SessionStats:
         categories=_parse_categories(entry),
         scenario=_parse_scenario(entry),
         fillers=_optional_count(entry, "fillers"),
+        vocabulary=_parse_vocabulary(entry),
         memory=clean_memory(entry.get("memory") if isinstance(entry.get("memory"), str) else None),
     )

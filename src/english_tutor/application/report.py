@@ -10,6 +10,7 @@ from ..domain.fillers import ranked, total_fillers
 from ..domain.hesitation import last_question
 from ..domain.models import Correction, Hesitation, SessionReport, Severity, Turn
 from ..domain.scenarios import FREE, unused_vocabulary
+from ..domain.vocabulary_range import new_words, overused, session_words
 from ..ports import TutorModel
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,10 @@ def collect_pauses(
 
 
 def make_report(
-    tutor: TutorModel, turns: tuple[Turn, ...], scenario: str = FREE
+    tutor: TutorModel,
+    turns: tuple[Turn, ...],
+    scenario: str = FREE,
+    known_words: frozenset[str] = frozenset(),
 ) -> SessionReport:
     """Collect the errors and ask the tutor for feedback (failures are kept as text)."""
     majors, minors = collect_errors(turns)
@@ -60,7 +64,10 @@ def make_report(
     categories = count_categories(c for turn in turns for c in turn.corrections)
     unused = unused_vocabulary(scenario, (turn.user_text for turn in turns)) if turns else ()
     uncertain = tuple(dict.fromkeys(w for turn in turns for w in turn.uncertain))
+    said = [turn.user_text for turn in turns]
+    words = session_words(said)
     return SessionReport(
         len(turns), majors, minors, feedback, feedback_error, pauses, starts, categories, unused,
         uncertain, ranked(total_fillers(turn.user_text for turn in turns)),
+        len(words), new_words(words, known_words) if known_words else (), overused(said),
     )

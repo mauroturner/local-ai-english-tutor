@@ -142,6 +142,9 @@ class SessionReport:
     unused_vocabulary: tuple[str, ...] = ()  # scenario phrases the learner did not use
     uncertain_words: tuple[str, ...] = ()  # words the recogniser was unsure about
     fillers: tuple[tuple[str, int], ...] = ()  # filler sounds (um, uh...) with counts
+    vocabulary_unique: int = 0  # different content words used
+    vocabulary_new: tuple[str, ...] = ()  # words no earlier session used
+    overused_words: tuple[tuple[str, int], ...] = ()  # content words said many times
 
 
 class PracticeOutcome(str, Enum):

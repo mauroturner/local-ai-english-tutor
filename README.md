@@ -10,6 +10,7 @@ You hold a key and talk. The app transcribes your speech with Whisper, sends it 
 - **End-of-session report.** Click **End session** to get the list of errors (original -> corrected, with the reason) and overall feedback.
 - **Daily reminder.** Optionally a Windows notification at a time you choose, if you have not practised enough that day.
 - **Anki export.** Settings > Storage can save your mistakes as flashcards for Anki.
+- **Vocabulary range.** The report counts your different words, the new ones compared with earlier sessions, and the words you repeat a lot.
 - **Filler words.** The session report counts your "um", "uh" and "hmm".
 - **Listening and speaking drills.** A **Drills** menu offers repeat-after-me (shadowing), minimal pairs (ship / sheep ...) and dictation, each judged word by word; they never count as mistakes.
 - **Topic of the day.** From your last two weeks of mistakes the app suggests a topic that makes you practise your weakest kind of mistake.
