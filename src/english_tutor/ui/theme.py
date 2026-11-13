@@ -34,6 +34,7 @@ ROW_BG = ("gray95", "gray19")
 PILL_BG = ("#FFE0B2", "#5D3A00")
 PILL_TEXT = ("#8A4B00", "#FFCC80")
 ERROR_TEXT = ("#C62828", "#EF9A9A")
+OK_TEXT = ("#2E7D32", "#81C784")
 CHIP_GREEN = ("#2E7D32", "#2E7D32")
 CHIP_RED = ("#C62828", "#D32F2F")
 CHIP_AMBER = ("#B26A00", "#B26A00")
@@ -42,7 +43,7 @@ COLOR_NAMES = (
     "TEXT", "MUTED_TEXT", "CHAT_BG", "TUTOR_BUBBLE", "USER_BUBBLE", "CORRECTION_BUBBLE",
     "NOTICE_TEXT", "REPORT_BG", "PRACTICE_OK", "PRACTICE_RETRY", "BADGE_MAJOR", "BADGE_MINOR",
     "HOVER", "TOOLTIP_BG", "TOOLTIP_TEXT", "SIDEBAR_BG", "SELECTED", "ROW_BG", "PILL_BG",
-    "PILL_TEXT", "ERROR_TEXT", "CHIP_GREEN", "CHIP_RED", "CHIP_AMBER",
+    "PILL_TEXT", "ERROR_TEXT", "OK_TEXT", "CHIP_GREEN", "CHIP_RED", "CHIP_AMBER",
 )  # fmt: skip
 
 # --------------------------------------------------------------------- spacing

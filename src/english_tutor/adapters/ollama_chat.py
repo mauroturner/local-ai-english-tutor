@@ -25,6 +25,7 @@ from ..domain.prompts import (
 )
 from ..domain.practice_prompts import PRACTICE_SCHEMA, build_practice_system_prompt
 from ..ports import LlmUnavailable
+from .ollama_check import model_installed
 from .ollama_parsing import parse_feedback, parse_practice_reply, parse_tutor_reply
 
 logger = logging.getLogger(__name__)
@@ -68,8 +69,7 @@ class OllamaTutorModel:
             raise LlmUnavailable(
                 f"Unexpected response from Ollama at {self._base_url}/api/tags"
             ) from exc
-        wanted = self._model if ":" in self._model else f"{self._model}:latest"
-        if wanted not in names and self._model not in names:
+        if not model_installed(names, self._model):
             raise LlmUnavailable(
                 f"Model {self._model} not found: run `ollama pull {self._model}`"
             )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Literal, Protocol
 
 import numpy as np
@@ -200,3 +201,25 @@ class Notifier(Protocol):
     def notify(self, title: str, body: str) -> None:
         """Tell the user something while the window may be in the background."""
         ...
+
+
+class ConnectionStatus(Enum):
+    """Outcome of checking an Ollama server and model (see ``ConnectionCheck``)."""
+
+    OK = "ok"
+    MODEL_MISSING = "model_missing"
+    UNREACHABLE = "unreachable"
+    TIMEOUT = "timeout"
+    BAD_URL = "bad_url"
+
+
+@dataclass(frozen=True)
+class ConnectionResult:
+    """What a connection check found; ``detail`` is English text for logs and support."""
+
+    status: ConnectionStatus
+    detail: str = ""
+
+
+ConnectionCheck = Callable[[str, str], ConnectionResult]
+"""``check(url, model) -> ConnectionResult``; never raises, may block up to a few seconds."""

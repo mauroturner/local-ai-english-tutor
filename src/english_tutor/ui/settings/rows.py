@@ -25,6 +25,11 @@ _BUTTON_TEXT = {
     "export_mistakes": "button.export",
     "clear_logs": "button.delete",
     "clear_mistakes": "button.delete",
+    "test_connection": "button.test",
+}
+_RESULT_COLOURS = {
+    "ok": theme.OK_TEXT, "warning": theme.NOTICE_TEXT,
+    "error": theme.ERROR_TEXT, "info": theme.MUTED_TEXT,
 }
 
 
@@ -83,7 +88,10 @@ class Row(ctk.CTkFrame):
         self._note = ctk.CTkLabel(
             self, text="", font=theme.FONT_HINT, anchor="w", justify="left", wraplength=WRAP,
         )  # fmt: skip
-        self.grid_rowconfigure(5, minsize=pad)
+        self._result = ctk.CTkLabel(
+            self, text="", font=theme.FONT_HINT, anchor="w", justify="left", wraplength=WRAP,
+        )  # fmt: skip
+        self.grid_rowconfigure(6, minsize=pad)
         self._build_control(top, value)
         if self._control_frame.winfo_children():
             self._control_frame.grid(
@@ -103,6 +111,11 @@ class Row(ctk.CTkFrame):
             self._note.grid(row=4, column=0, sticky="w", padx=theme.SPACE_M)
         else:
             self._note.grid_remove()
+
+    def set_result(self, text: str, kind: str) -> None:
+        """Show the outcome of an action (``kind``: info, ok, warning or error) under the row."""
+        self._result.configure(text=text, text_color=_RESULT_COLOURS.get(kind, theme.MUTED_TEXT))
+        self._result.grid(row=5, column=0, sticky="w", padx=theme.SPACE_M)
 
     # ---------------------------------------------------------------- controls
     def _emit(self, value: Any) -> None:

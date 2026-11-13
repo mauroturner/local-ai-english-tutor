@@ -12,7 +12,7 @@ from typing import Any
 from ..application.preferences import SettingsService
 from ..application.ptt_gate import PttGate
 from ..domain.models import MistakeRecord, SessionReport
-from ..ports import AutoStart
+from ..ports import AutoStart, ConnectionCheck, ConnectionResult, ConnectionStatus
 from ..settings.model import UserSettings
 
 Confirm = Callable[..., bool]
@@ -21,8 +21,9 @@ Confirm = Callable[..., bool]
 ENABLED_ACTIONS = frozenset({
     "open_data_folder", "open_logs_folder", "restore_defaults",
     "export_report", "export_mistakes", "clear_logs", "clear_mistakes", "autostart",
+    "test_connection",
 })  # fmt: skip
-"""Action rows that exist so far; a later phase adds the connection test."""
+"""Action rows the Settings window offers."""
 
 
 def ask_yes_no(title: str, message: str, parent: Any = None) -> bool:
@@ -34,6 +35,11 @@ def ask_yes_no(title: str, message: str, parent: Any = None) -> bool:
 
 def _ignore(*args: Any) -> None:
     """Default for optional callbacks."""
+
+
+def _no_check(url: str, model: str) -> ConnectionResult:
+    """Default connection check: nothing is wired, so report that the server is unreachable."""
+    return ConnectionResult(ConnectionStatus.UNREACHABLE, "No connection check is available.")
 
 
 def _refuse() -> bool:
@@ -78,5 +84,7 @@ class UiServices:
     clock: Callable[[], datetime] = datetime.now
     autostart: AutoStart | None = None
     """Windows auto-start registration; ``None`` where it does not exist (row disabled)."""
+    check_ollama: ConnectionCheck = _no_check
+    """Test the Ollama address and model (runs off the Tk thread, may block a few seconds)."""
     env: Mapping[str, str] = field(default_factory=lambda: os.environ)
     """Environment consulted for the start-up warnings (relative TUTOR_PIPER_* paths)."""

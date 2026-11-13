@@ -49,3 +49,7 @@ def test_match_counts_cover_every_category():
     assert counts[Category.APPEARANCE] >= 1
     assert counts[Category.STORAGE] == 0
     assert all(n == 0 for n in match_counts("zzzzzz", ENABLED_ACTIONS, english).values())
+
+
+def test_connection_test_and_logs_folder_rows_are_enabled():
+    assert {"test_connection", "open_logs_folder"} <= ENABLED_ACTIONS

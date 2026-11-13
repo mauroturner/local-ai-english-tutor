@@ -20,6 +20,7 @@ from ..services import UiServices
 from .actions import StorageActions
 from .chrome import SIDEBAR_WIDTH, Footer, Sidebar
 from .commands import SettingsCommands
+from .connection import ConnectionTester
 from .focus import PttHold, bind_keys, center_on, show_modal
 from .key_capture import PTT, SHORTCUT, KeyCaptureDialog
 from .live import PREVIEW_KEYS, apply_live
@@ -78,7 +79,15 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
         self._closed = False
         self._folder_errors: dict[str, str] = {}
         self._storage = StorageActions(self, services)
-        self._actions = {**self._storage.actions(), "restore_defaults": self.restore_defaults}
+        self._connection_row: Row | None = None
+        self._connection = ConnectionTester(
+            services.check_ollama, self._schedule, self._show_connection
+        )
+        self._actions = {
+            **self._storage.actions(),
+            "restore_defaults": self.restore_defaults,
+            "test_connection": self.test_connection,
+        }
         self._build()
         self._bind_keys()
         self._refresh_page()
@@ -175,10 +184,37 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
         unavailable = self._storage.unavailable(spec.key)
         if spec.key == "autostart":
             value, unavailable = self._autostart.wanted, self._autostart.unavailable_text()
-        return Row(
+        row = Row(
             parent, spec, value, self._on_change, self._actions.get(spec.key),
             ENV_VARS[spec.key] if locked else None, self._capture, unavailable,
         )  # fmt: skip
+        if spec.key == "test_connection":
+            self._connection_row = row
+            if self._connection.last is not None:
+                row.set_result(*self._connection.last)
+        return row
+
+    # ----------------------------------------------------------- test connection
+    def test_connection(self) -> None:
+        """Check the (unsaved) Ollama address and model; the result appears under the row."""
+        self._connection.run(
+            str(self._draft.value("ollama_url")), str(self._draft.value("ollama_model"))
+        )
+
+    def _schedule(self, delay_ms: int, callback: Callable[[], None]) -> None:
+        try:
+            self.after(delay_ms, callback)
+        except tk.TclError:  # the window was closed while the check ran
+            logger.debug("Settings window is gone; dropping the connection result")
+
+    def _show_connection(self, text: str, kind: str) -> None:
+        row = self._connection_row
+        if row is None:
+            return
+        try:
+            row.set_result(text, kind)
+        except tk.TclError:  # the row was rebuilt or the window closed; ``last`` is kept
+            self._connection_row = None
 
     def _refresh_status(self) -> None:
         errors, warnings = {**self._draft.errors, **self._folder_errors}, self._draft.warnings

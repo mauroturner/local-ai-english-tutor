@@ -45,6 +45,7 @@ from .widgets import (
 from .services import Confirm, ask_yes_no
 from .shortcut_binder import ShortcutBinder
 from .snapshot import SessionSnapshot, cleared_message
+from .state_style import status_line
 from .tooltip import Tooltip
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ class TutorWindow(ctk.CTk):
         ctk.set_default_color_theme(theme.COLOR_THEME)
         super().__init__()
         self._session = session
+        self._ptt_label = cfg.ptt_label
         self._settings = settings or UserSettings()
         self._has_settings = on_open_settings is not None
         self._on_open_settings = on_open_settings or (lambda: None)
@@ -104,12 +106,6 @@ class TutorWindow(ctk.CTk):
         self._banner.grid(row=3, column=0, sticky="ew", padx=self._sp.l, pady=(0, self._sp.s))
         self._banner.grid_remove()
         self._build_footer()
-        ctk.CTkLabel(
-            self,
-            text=t("hint.hold", key=cfg.ptt_label),
-            font=theme.FONT_HINT,
-            text_color=theme.MUTED_TEXT,
-        ).grid(row=5, column=0, pady=(0, self._sp.m))
         self._refresh_controls()
 
         if default_device is not None:
@@ -166,7 +162,7 @@ class TutorWindow(ctk.CTk):
     def _build_footer(self) -> None:
         sp = self._sp
         footer = ctk.CTkFrame(self, fg_color="transparent")
-        footer.grid(row=4, column=0, sticky="ew", padx=sp.l, pady=(0, sp.s))
+        footer.grid(row=4, column=0, sticky="ew", padx=sp.l, pady=(0, sp.m))
         footer.grid_columnconfigure(0, weight=1)
         self._meter = LevelMeter(footer)
         self._meter.grid(row=0, column=0, sticky="ew", padx=(0, sp.m))
@@ -199,7 +195,7 @@ class TutorWindow(ctk.CTk):
         self._feedback.handle(event, self._settings)
         if isinstance(event, StateChanged):
             self._chip.set_state(event.state)
-            self._status.set(event.message or event.state.value.capitalize())
+            self._status.set(status_line(event.state, event.message, self._ptt_label))
             self._idle = event.state is SessionState.IDLE
             self._refresh_controls()
         elif isinstance(event, UserSaid):

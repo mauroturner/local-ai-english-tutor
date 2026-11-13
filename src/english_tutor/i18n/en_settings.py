@@ -173,4 +173,13 @@ SETTINGS_STRINGS: dict[str, str] = {
     "is open.",
     "data.cleared_logs": "Deleted {count} conversation log file(s).",
     "data.cleared_mistakes": "Mistake history deleted ({count} mistakes).",
+    # Test connection
+    "button.test": "Test",
+    "connection.testing": "Testing the connection...",
+    "connection.ok": "Connected: Ollama is running and the model {model} is installed.",
+    "connection.model_missing": "Ollama is running, but the model {model} is not installed. "
+    "Download it with: ollama pull {model}",
+    "connection.unreachable": "Cannot reach Ollama at {url}. Start it with: ollama serve",
+    "connection.timeout": "Ollama at {url} did not answer in time. Check that it is running.",
+    "connection.bad_url": "That address is not valid: {detail}",
 }

@@ -13,6 +13,7 @@ from .adapters.json_mistake_store import JsonMistakeStore
 from .adapters.json_settings_store import JsonSettingsStore
 from .adapters.keyboard_ptt import KeyboardPushToTalk
 from .adapters.ollama_chat import OllamaTutorModel
+from .adapters.ollama_check import check_connection
 from .adapters.piper_tts import NullSynthesizer, PiperSynthesizer
 from .adapters.sounddevice_cues import SoundDeviceCuePlayer
 from .adapters.sounddevice_recorder import SoundDeviceRecorder
@@ -131,6 +132,7 @@ def main() -> int:
         on_restart_needed=lambda keys: window_ref[0].show_restart_banner(keys),
         ptt_gate=gate,
         autostart=autostart,
+        check_ollama=check_connection,
         clear_logs=lambda: session.clear_data(clear_logs(conversation_log.clear)),
         clear_mistakes=lambda: session.clear_data(clear_mistakes),
         is_free=lambda: window_ref[0].is_free,

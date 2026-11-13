@@ -129,3 +129,10 @@ def test_chat_timeout_and_http_error_become_llm_unavailable():
         model(FakeSession(post=FakeResponse({}, status=500))).reply([], "hi")
     with pytest.raises(LlmUnavailable, match="request failed"):
         model(FakeSession(post=FakeResponse({"unexpected": 1}))).reply([], "hi")
+
+
+def test_check_still_requires_the_exact_name_or_latest_tag():
+    # The connection test shares the matching rule: no prefix matching, "name" means "name:latest".
+    session = FakeSession(get=FakeResponse({"models": [{"name": "m:2"}, {"name": "mm:latest"}]}))
+    with pytest.raises(LlmUnavailable, match="Model m not found"):
+        OllamaTutorModel("http://x", "m", 10, 0.1, session=session).check()

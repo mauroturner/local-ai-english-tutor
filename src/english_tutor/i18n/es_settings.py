@@ -179,4 +179,15 @@ SETTINGS_STRINGS: dict[str, str] = {
     "de conexión se indican cuando la aplicación esté abierta.",
     "data.cleared_logs": "Se eliminaron {count} archivo(s) de registro de conversación.",
     "data.cleared_mistakes": "Historial de errores eliminado ({count} errores).",
+    # Probar conexión
+    "button.test": "Probar",
+    "connection.testing": "Probando la conexión...",
+    "connection.ok": "Conectado: Ollama está en ejecución y el modelo {model} está instalado.",
+    "connection.model_missing": "Ollama está en ejecución, pero el modelo {model} no está "
+    "instalado. Descárgalo con: ollama pull {model}",
+    "connection.unreachable": "No se puede conectar con Ollama en {url}. Inícialo con: "
+    "ollama serve",
+    "connection.timeout": "Ollama en {url} no respondió a tiempo. Comprueba que esté en "
+    "ejecución.",
+    "connection.bad_url": "Esa dirección no es válida: {detail}",
 }

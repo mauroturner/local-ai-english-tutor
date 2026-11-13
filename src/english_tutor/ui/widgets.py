@@ -201,7 +201,7 @@ class StatusChip(ctk.CTkLabel):
 
 
 class StatusBar(ctk.CTkLabel):
-    """One-line status detail (for example ``Ready: hold V``)."""
+    """One-line status detail (for example the hold instruction or ``Listening...``)."""
 
     def __init__(self, master: Any) -> None:
         super().__init__(
@@ -210,8 +210,8 @@ class StatusBar(ctk.CTkLabel):
         )  # fmt: skip
 
     def set(self, text: str) -> None:
-        """Replace the status text (known session messages are translated)."""
-        self.configure(text=translate_status(text))
+        """Replace the status text (already translated; see ``state_style.status_line``)."""
+        self.configure(text=text)
 
 
 class ControlBar(ctk.CTkFrame):
