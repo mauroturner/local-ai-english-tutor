@@ -26,6 +26,7 @@ _BUTTON_TEXT = {
     "restore_defaults": "button.restore_defaults",
     "export_report": "button.export",
     "export_mistakes": "button.export",
+    "export_anki": "button.export",
     "clear_logs": "button.delete",
     "clear_mistakes": "button.delete",
     "clear_memory": "button.delete",

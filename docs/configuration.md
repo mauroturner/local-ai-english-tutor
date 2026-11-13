@@ -129,6 +129,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Export last report | Saves the last report as Markdown (`session-report-YYYYmmdd-HHMMSS.md`). Disabled until a session has ended |
 | Export mistakes | Saves the whole mistake list as CSV (`mistakes-YYYYmmdd-HHMMSS.csv`): UTF-8 with BOM so Excel opens it correctly, English headers, ISO dates, examples joined with ` \| `, and a last `category` column (empty when unknown) |
 | Delete conversation logs | After confirmation deletes only `session-*.log` in `<data folder>\conversations` |
+| Export for Anki | Saves the mistakes as `anki-mistakes-YYYYmmdd-HHMMSS.csv`, ready for Anki's **File > Import**: semicolon separated, UTF-8, three columns: front (what you said), back (the correction and the rule) and tags (`english-tutor`, the category and the severity). The first lines (`#separator`, `#html`, `#tags column`) tell Anki how to read it; text is HTML-escaped, and a cell that would start a spreadsheet formula gets a leading `'`. Pauses are not included |
 | Delete mistake history | After confirmation empties the mistake history and its practice scores |
 | Delete session memory | After confirmation removes the notes kept for the tutor from every stored session; the session numbers stay |
 

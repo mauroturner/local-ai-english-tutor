@@ -96,6 +96,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.export_report.help": "Guarda el informe de la última sesión como archivo Markdown.",
     "setting.export_mistakes.label": "Exportar errores",
     "setting.export_mistakes.help": "Guarda la lista de errores como archivo CSV.",
+    "setting.export_anki.label": "Exportar para Anki",
+    "setting.export_anki.help": "Guarda tus errores como tarjetas que puedes importar en Anki "
+    "(frente: lo que dijiste, reverso: la corrección y la regla). No incluye las pausas.",
+    "export.anki_title": "Exportar errores para Anki",
     "setting.clear_logs.label": "Eliminar registros de conversación",
     "setting.clear_logs.help": "Elimina de forma permanente todos los archivos de conversación "
     "guardados. Tu historial de errores se conserva.",

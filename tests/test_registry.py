@@ -51,7 +51,7 @@ def test_every_user_setting_has_exactly_one_spec():
 def test_every_other_spec_is_a_known_action():
     assert ACTION_KEYS == frozenset({
         "open_data_folder", "export_report", "export_mistakes", "clear_logs", "clear_mistakes",
-        "clear_memory", "test_connection", "open_logs_folder", "restore_defaults", "autostart",
+        "clear_memory", "export_anki", "test_connection", "open_logs_folder", "restore_defaults", "autostart",
     })  # fmt: skip
     extra = {s.key for s in REGISTRY} - FIELDS
     assert extra == ACTION_KEYS

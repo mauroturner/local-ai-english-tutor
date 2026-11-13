@@ -11,7 +11,10 @@ from typing import Any
 from ...adapters.atomic_io import atomic_write_text
 from ...adapters.folders import validate_folder
 from ...domain.export import (
+    ANKI_ENCODING,
     CSV_ENCODING,
+    anki_csv,
+    anki_filename,
     mistakes_csv,
     mistakes_filename,
     report_filename,
@@ -63,6 +66,7 @@ class StorageActions:
             "open_logs_folder": lambda: self._open(paths.logs_dir),
             "export_report": self._export_report,
             "export_mistakes": self._export_mistakes,
+            "export_anki": self._export_anki,
             "clear_logs": self._clear_logs,
             "clear_mistakes": self._clear_mistakes,
             "clear_memory": self._clear_memory,
@@ -131,6 +135,17 @@ class StorageActions:
         self._export(
             t("export.mistakes_title"), mistakes_filename(now),
             (t("export.type_csv"), ".csv"), mistakes_csv(records), CSV_ENCODING,
+        )  # fmt: skip
+
+    def _export_anki(self) -> None:
+        records = self._services.mistakes()
+        if not records:
+            self._status(t("export.no_mistakes"), True)
+            return
+        now = self._services.clock()
+        self._export(
+            t("export.anki_title"), anki_filename(now),
+            (t("export.type_csv"), ".csv"), anki_csv(records), ANKI_ENCODING,
         )  # fmt: skip
 
     # ------------------------------------------------------------------ deleting

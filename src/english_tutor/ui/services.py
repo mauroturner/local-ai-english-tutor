@@ -20,7 +20,7 @@ Confirm = Callable[..., bool]
 
 ENABLED_ACTIONS = frozenset({
     "open_data_folder", "open_logs_folder", "restore_defaults",
-    "export_report", "export_mistakes", "clear_logs", "clear_mistakes", "clear_memory",
+    "export_report", "export_mistakes", "export_anki", "clear_logs", "clear_mistakes", "clear_memory",
     "autostart",
     "test_connection",
 })  # fmt: skip

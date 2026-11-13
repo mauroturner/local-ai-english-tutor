@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import html
 import io
 from collections.abc import Sequence
 from datetime import datetime
@@ -10,7 +11,7 @@ from datetime import datetime
 from .fillers import filler_line
 from .formatting import category_line, uncertain_line, vocabulary_line
 from .hesitation import explanation
-from .models import Correction, MistakeRecord, SessionReport
+from .models import Correction, MistakeRecord, SessionReport, Severity
 
 CSV_ENCODING = "utf-8-sig"
 """The byte-order mark lets Excel open the file as UTF-8."""
@@ -19,6 +20,15 @@ _CSV_HEADERS = (
     "severity", "original", "corrected", "explanation", "count", "first_seen", "last_seen",
     "practice_attempts", "practice_successes", "examples", "category",
 )  # fmt: skip
+
+
+ANKI_ENCODING = "utf-8"
+"""Anki reads plain UTF-8 text files."""
+
+
+def anki_filename(when: datetime) -> str:
+    """Suggested file name for the Anki export."""
+    return f"anki-mistakes-{when:%Y%m%d-%H%M%S}.csv"
 
 
 def report_filename(when: datetime) -> str:
@@ -112,4 +122,27 @@ def mistakes_csv(records: Sequence[MistakeRecord]) -> str:
             r.practice_attempts, r.practice_successes, _text_cell(" | ".join(r.examples)),
             r.category or "",
         ))  # fmt: skip
+    return out.getvalue()
+
+
+def anki_csv(records: Sequence[MistakeRecord]) -> str:
+    """The mistakes as flashcards Anki can import (File > Import).
+
+    Front is what the learner said, back is the corrected sentence with the rule,
+    and the tags hold the kind of mistake. Long pauses are left out: they are not
+    errors and have no wrong sentence to correct. The ``#`` lines tell Anki the
+    separator, that the fields hold HTML (so they are escaped) and which column
+    holds the tags.
+    """
+    out = io.StringIO(newline="")
+    out.write("#separator:semicolon\r\n#html:true\r\n#tags column:3\r\n")
+    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+    for r in records:
+        if r.severity is Severity.HESITATION:
+            continue
+        back = html.escape(r.corrected)
+        if r.explanation:
+            back += "<br>" + html.escape(r.explanation)
+        tags = " ".join(t for t in ("english-tutor", r.category, r.severity.value) if t)
+        writer.writerow((_text_cell(html.escape(r.original)), _text_cell(back), tags))
     return out.getvalue()

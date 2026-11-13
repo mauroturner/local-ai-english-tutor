@@ -95,6 +95,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.export_report.help": "Save the most recent session report as a Markdown file.",
     "setting.export_mistakes.label": "Export mistakes",
     "setting.export_mistakes.help": "Save the mistake list as a CSV file.",
+    "setting.export_anki.label": "Export for Anki",
+    "setting.export_anki.help": "Saves your mistakes as flashcards you can import into Anki "
+    "(front: what you said, back: the correction and the rule). Pauses are not included.",
+    "export.anki_title": "Export mistakes for Anki",
     "setting.clear_logs.label": "Delete conversation logs",
     "setting.clear_logs.help": "Permanently deletes every saved conversation file. "
     "Your mistake history is kept.",

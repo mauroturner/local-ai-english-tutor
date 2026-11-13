@@ -58,8 +58,8 @@ class SettingSpec:
 
 
 ACTION_KEYS = frozenset({
-    "open_data_folder", "export_report", "export_mistakes", "clear_logs", "clear_mistakes",
-    "clear_memory",
+    "open_data_folder", "export_report", "export_mistakes", "export_anki", "clear_logs",
+    "clear_mistakes", "clear_memory",
     "test_connection", "open_logs_folder", "restore_defaults", "autostart",
 })  # fmt: skip
 
@@ -144,6 +144,7 @@ REGISTRY: tuple[SettingSpec, ...] = (
     _action("open_data_folder", _S, ("explorer", "files", "archivos")),
     _action("export_report", _S, ("save", "download", "markdown", "exportar", "informe")),
     _action("export_mistakes", _S, ("save", "download", "csv", "exportar", "errores")),
+    _action("export_anki", _S, ("save", "download", "flashcards", "cards", "csv", "exportar", "tarjetas")),
     _action("clear_logs", _S, ("delete", "remove", "privacy", "cache", "temp", "borrar",
             "limpiar"), danger=True),
     _action("clear_mistakes", _S, ("delete", "remove", "privacy", "wipe", "borrar", "limpiar"),
