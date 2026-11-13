@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Sequence
 
+from .categories import FLUENCY
 from .models import Correction, Hesitation, Severity, TimedWord
 
 START_PAUSE_S = 3.0
@@ -73,7 +74,7 @@ def as_corrections(items: Iterable[Hesitation]) -> tuple[Correction, ...]:
     correction can be (those are dropped as cosmetic), so keys never collide.
     """
     return tuple(
-        Correction(h.marked, h.phrase, explanation(h), Severity.HESITATION)
+        Correction(h.marked, h.phrase, explanation(h), Severity.HESITATION, FLUENCY)
         for h in items
         if not h.at_start
     )

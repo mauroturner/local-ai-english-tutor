@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from ..domain.categories import count_categories
 from ..domain.corrections import dedupe
 from ..domain.hesitation import last_question
 from ..domain.models import Correction, Hesitation, SessionReport, Severity, Turn
@@ -52,4 +53,7 @@ def make_report(tutor: TutorModel, turns: tuple[Turn, ...]) -> SessionReport:
             logger.warning("Feedback generation failed: %s", exc)
             feedback_error = str(exc)
     pauses, starts = collect_pauses(turns)
-    return SessionReport(len(turns), majors, minors, feedback, feedback_error, pauses, starts)
+    categories = count_categories(c for turn in turns for c in turn.corrections)
+    return SessionReport(
+        len(turns), majors, minors, feedback, feedback_error, pauses, starts, categories
+    )

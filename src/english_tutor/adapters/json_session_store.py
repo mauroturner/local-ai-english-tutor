@@ -108,7 +108,7 @@ class JsonSessionStore:
 
 
 def _to_dict(stats: SessionStats) -> dict[str, Any]:
-    return {
+    data: dict[str, Any] = {
         "started_at": stats.started_at.isoformat(timespec="seconds"),
         "duration_s": round(stats.duration_s, 1),
         "turns": stats.turns,
@@ -119,6 +119,21 @@ def _to_dict(stats: SessionStats) -> dict[str, Any]:
         "pauses": stats.pauses,
         "slow_starts": stats.slow_starts,
     }
+    if stats.categories:  # optional, written only when there is something to say
+        data["categories"] = dict(stats.categories)
+    return data
+
+
+def _parse_categories(entry: Any) -> tuple[tuple[str, int], ...]:
+    """The stored counts; a damaged block is dropped and the session is kept."""
+    raw = entry.get("categories")
+    if not isinstance(raw, dict):
+        return ()
+    try:
+        pairs = [(str(name), int(count)) for name, count in raw.items()]
+    except (TypeError, ValueError):
+        return ()
+    return tuple(sorted((p for p in pairs if p[1] > 0), key=lambda p: (-p[1], p[0])))
 
 
 def _count(entry: Any, key: str) -> int:
@@ -146,4 +161,5 @@ def _parse_entry(entry: Any) -> SessionStats:
         minor=_count(entry, "minor"),
         pauses=_count(entry, "pauses"),
         slow_starts=_count(entry, "slow_starts"),
+        categories=_parse_categories(entry),
     )

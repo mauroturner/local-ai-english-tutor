@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from .categories import category_label
 from .hesitation import explanation
 from .models import Correction, PracticeReply, SessionReport
 
@@ -41,11 +42,19 @@ def pause_lines(report: SessionReport) -> list[str]:
     return lines
 
 
+def category_line(report: SessionReport, limit: int = 3) -> str:
+    """``Most frequent: prepositions (4), verb tense (3)``; empty when nothing was labelled."""
+    top = ", ".join(f"{category_label(c)} ({n})" for c, n in report.categories[:limit])
+    return f"Most frequent: {top}" if top else ""
+
+
 def format_report(report: SessionReport) -> str:
     """Render the end-of-session report as text."""
     lines = [f"SESSION REPORT ({report.turn_count} turns)", ""]
     lines += _format_errors("Major errors", report.major_errors)
     lines += _format_errors("Minor errors", report.minor_errors)
+    if report.categories:
+        lines.append(category_line(report))
     lines += pause_lines(report)
     lines.append("")
     feedback = report.feedback

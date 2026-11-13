@@ -7,6 +7,7 @@ import io
 from collections.abc import Sequence
 from datetime import datetime
 
+from .formatting import category_line
 from .hesitation import explanation
 from .models import Correction, MistakeRecord, SessionReport
 
@@ -15,7 +16,7 @@ CSV_ENCODING = "utf-8-sig"
 
 _CSV_HEADERS = (
     "severity", "original", "corrected", "explanation", "count", "first_seen", "last_seen",
-    "practice_attempts", "practice_successes", "examples",
+    "practice_attempts", "practice_successes", "examples", "category",
 )  # fmt: skip
 
 
@@ -73,6 +74,7 @@ def report_markdown(report: SessionReport, when: datetime) -> str:
         "",
         *_error_lines("Major errors", report.major_errors),
         *_error_lines("Minor errors", report.minor_errors),
+        *([category_line(report), ""] if report.categories else []),
         *_pause_lines(report),
         "## Feedback",
         "",
@@ -104,5 +106,6 @@ def mistakes_csv(records: Sequence[MistakeRecord]) -> str:
             _text_cell(r.explanation), r.count,
             r.first_seen.isoformat(timespec="seconds"), r.last_seen.isoformat(timespec="seconds"),
             r.practice_attempts, r.practice_successes, _text_cell(" | ".join(r.examples)),
+            r.category or "",
         ))  # fmt: skip
     return out.getvalue()

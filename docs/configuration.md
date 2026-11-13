@@ -121,7 +121,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | --- | --- |
 | Open data folder | Opens the folder in Explorer (created if missing) |
 | Export last report | Saves the last report as Markdown (`session-report-YYYYmmdd-HHMMSS.md`). Disabled until a session has ended |
-| Export mistakes | Saves the whole mistake list as CSV (`mistakes-YYYYmmdd-HHMMSS.csv`): UTF-8 with BOM so Excel opens it correctly, English headers, ISO dates, examples joined with ` \| ` |
+| Export mistakes | Saves the whole mistake list as CSV (`mistakes-YYYYmmdd-HHMMSS.csv`): UTF-8 with BOM so Excel opens it correctly, English headers, ISO dates, examples joined with ` \| `, and a last `category` column (empty when unknown) |
 | Delete conversation logs | After confirmation deletes only `session-*.log` in `<data folder>\conversations` |
 | Delete mistake history | After confirmation empties the mistake history and its practice scores |
 
@@ -266,6 +266,7 @@ Multi-line entries (the report) continue on following lines indented by four spa
 
 - **Grouping.** Corrections are grouped by the normalised `original => corrected` pair (lower-case, punctuation removed except apostrophes). Repeating a pair increments `count`, updates `last_seen`, keeps `first_seen`, keeps the latest non-empty explanation, and stores up to the last 3 distinct example sentences. Severity becomes `major` if any occurrence was major. Long pauses are stored the same way with `"severity": "hesitation"` (shown as `PAUSE`); their `original` holds the words with `…` where the pause was and `corrected` the same words without it. An older version of the app skips such entries when it reads the file, and drops them the next time it saves.
 - **Optional fields.** An entry may also carry `"category"` (the kind of mistake, a short text) and `"review": {"due": "2026-11-14", "step": 2}` (when it is next due for review and its position in the review ladder). They are written only when set and are read leniently: a damaged `review` is dropped and the mistake is kept. They live inside version 1; an older build ignores them and drops them the next time it saves.
+- **Category.** `"category"` holds the kind of mistake (`verb_tense`, `prepositions`, ... or `fluency` for pauses); see [tutor-behavior.md](tutor-behavior.md#correction-policy).
 - **What is counted.** Every correction that survives the code guards, in normal conversation turns only (major and minor, not only the live one). Practice turns add only to `practice.attempts` / `practice.successes` (a `correct` result adds an attempt and a success, `incorrect` adds an attempt, `not_used` adds nothing) and do not change `last_seen`.
 - **Saving.** After every change the file is written to `mistakes.json.tmp` in the same folder, flushed, and swapped in with `os.replace`, so a failed save never destroys the previous file.
 - **Corrupt or unsupported file.** If the file is not valid JSON, has the wrong structure or a `version` other than 1, it is renamed to `mistakes.json.corrupt-YYYYmmdd-HHMMSS`, the app shows `Mistake history was unreadable; saved a copy as <name> and started a new one`, and starts with an empty history. If the rename itself fails, the store becomes read-only for that run (nothing is overwritten) and a message says so. Single bad entries inside a valid file are skipped with a console warning.
@@ -282,13 +283,14 @@ Multi-line entries (the report) continue on following lines indented by four spa
     {
       "started_at": "2026-11-13T10:00:00", "duration_s": 300.0,
       "turns": 5, "words": 80, "speech_s": 40.0,
-      "major": 2, "minor": 3, "pauses": 1, "slow_starts": 1
+      "major": 2, "minor": 3, "pauses": 1, "slow_starts": 1,
+      "categories": {"prepositions": 2, "verb_tense": 1}
     }
   ]
 }
 ```
 
-- **Numbers.** `duration_s` runs from the first answer to the end of the session; `speech_s` is the recorded speech (used for words per minute); `major` / `minor` count every correction made, repeats included; `pauses` and `slow_starts` count long pauses inside sentences and before the first word. Quitting without pressing **End session** stores nothing for that run.
+- **Numbers.** `duration_s` runs from the first answer to the end of the session; `speech_s` is the recorded speech (used for words per minute); `major` / `minor` count every correction made, repeats included; `pauses` and `slow_starts` count long pauses inside sentences and before the first word; `categories` (optional) counts the corrections per kind of mistake, leaving out `other`. Quitting without pressing **End session** stores nothing for that run.
 - **Saving, corrupt file, failures.** Same rules as the mistake history: atomic swap of `sessions.json.tmp`, a bad file is renamed to `sessions.json.corrupt-YYYYmmdd-HHMMSS` and a new one starts, bad entries are skipped, and a failed save shows `Session statistics not saved: ...` once and never blocks the report.
 
 ### Wiping the data

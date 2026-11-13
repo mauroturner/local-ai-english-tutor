@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
+from .categories import count_categories
 from .models import Severity, Turn
 
 _WORD = re.compile(r"[^\W_]+(?:['’][^\W_]+)*")
@@ -30,6 +31,7 @@ class SessionStats:
     minor: int
     pauses: int  # long pauses inside sentences
     slow_starts: int  # long waits before the first word
+    categories: tuple[tuple[str, int], ...] = ()  # mistakes per kind, most frequent first
 
     @property
     def words_per_minute(self) -> float:
@@ -51,4 +53,5 @@ def build_stats(turns: Sequence[Turn], started_at: datetime, ended_at: datetime)
         minor=sum(1 for c in corrections if c.severity is Severity.MINOR),
         pauses=sum(1 for h in hesitations if not h.at_start),
         slow_starts=sum(1 for h in hesitations if h.at_start),
+        categories=count_categories(corrections),
     )

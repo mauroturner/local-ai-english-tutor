@@ -43,7 +43,9 @@ The one known lever that encourages disfluent or verbatim output is an `initial_
 
 ## Correction policy
 
-The tutor model receives your raw text and must answer with JSON containing a `reply` and a list of `errors`, each with `original`, `corrected`, `explanation` and `severity` (`major` or `minor`). The schema is sent to Ollama as the structured-output `format`.
+The tutor model receives your raw text and must answer with JSON containing a `reply` and a list of `errors`, each with `original`, `corrected`, `explanation`, `severity` (`major` or `minor`) and `category`. The schema is sent to Ollama as the structured-output `format`.
+
+**Categories.** `category` is one of `verb_tense`, `agreement`, `articles`, `prepositions`, `word_order`, `word_choice`, `false_friend`, `plural`, `pronoun`, `other` (an enum in the schema). The parser lowercases the value, turns spaces and hyphens into underscores, and maps anything unknown or missing to `other`. Long pauses get `fluency`, assigned by the app, never by the model. The category is stored with the mistake (a later correction with a category replaces an older one), counted in the session statistics, shown in the report as `Most frequent: prepositions (4), verb tense (3)` (the top three; `other` and `fluency` are not listed) and used by the category filter of the Mistakes tab. It is a label from a small model: it is not checked by the code.
 
 | Severity | Meaning (from the prompt) | What happens |
 | --- | --- | --- |
@@ -191,15 +193,15 @@ ERRORS ("errors"):
 - "original": copy the exact words from the learner's message. "corrected": the same phrase, fixed,
   as short as possible. "explanation": one short, simple sentence.
 
-Answer ONLY with JSON: {"reply": "...", "errors": [{"original": "...", "corrected": "...", "explanation": "...", "severity": "major" or "minor"}]}
+Answer ONLY with JSON: {"reply": "...", "errors": [{"original": "...", "corrected": "...", "explanation": "...", "severity": "major" or "minor", "category": "..."}]}
 
 Examples:
 Learner: Hi. Could you hear me?
 {"reply": "Yes, I can hear you perfectly! How is your day going so far?", "errors": []}
 Learner: yesterday I go to the park with my sister
-{"reply": "That sounds lovely! What did you two do at the park?", "errors": [{"original": "I go", "corrected": "I went", "explanation": "Use the past tense for yesterday.", "severity": "major"}]}
+{"reply": "That sounds lovely! What did you two do at the park?", "errors": [{"original": "I go", "corrected": "I went", "explanation": "Use the past tense for yesterday.", "severity": "major", "category": "verb_tense"}]}
 Learner: I live in the Buenos Aires since five years
-{"reply": "Five years is a long time! What do you like most about living there?", "errors": [{"original": "since five years", "corrected": "for five years", "explanation": "Use 'for' with a length of time.", "severity": "major"}, {"original": "the Buenos Aires", "corrected": "Buenos Aires", "explanation": "City names don't take 'the'.", "severity": "minor"}]}
+{"reply": "Five years is a long time! What do you like most about living there?", "errors": [{"original": "since five years", "corrected": "for five years", "explanation": "Use 'for' with a length of time.", "severity": "major", "category": "prepositions"}, {"original": "the Buenos Aires", "corrected": "Buenos Aires", "explanation": "City names don't take 'the'.", "severity": "minor", "category": "articles"}]}
 ```
 
 Message order for each turn: this system prompt, then the stored history (up to `TUTOR_HISTORY_EXCHANGES` pairs), then your raw text as the user message.
@@ -299,7 +301,7 @@ Message order for a practice call: this system prompt, the drill history (last 4
 
 ### Output schemas
 
-`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]`). `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings). `PRACTICE_SCHEMA`: object with required `target_used` (one of `correct`, `incorrect`, `not_used`), `feedback` and `next_prompt` (strings).
+`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]` and `category` in the ten model categories). `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings). `PRACTICE_SCHEMA`: object with required `target_used` (one of `correct`, `incorrect`, `not_used`), `feedback` and `next_prompt` (strings).
 
 If the model still returns something unparseable, the raw text is used as the reply with no corrections (or as the summary, for the report). If even that is empty, the app uses `Sorry, I lost my train of thought. Could you say that again?` or `I could not write the feedback this time.` (for practice: `Let's keep going. Tell me about your day.`)
 

@@ -36,6 +36,7 @@ class Correction:
     corrected: str
     explanation: str
     severity: Severity
+    category: str | None = None  # kind of mistake (see domain.categories)
 
 
 @dataclass(frozen=True)
@@ -133,6 +134,7 @@ class SessionReport:
     feedback_error: str | None = None
     pauses: tuple[Hesitation, ...] = ()  # inside sentences
     slow_starts: tuple[tuple[str, float], ...] = ()  # (tutor question, seconds to start)
+    categories: tuple[tuple[str, int], ...] = ()  # most frequent kinds of mistake, with counts
 
 
 class PracticeOutcome(str, Enum):

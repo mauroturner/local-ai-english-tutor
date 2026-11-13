@@ -38,7 +38,8 @@ def add_corrections(
         if old is None:
             result[key] = MistakeRecord(
                 key, item.original, item.corrected, item.explanation, item.severity,
-                1, now, now, (sentence,), review=first_review(now.date()),
+                1, now, now, (sentence,), category=item.category,
+                review=first_review(now.date()),
             )
             continue
         severity = Severity.MAJOR if Severity.MAJOR in (old.severity, item.severity) else old.severity
@@ -52,6 +53,7 @@ def add_corrections(
             count=old.count + 1,
             last_seen=now,
             examples=examples[-MAX_EXAMPLES:],
+            category=item.category or old.category,
             review=first_review(now.date()),
         )
     return result

@@ -8,6 +8,7 @@ from typing import Any
 
 import customtkinter as ctk
 
+from ..domain.categories import filter_by_category, present_categories
 from ..domain.models import MistakeRecord, Severity
 from ..domain.review_schedule import due_first, due_items
 from ..i18n import format_date, t
@@ -44,6 +45,9 @@ class MistakesView(ctk.CTkScrollableFrame):
         self._enabled = False
         self._buttons: list[ctk.CTkButton] = []
         self._due_keys: frozenset[str] = frozenset()
+        self._records: Sequence[MistakeRecord] = ()
+        self._today = date.today()
+        self._category: str | None = None  # the category filter; None shows everything
 
     def show(self, records: Sequence[MistakeRecord], today: date | None = None) -> None:
         """Rebuild the list from ``records`` (already ranked); due ones go first."""
@@ -54,12 +58,17 @@ class MistakesView(ctk.CTkScrollableFrame):
             ctk.CTkLabel(self, text=t("mistakes.empty"), text_color=theme.MUTED_TEXT).pack(pady=20)
             return
         today = today or date.today()
+        self._records, self._today = records, today
+        categories = present_categories(records)
+        if self._category not in categories:
+            self._category = None
+        shown = filter_by_category(due_first(records, today), self._category)
         self._due_keys = frozenset(r.key for r in due_items(records, today))
-        self._add_header(len(self._due_keys))
-        for record in due_first(records, today)[:MAX_ROWS]:
+        self._add_header(len(self._due_keys), categories)
+        for record in shown[:MAX_ROWS]:
             self._add_row(record)
-        if len(records) > MAX_ROWS:
-            note = t("mistakes.truncated", shown=MAX_ROWS, total=len(records))
+        if len(shown) > MAX_ROWS:
+            note = t("mistakes.truncated", shown=MAX_ROWS, total=len(shown))
             ctk.CTkLabel(self, text=note, text_color=theme.MUTED_TEXT).pack(pady=6)
 
     def set_enabled(self, enabled: bool) -> None:
@@ -68,7 +77,12 @@ class MistakesView(ctk.CTkScrollableFrame):
         for button in self._buttons:
             button.configure(state="normal" if enabled else "disabled")
 
-    def _add_header(self, due: int) -> None:
+    def _pick_category(self, label: str) -> None:
+        by_label = {t(f"category.{c}"): c for c in present_categories(self._records)}
+        self._category = by_label.get(label)  # the "all" label maps to None
+        self.show(self._records, self._today)
+
+    def _add_header(self, due: int, categories: Sequence[str]) -> None:
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", padx=6, pady=(4, 2))
         header.grid_columnconfigure(0, weight=1)
@@ -85,6 +99,15 @@ class MistakesView(ctk.CTkScrollableFrame):
             )
             button.grid(row=0, column=1, sticky="e")
             self._buttons.append(button)
+        if categories:
+            everything = t("mistakes.all_categories")
+            picker = ctk.CTkOptionMenu(
+                header,
+                values=[everything, *(t(f"category.{c}") for c in categories)],
+                command=self._pick_category,
+            )
+            picker.set(everything if self._category is None else t(f"category.{self._category}"))
+            picker.grid(row=1, column=0, columnspan=2, sticky="w", padx=4, pady=(4, 0))
 
     def _add_row(self, record: MistakeRecord) -> None:
         row = ctk.CTkFrame(self, fg_color=theme.USER_BUBBLE, corner_radius=8)

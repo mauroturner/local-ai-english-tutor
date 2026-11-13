@@ -56,3 +56,13 @@ def test_words_per_minute_is_zero_without_speech_time():
 
 def test_a_clock_going_backwards_gives_zero_duration():
     assert build_stats([turn()], START, START - timedelta(seconds=5)).duration_s == 0.0
+
+
+def test_stats_count_mistakes_per_category():
+    from english_tutor.domain.models import Correction, Severity
+
+    def fix(category):
+        return Correction("a", "b", "x", Severity.MAJOR, category)
+
+    turns = [turn(corrections=[fix("articles"), fix("articles"), fix("other"), fix(None)])]
+    assert build_stats(turns, START, START).categories == (("articles", 2),)

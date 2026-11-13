@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from .categories import MODEL_CATEGORIES
 from .models import Turn
 
 MAX_REPORT_TURNS = 40
@@ -15,8 +16,9 @@ _ERR = {
         "corrected": {"type": "string"},
         "explanation": {"type": "string"},
         "severity": {"type": "string", "enum": ["major", "minor"]},
+        "category": {"type": "string", "enum": list(MODEL_CATEGORIES)},
     },
-    "required": ["original", "corrected", "explanation", "severity"],
+    "required": ["original", "corrected", "explanation", "severity", "category"],
 }
 
 TURN_SCHEMA = {
@@ -59,16 +61,19 @@ ERRORS ("errors"):
 - If you are not sure, it is NOT an error. Most messages have no errors: return an empty list.
 - "original": copy the exact words from the learner's message. "corrected": the same phrase, fixed,
   as short as possible. "explanation": one short, simple sentence.
+- "category": the kind of mistake, exactly one of: verb_tense, agreement, articles, prepositions,
+  word_order, word_choice, false_friend (a Spanish word or structure used in English), plural,
+  pronoun, other.
 
-Answer ONLY with JSON: {"reply": "...", "errors": [{"original": "...", "corrected": "...", "explanation": "...", "severity": "major" or "minor"}]}
+Answer ONLY with JSON: {"reply": "...", "errors": [{"original": "...", "corrected": "...", "explanation": "...", "severity": "major" or "minor", "category": "..."}]}
 
 Examples:
 Learner: Hi. Could you hear me?
 {"reply": "Yes, I can hear you perfectly! How is your day going so far?", "errors": []}
 Learner: yesterday I go to the park with my sister
-{"reply": "That sounds lovely! What did you two do at the park?", "errors": [{"original": "I go", "corrected": "I went", "explanation": "Use the past tense for yesterday.", "severity": "major"}]}
+{"reply": "That sounds lovely! What did you two do at the park?", "errors": [{"original": "I go", "corrected": "I went", "explanation": "Use the past tense for yesterday.", "severity": "major", "category": "verb_tense"}]}
 Learner: I live in the Buenos Aires since five years
-{"reply": "Five years is a long time! What do you like most about living there?", "errors": [{"original": "since five years", "corrected": "for five years", "explanation": "Use 'for' with a length of time.", "severity": "major"}, {"original": "the Buenos Aires", "corrected": "Buenos Aires", "explanation": "City names don't take 'the'.", "severity": "minor"}]}
+{"reply": "Five years is a long time! What do you like most about living there?", "errors": [{"original": "since five years", "corrected": "for five years", "explanation": "Use 'for' with a length of time.", "severity": "major", "category": "prepositions"}, {"original": "the Buenos Aires", "corrected": "Buenos Aires", "explanation": "City names don't take 'the'.", "severity": "minor", "category": "articles"}]}
 """
 
 REPORT_SYSTEM_PROMPT = """\

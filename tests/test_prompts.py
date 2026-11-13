@@ -16,8 +16,17 @@ from english_tutor.domain.prompts import (
 def test_turn_schema_required_fields_and_severity_enum():
     assert TURN_SCHEMA["required"] == ["reply", "errors"]
     item = TURN_SCHEMA["properties"]["errors"]["items"]
-    assert item["required"] == ["original", "corrected", "explanation", "severity"]
+    assert item["required"] == ["original", "corrected", "explanation", "severity", "category"]
     assert item["properties"]["severity"]["enum"] == ["major", "minor"]
+
+
+def test_turn_schema_offers_every_model_category_and_never_fluency():
+    from english_tutor.domain.categories import MODEL_CATEGORIES
+
+    item = TURN_SCHEMA["properties"]["errors"]["items"]
+    assert item["properties"]["category"]["enum"] == list(MODEL_CATEGORIES)
+    assert "fluency" not in item["properties"]["category"]["enum"]
+    assert all(name in TURN_SYSTEM_PROMPT for name in MODEL_CATEGORIES)
 
 
 def test_report_schema_required_fields():

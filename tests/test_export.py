@@ -76,12 +76,26 @@ def test_csv_has_english_headers_and_iso_dates():
     rows = parse(mistakes_csv([record()]))
     assert rows[0] == [
         "severity", "original", "corrected", "explanation", "count", "first_seen", "last_seen",
-        "practice_attempts", "practice_successes", "examples",
+        "practice_attempts", "practice_successes", "examples", "category",
     ]
     assert rows[1] == [
         "major", "I go", "I went", "Past tense.", "3", "2026-11-01T09:00:00",
-        "2026-11-12T08:30:05", "4", "2", "I go home",
+        "2026-11-12T08:30:05", "4", "2", "I go home", "",
     ]
+
+
+def test_csv_ends_with_the_category_when_known():
+    rows = parse(mistakes_csv([record(category="verb_tense")]))
+    assert rows[1][-1] == "verb_tense"
+    assert rows[1][:10] == parse(mistakes_csv([record()]))[1][:10]  # earlier columns unchanged
+
+
+def test_markdown_report_lists_the_most_frequent_categories():
+    report = SessionReport(
+        2, (), (), None, categories=(("prepositions", 4), ("verb_tense", 3))
+    )
+    assert "Most frequent: prepositions (4), verb tense (3)" in report_markdown(report, WHEN)
+    assert "Most frequent" not in report_markdown(SessionReport(2, (), (), None), WHEN)
 
 
 def test_csv_quotes_commas_quotes_and_newlines_and_round_trips():

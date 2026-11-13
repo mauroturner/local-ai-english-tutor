@@ -6,6 +6,7 @@ import json
 import logging
 from typing import Any
 
+from ..domain.categories import parse_category
 from ..domain.models import (
     Correction,
     PracticeOutcome,
@@ -78,7 +79,7 @@ def _parse_correction(item: Any) -> Correction | None:
         return None
     if severity not in _MODEL_SEVERITIES or not original or not corrected:
         return None
-    return Correction(original, corrected, explanation, severity)
+    return Correction(original, corrected, explanation, severity, parse_category(item.get("category")))
 
 
 def _string_list(value: Any) -> tuple[str, ...]:

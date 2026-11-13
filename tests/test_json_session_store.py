@@ -133,3 +133,25 @@ def test_a_read_error_never_overwrites_the_history(tmp_path, monkeypatch):
     monkeypatch.undo()
     assert path.read_text(encoding="utf-8") == before
     assert list((tmp_path / "data").glob("*.corrupt-*")) == []
+
+
+def test_categories_round_trip_and_are_optional(tmp_path):
+    store = make(tmp_path)
+    with_cats = stats(categories=(("articles", 3), ("verb_tense", 1)))
+    store.append(with_cats)
+    store.append(stats())
+    data = json.loads((tmp_path / "data" / "sessions.json").read_text(encoding="utf-8"))
+    assert data["sessions"][0]["categories"] == {"articles": 3, "verb_tense": 1}
+    assert "categories" not in data["sessions"][1]
+    assert make(tmp_path).load() == [with_cats, stats()]
+
+
+@pytest.mark.parametrize("bad", ["x", [1], {"articles": "many"}, {"articles": None}])
+def test_damaged_categories_are_dropped_but_the_session_is_kept(tmp_path, bad):
+    store = make(tmp_path)
+    store.append(stats())
+    path = tmp_path / "data" / "sessions.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["sessions"][0]["categories"] = bad
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert make(tmp_path).load() == [stats()]
