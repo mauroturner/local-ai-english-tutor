@@ -89,10 +89,12 @@ Every correction the tutor finds (major and minor) is added to a persistent list
 
 Long pauses inside a sentence (1.2 s or more) are added too, as `PAUSE` items such as `"how's … everything"`. They are not errors, only phrases worth practising until you can say them in one go; the session report also lists them, plus answers you took 3 s or more to start. Details: [docs/tutor-behavior.md](docs/tutor-behavior.md#long-pauses).
 
-1. Open the **Mistakes** tab. Rows are sorted by frequency (then most recent) and show severity, the pair, how many times it occurred, the last date and your practice score (`practice successes/attempts`). Up to 50 rows are shown.
+1. Open the **Mistakes** tab. Items **due for review today** come first with a `DUE` badge (see below), then rows are sorted by frequency (then most recent). Each row shows severity, the pair, how many times it occurred, the last date and your practice score (`practice successes/attempts`). Up to 50 rows are shown.
 2. Click **Practice** on a row (enabled only when the app is idle). The app switches to the **Chat** tab, a banner `Practicing: "..." -> "..."` appears, and Alex introduces the drill and asks a question.
 3. Answer by holding the push-to-talk key. For each answer the coach judges **only the target structure**: `correct`, `incorrect` (you get the corrected sentence) or `not_used` (a reminder), then asks the next question.
 4. Click **Stop practice** to return to the normal conversation.
+
+**Spaced repetition.** Each item has a review date. A new mistake is due the next day; every `correct` practice answer moves the next review further away (1, 3, 7, 14, then 30 days), an `incorrect` answer or making the mistake again starts over at 1 day, and `not_used` changes nothing. The top of the tab says how many items are due today, and **Review due items** starts a drill on the next one. Items stored before this feature count as due until you practise them.
 
 Practice turns do not run the general correction pipeline: other mistakes in your answer are ignored, nothing is added to the session report, and the normal chat memory is untouched. Only `correct` and `incorrect` results change the practice score.
 

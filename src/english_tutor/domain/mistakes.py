@@ -8,6 +8,7 @@ from datetime import datetime
 
 from .corrections import normalize
 from .models import Correction, MistakeRecord, PracticeOutcome, Severity
+from .review_schedule import first_review, schedule
 
 MAX_EXAMPLES = 3
 
@@ -27,7 +28,8 @@ def add_corrections(
 
     A repeated mistake keeps ``first_seen``, takes the latest display text and
     non-empty explanation, never loses a MAJOR severity, and remembers the
-    raw sentence (the last ``MAX_EXAMPLES`` distinct ones).
+    raw sentence (the last ``MAX_EXAMPLES`` distinct ones). Making a mistake
+    again starts its review schedule over (see ``review_schedule``).
     """
     result = dict(records)
     for item in corrections:
@@ -36,7 +38,7 @@ def add_corrections(
         if old is None:
             result[key] = MistakeRecord(
                 key, item.original, item.corrected, item.explanation, item.severity,
-                1, now, now, (sentence,),
+                1, now, now, (sentence,), review=first_review(now.date()),
             )
             continue
         severity = Severity.MAJOR if Severity.MAJOR in (old.severity, item.severity) else old.severity
@@ -50,6 +52,7 @@ def add_corrections(
             count=old.count + 1,
             last_seen=now,
             examples=examples[-MAX_EXAMPLES:],
+            review=first_review(now.date()),
         )
     return result
 
@@ -63,8 +66,8 @@ def add_practice(
     """Return a copy of ``records`` with one practice attempt recorded.
 
     ``NOT_USED`` is not an attempt. Practising does not change ``last_seen``
-    (that date means "last made this mistake in conversation"); ``now`` is
-    accepted so callers pass the same clock as for ``add_corrections``.
+    (that date means "last made this mistake in conversation"); ``now`` sets
+    the day the review schedule moves from.
     """
     result = dict(records)
     old = result.get(key)
@@ -75,6 +78,7 @@ def add_practice(
         old,
         practice_attempts=old.practice_attempts + 1,
         practice_successes=old.practice_successes + won,
+        review=schedule(old.review, outcome, now.date()),
     )
     return result
 

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from datetime import date
 from typing import Any
 
 import customtkinter as ctk
 
 from ..domain.models import MistakeRecord, Severity
+from ..domain.review_schedule import due_first, due_items
 from ..i18n import format_date, t
 from . import theme
 
@@ -25,24 +27,36 @@ class MistakesView(ctk.CTkScrollableFrame):
     """Shows the most frequent mistakes, each with a Practice button.
 
     It only renders what ``show`` receives and reports clicks through
-    ``on_practice(key)``; it never touches the session.
+    ``on_practice(key)`` and ``on_review_due()``; it never touches the session.
+    Mistakes due for review today come first and carry a badge.
     """
 
-    def __init__(self, master: Any, on_practice: Callable[[str], None], **kwargs: Any) -> None:
+    def __init__(
+        self,
+        master: Any,
+        on_practice: Callable[[str], None],
+        on_review_due: Callable[[], None] = lambda: None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(master, fg_color=theme.CHAT_BG, **kwargs)
         self._on_practice = on_practice
+        self._on_review_due = on_review_due
         self._enabled = False
         self._buttons: list[ctk.CTkButton] = []
+        self._due_keys: frozenset[str] = frozenset()
 
-    def show(self, records: Sequence[MistakeRecord]) -> None:
-        """Rebuild the list from ``records`` (already ranked)."""
+    def show(self, records: Sequence[MistakeRecord], today: date | None = None) -> None:
+        """Rebuild the list from ``records`` (already ranked); due ones go first."""
         for child in self.winfo_children():
             child.destroy()
         self._buttons = []
         if not records:
             ctk.CTkLabel(self, text=t("mistakes.empty"), text_color=theme.MUTED_TEXT).pack(pady=20)
             return
-        for record in records[:MAX_ROWS]:
+        today = today or date.today()
+        self._due_keys = frozenset(r.key for r in due_items(records, today))
+        self._add_header(len(self._due_keys))
+        for record in due_first(records, today)[:MAX_ROWS]:
             self._add_row(record)
         if len(records) > MAX_ROWS:
             note = t("mistakes.truncated", shown=MAX_ROWS, total=len(records))
@@ -53,6 +67,24 @@ class MistakesView(ctk.CTkScrollableFrame):
         self._enabled = enabled
         for button in self._buttons:
             button.configure(state="normal" if enabled else "disabled")
+
+    def _add_header(self, due: int) -> None:
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", padx=6, pady=(4, 2))
+        header.grid_columnconfigure(0, weight=1)
+        text = t("mistakes.due_count", count=due) if due else t("mistakes.none_due")
+        ctk.CTkLabel(header, text=text, text_color=theme.MUTED_TEXT, font=theme.FONT_BODY).grid(
+            row=0, column=0, sticky="w", padx=4
+        )
+        if due:
+            button = ctk.CTkButton(
+                header,
+                text=t("button.review_due"),
+                state="normal" if self._enabled else "disabled",
+                command=self._on_review_due,
+            )
+            button.grid(row=0, column=1, sticky="e")
+            self._buttons.append(button)
 
     def _add_row(self, record: MistakeRecord) -> None:
         row = ctk.CTkFrame(self, fg_color=theme.USER_BUBBLE, corner_radius=8)
@@ -74,6 +106,10 @@ class MistakesView(ctk.CTkScrollableFrame):
             wraplength=theme.BUBBLE_WRAP - 120,
             justify="left",
         ).grid(row=0, column=1, padx=4, pady=(8, 2), sticky="w")
+        if record.key in self._due_keys:
+            ctk.CTkLabel(
+                row, text=t("mistakes.due_badge"), text_color=theme.NOTICE_TEXT, font=theme.FONT_HINT
+            ).grid(row=1, column=0, padx=8, pady=(0, 8), sticky="w")
         stats = t(
             "mistakes.stats",
             count=record.count,

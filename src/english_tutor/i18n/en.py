@@ -53,6 +53,10 @@ STRINGS: dict[str, str] = {
     "practice.banner": 'Practicing: "{original}" -> "{corrected}"',
     # Mistakes tab
     "mistakes.empty": "No mistakes yet. Talk with Alex and they will appear here.",
+    "mistakes.due_count": "{count} to review today",
+    "mistakes.none_due": "Nothing to review today.",
+    "mistakes.due_badge": "DUE",
+    "button.review_due": "Review due items",
     "mistakes.truncated": "Showing the {shown} most frequent of {total} mistakes.",
     "mistakes.stats": "x{count}   last seen {date}   practice {successes}/{attempts}",
     "severity.major": "MAJOR",

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import queue
 from collections.abc import Callable, Sequence
+from datetime import date
 from typing import Any
 
 import customtkinter as ctk
@@ -26,6 +27,7 @@ from ..application.session import ConversationSession
 from ..audio.devices import InputDevice
 from ..config import AppConfig
 from ..domain.models import SessionState
+from ..domain.review_schedule import next_due
 from ..i18n import t
 from ..ports import CuePlayer, Notifier
 from ..settings.model import UserSettings
@@ -88,6 +90,7 @@ class TutorWindow(ctk.CTk):
         self._device_by_name = {d.name: d.index for d in devices}
         self._idle = False
         self._practicing = False
+        self._last_practiced: str | None = None  # so "review due" moves on to another item
 
         self.title(t("app.title"))
         self.geometry(f"{DEFAULT_SIZE[0]}x{DEFAULT_SIZE[1]}")
@@ -156,7 +159,9 @@ class TutorWindow(ctk.CTk):
         mistakes_tab = self._tabs.add(self._mistakes_tab_name)
         self._chat = ChatView(chat_tab, empty_text=t("chat.empty", key=cfg.ptt_label))
         self._chat.pack(fill="both", expand=True)
-        self._mistakes = MistakesView(mistakes_tab, on_practice=self._on_practice)
+        self._mistakes = MistakesView(
+            mistakes_tab, on_practice=self._on_practice, on_review_due=self._on_review_due
+        )
         self._mistakes.pack(fill="both", expand=True)
 
     def _build_footer(self) -> None:
@@ -251,8 +256,15 @@ class TutorWindow(ctk.CTk):
         self._session.set_input_device(index)
 
     def _on_practice(self, key: str) -> None:
+        self._last_practiced = key
         self._tabs.set(self._chat_tab_name)
         self._session.start_practice(key)
+
+    def _on_review_due(self) -> None:
+        """Practise the next mistake due today, after the one practised last."""
+        target = next_due(self.snapshot.mistakes, date.today(), self._last_practiced)
+        if target is not None:
+            self._on_practice(target.key)
 
     # ------------------------------------------------- settings, restart, shortcuts
     def apply_settings(self, settings: UserSettings) -> None:
