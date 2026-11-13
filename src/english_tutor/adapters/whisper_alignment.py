@@ -37,6 +37,14 @@ def speech_chunks(audio_16k: np.ndarray) -> list[tuple[int, int]]:
     return [(int(c["start"]), int(c["end"])) for c in get_speech_timestamps(audio_16k, options)]
 
 
+def _probability(word: Any) -> float | None:
+    """The recogniser's confidence in an aligned word, when it reports one."""
+    try:
+        return float(word["probability"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _force_align(model: Any, audio_16k: np.ndarray, text: str) -> tuple[TimedWord, ...]:
     """Times of each word of ``text`` within ``audio_16k`` (at most 30 s)."""
     from faster_whisper.audio import pad_or_trim
@@ -51,7 +59,10 @@ def _force_align(model: Any, audio_16k: np.ndarray, text: str) -> tuple[TimedWor
     )
     tokens = tokenizer.encode(" " + text)
     (aligned,) = model.find_alignment(tokenizer, [tokens], encoder_output, num_frames)
-    return tuple(TimedWord(str(w["word"]), float(w["start"]), float(w["end"])) for w in aligned)
+    return tuple(
+        TimedWord(str(w["word"]), float(w["start"]), float(w["end"]), _probability(w))
+        for w in aligned
+    )
 
 
 def align_words(model: Any, audio_16k: np.ndarray, text: str) -> tuple[TimedWord, ...]:

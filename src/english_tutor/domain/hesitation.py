@@ -56,6 +56,32 @@ def find_hesitations(
     return tuple(found)
 
 
+LOW_CONFIDENCE = 0.35
+"""Words the recogniser was less sure of than this are listed as pronunciation hints."""
+MIN_HINT_LETTERS = 3
+"""Shorter words (a, to, of) are often low-confidence for no reason worth reporting."""
+
+
+def low_confidence(
+    words: Sequence[TimedWord], threshold: float = LOW_CONFIDENCE
+) -> tuple[str, ...]:
+    """The distinct words (lower case, in order) the recogniser was unsure about.
+
+    This is a hint, not a mistake: the cause can be pronunciation, but also noise
+    or the microphone, so callers must word it as "the recogniser was unsure".
+    """
+    found: dict[str, None] = {}
+    for item in words:
+        word = _clean(item.text).lower()
+        if (
+            item.probability is not None
+            and item.probability < threshold
+            and len(word) >= MIN_HINT_LETTERS
+        ):
+            found.setdefault(word)
+    return tuple(found)
+
+
 def explanation(item: Hesitation) -> str:
     """One English sentence saying where the pause was, as stored in the history."""
     if item.at_start:
@@ -128,7 +154,7 @@ def restore_times(
         shift = spans[index][0] - low
         start = min(max(word.start_s, low), high) + shift
         end = max(min(word.end_s, high), low) + shift
-        restored.append(TimedWord(word.text, start, max(start, end)))
+        restored.append(TimedWord(word.text, start, max(start, end), word.probability))
     return tuple(restored)
 
 

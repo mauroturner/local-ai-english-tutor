@@ -58,6 +58,8 @@ def make_report(
     pauses, starts = collect_pauses(turns)
     categories = count_categories(c for turn in turns for c in turn.corrections)
     unused = unused_vocabulary(scenario, (turn.user_text for turn in turns)) if turns else ()
+    uncertain = tuple(dict.fromkeys(w for turn in turns for w in turn.uncertain))
     return SessionReport(
-        len(turns), majors, minors, feedback, feedback_error, pauses, starts, categories, unused
+        len(turns), majors, minors, feedback, feedback_error, pauses, starts, categories, unused,
+        uncertain,
     )

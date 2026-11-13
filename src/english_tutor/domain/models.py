@@ -59,6 +59,7 @@ class TimedWord:
     text: str
     start_s: float
     end_s: float
+    probability: float | None = None  # how sure the recogniser was (0 to 1), if known
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,7 @@ class Turn:
     live_correction: Correction | None
     hesitations: tuple[Hesitation, ...] = ()
     speech_s: float = 0.0  # seconds of recorded speech
+    uncertain: tuple[str, ...] = ()  # words the recogniser was unsure about
 
 
 @dataclass(frozen=True)
@@ -137,6 +139,7 @@ class SessionReport:
     slow_starts: tuple[tuple[str, float], ...] = ()  # (tutor question, seconds to start)
     categories: tuple[tuple[str, int], ...] = ()  # most frequent kinds of mistake, with counts
     unused_vocabulary: tuple[str, ...] = ()  # scenario phrases the learner did not use
+    uncertain_words: tuple[str, ...] = ()  # words the recogniser was unsure about
 
 
 class PracticeOutcome(str, Enum):

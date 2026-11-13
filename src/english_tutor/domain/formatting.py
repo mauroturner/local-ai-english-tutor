@@ -55,6 +55,15 @@ def vocabulary_line(report: SessionReport) -> str:
     return "Useful for this situation (not used yet): " + ", ".join(report.unused_vocabulary)
 
 
+def uncertain_line(report: SessionReport) -> str:
+    """``The recogniser was unsure about: very, world``; empty when it was sure of everything."""
+    if not report.uncertain_words:
+        return ""
+    return "Check your pronunciation (the recogniser was unsure about): " + ", ".join(
+        report.uncertain_words
+    )
+
+
 def format_report(report: SessionReport) -> str:
     """Render the end-of-session report as text."""
     lines = [f"SESSION REPORT ({report.turn_count} turns)", ""]
@@ -64,6 +73,8 @@ def format_report(report: SessionReport) -> str:
         lines.append(category_line(report))
     if report.unused_vocabulary:
         lines.append(vocabulary_line(report))
+    if report.uncertain_words:
+        lines.append(uncertain_line(report))
     lines += pause_lines(report)
     lines.append("")
     feedback = report.feedback

@@ -9,7 +9,7 @@ from typing import Callable, Literal, TypeVar
 from ..audio.processing import prepare_for_stt
 from ..domain.corrections import compose_speech, filter_corrections, pick_live, pick_natural
 from ..domain.formatting import correction_text, format_report
-from ..domain.hesitation import as_corrections, explanation, find_hesitations
+from ..domain.hesitation import as_corrections, explanation, find_hesitations, low_confidence
 from ..domain.models import Hesitation, SessionState, Turn
 from ..domain.scenarios import FREE, get_scenario
 from ..ports import (
@@ -308,7 +308,8 @@ class ConversationSession:
         corrections = filter_corrections(raw, reply.corrections)
         live, _ = pick_live(corrections)
         turn = Turn(
-            len(self._turns) + 1, raw, reply.reply, corrections, live, pauses, transcript.duration_s
+            len(self._turns) + 1, raw, reply.reply, corrections, live, pauses,
+            transcript.duration_s, low_confidence(transcript.words),
         )
         self._turns.append(turn)
         self._stats.turn_done()

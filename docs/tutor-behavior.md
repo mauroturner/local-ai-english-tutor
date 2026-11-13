@@ -66,6 +66,12 @@ The model's output is not trusted blindly. `domain/corrections.py` applies these
 
 The code does **not** check that a `corrected` phrase is actually right, and it does not re-classify severity; those depend on the model.
 
+## Pronunciation hints
+
+The word timings used for [long pauses](#long-pauses) also carry how sure the recogniser was of each word (its probability, 0 to 1). Words under **0.35**, with at least 3 letters, are collected per turn and listed once in the report as `Check your pronunciation (the recogniser was unsure about): ...`. They are hints: never stored in the mistake history, never counted as errors, never sent to the model. They exist only when **Track long pauses** is on, because that switch is what asks for word timings.
+
+Known limits. The timings are a forced alignment of text Whisper already decoded, so its confidence stays high even in clear trouble: in a test with synthetic speech, 0 dB and -6 dB of added noise, no word went under 0.61. The threshold is deliberately low to avoid false alarms; it has not been tuned with real learner recordings and may rarely trigger. A low value can also come from noise or the microphone, which is why the text says "the recogniser was unsure" and not "you mispronounced".
+
 ## Role-play scenarios
 
 The **Scenario** drop-down in the main window (enabled when the app is idle, not practising and before your first answer of the session) picks one of: free conversation (default), job interview, restaurant, doctor's appointment, airport, small talk, team meeting. Picking one makes Alex say a fixed opening line (shown, spoken and logged as `ALEX:`) and adds a `SCENARIO (role-play)` section to the **turn** prompt only: who Alex plays, the opening line already said, and the reminder that the role never changes how mistakes are reported. The report and practice prompts are unchanged.
