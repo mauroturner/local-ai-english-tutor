@@ -182,3 +182,45 @@ Step notes:
 - `new_session()` makes the next logged entry start a new `.log` file.
 - Only the summary is spoken. After the report the turns and the chat history are cleared, so the next conversation starts fresh. The persistent mistake history is **not** cleared.
 - With zero turns the chat shows `No turns were recorded in this session.`
+
+## Settings, feedback and maintenance
+
+These flows sit beside the conversation; none of them changes a transcript.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant M as main()
+    participant FILE as settings.json
+    participant SW as SettingsWindow (Tk thread)
+    participant SVC as SettingsService
+    participant REG as Windows registry (HKCU Run)
+    participant OLL as Ollama
+
+    M->>FILE: load (corrupt file: back up, use defaults)
+    M->>M: defaults < settings.json < TUTOR_* variables
+    M->>M: configure logging, language, theme, then build the window
+    User->>SW: open Settings (gear or Ctrl+,), PTT paused
+    SW->>SW: edit a draft (theme and font size preview)
+    opt Test connection
+        SW->>OLL: GET /api/tags from a daemon thread
+        OLL-->>SW: result shown under the row
+    end
+    User->>SW: Save
+    SW->>SW: check folders (create and write test)
+    SW->>SVC: save(draft)
+    SVC->>FILE: write atomically (env-locked values are not written)
+    opt Start with Windows changed
+        SVC->>REG: set or delete the EnglishTutor value
+    end
+    SW->>M: apply live settings, show the restart banner for the rest
+```
+
+Step notes:
+
+- **Footer text.** The session still sends messages such as `Ready: hold V` or `Listening...`. The window keeps the state chip as the only place that names the state: while idle the status line shows the hold hint once, a message that only repeats the chip (`Thinking...`) is hidden, and useful ones (`Listening...`, `Too short or too quiet, try again`) are shown.
+- **Cues and toast.** Each session event also reaches `Feedback`. `StateChanged(RECORDING)` plays the start beep, `StateChanged(TRANSCRIBING)` the stop beep (350 ms later, after the recorder's post-roll) and `ErrorRaised` the error beep. `ReportReady` shows a toast through PowerShell when the window is not focused. None of this alters the transcript.
+- **Exports.** The last `ReportReady` report is kept by the window and written as Markdown; the mistake list is written as CSV (UTF-8 with BOM). Both go through an atomic write to the file you pick.
+- **Delete logs or mistakes.** The Settings window asks for confirmation, then `ConversationSession.clear_data` queues the job on the worker, and only if the session is idle and not practising. The job deletes `session-*.log` files or empties the mistake book, starts a new log file, and emits `MistakesChanged(())` / `DataCleared`, which the chat and the Settings footer report.
+- **Restart.** **Restart now** closes the window, stops push-to-talk, shuts the session down, and only then starts the new process, so two copies never hold the microphone, keyboard hook or GPU.

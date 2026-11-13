@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Logs are written to the console where you started the app (level set by `TUTOR_LOG_LEVEL`; use `DEBUG` for more detail). Messages shown inside the app appear as orange notice lines in the chat. Settings are described in [configuration.md](configuration.md).
+Logs are written to `data\logs\app.log` and to the console where you started the app (level set in Settings > Advanced > Log detail or by `TUTOR_LOG_LEVEL`; use `DEBUG` for more detail; see [Getting logs for support](#getting-logs-for-support)). Messages shown inside the app appear as orange notice lines in the chat. Settings are described in [configuration.md](configuration.md).
 
 ## The app exits immediately with `Configuration error: ...`
 
@@ -22,7 +22,7 @@ On first run faster-whisper downloads `large-v3` (about 3 GB) from Hugging Face.
 
 ## Ollama is not running or the model is not pulled
 
-The app checks Ollama at start-up and shows a notice, but stays open. Messages:
+The app checks Ollama at start-up and shows a notice, but stays open. You can also check it any time with **Settings > Advanced > Test connection** ([results](#test-connection-says)). Messages:
 
 | Message | Fix |
 | --- | --- |
@@ -49,11 +49,55 @@ If playback fails on a single turn, the failure is logged (`Speech synthesis fai
 ## Push-to-talk does not respond
 
 - The key is a **global keyboard hook** (the `keyboard` package). On some systems installing the hook needs elevated rights: run the terminal as administrator. If the hook cannot be installed the chat shows `PTT unavailable: <error>`.
-- The default key is **V**. Wait for the status `Ready: hold V` (or `Practice: hold V to answer` during a drill). Presses are ignored while the app is loading, transcribing, thinking, speaking or writing the report.
+- The default key is **V**. Wait until the chip says **Ready** and the line under it says `Hold 'V' to speak, release to send` (during a drill it says `Practice: hold V to answer`). Presses are ignored while the app is loading, transcribing, thinking, speaking or writing the report, and **while the Settings window is open**.
 - Hold the key until you finish speaking, then release. Auto-repeat is ignored.
-- Change the key with `TUTOR_PTT_KEY`, for example `$env:TUTOR_PTT_KEY = "right ctrl"` (non-printing) or `"f9"`. The window hint and status line show the configured key.
+- Change the key in **Settings > Shortcuts** (restart needed) or with `TUTOR_PTT_KEY`, for example `$env:TUTOR_PTT_KEY = "right ctrl"` (non-printing) or `"f9"`; the variable wins over the setting. The hold hint shows the configured key.
 - **With `right ctrl`, left Ctrl is ignored on purpose.** The app tells the two Ctrl keys apart by the localized key name Windows reports (for example `CTRL DERECHA` for the right key on Spanish Windows). If that lookup fails, there is no side filter and either Ctrl key triggers recording. Side filtering applies only to `left`/`right` `ctrl`/`alt`.
 - The key press is not suppressed. A letter key such as `v` is typed into the focused application, and shortcuts that use Right Ctrl also start a recording.
+
+## Settings problems
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `Ignored invalid setting: <name> must be ..., got ...; using <default>.` | One value in `settings.json` was invalid (hand-edited, or from another version). Only that value falls back to its default. Open Settings and Save to rewrite the file |
+| `Settings were unreadable; saved a copy as settings.json.corrupt-<timestamp> and started with defaults` | The file was not valid JSON or had an unsupported `version`. The copy is next to the original; nothing deletes it. Re-enter your choices in Settings |
+| A setting is greyed out and says `Set by TUTOR_...` | An environment variable pins it. Remove the variable ([configuration.md](configuration.md#setting-variables-in-powershell)) and restart the terminal to edit it in the window |
+| `Restart the app to apply: ...` banner | Those settings load at start-up. Click **Restart now** (it asks first if a conversation is in progress) or **Later** |
+| **Save** is disabled | Nothing changed, or a field shows a red error (bad URL, shortcut conflict, ...). Fix the error under the row |
+| `This folder cannot be used: ...` under the data or export folder | The folder cannot be created or written. Pick another one; the old data stays where it was (the app does not move it) |
+| A shortcut is rejected | Shortcuts need Ctrl or Alt (bare F-keys are fine), cannot repeat, and cannot use reserved keys such as Ctrl+C or Alt+F4 ([list](configuration.md#shortcuts)) |
+| Delete buttons say `Alex is busy right now` | Deleting is refused while the tutor is working or a practice drill is running. Wait until the status chip says Ready and stop the drill |
+| Export report is disabled | There is no report yet. Click **End session** first |
+| No sound cues | Check the three **Sound ...** switches in Audio & notifications and your default Windows output device. A cue is skipped if another one is still playing |
+| No desktop notification | The toast appears only when the window is not focused. **Windows Focus Assist / Do not disturb** can hide it; the taskbar button flashes instead when it fails |
+| Interface scale or theme looks wrong | Choose **Restore default settings** in Advanced, then **Save** |
+
+### Test connection says...
+
+Open **Settings > Advanced** and click **Test**. It checks the address and model currently typed in the form, even before saving.
+
+| Result | Fix |
+| --- | --- |
+| Connected: Ollama is running and the model ... is installed | Nothing to do |
+| Ollama is running, but the model ... is not installed | Run the `ollama pull <model>` command shown, or change the model name |
+| Cannot reach Ollama at ... | Start Ollama (`ollama serve` or the tray app) and check the URL and port |
+| Ollama at ... did not answer in time | The server is busy or blocked (firewall). Try again |
+| That address is not valid | Use `http://` or `https://`, a host name and no query, for example `http://localhost:11434` |
+
+### Start with Windows does not work
+
+- The app does not start at sign-in: open Settings > General. If the row says the entry points to a different location, click **Save** to rewrite it. Check Task Manager > Startup apps that the entry is enabled.
+- It starts but cannot find Piper or the data folder: Windows starts it from another working directory, so use absolute paths in `TUTOR_DATA_DIR`, `TUTOR_PIPER_EXE` and `TUTOR_PIPER_VOICE`.
+- The first minutes after sign-in are slow, or the chat says Ollama is not reachable: Whisper is loading and Ollama may not be running yet. Wait, then use **Test connection**.
+- To remove the entry by hand, see [configuration.md](configuration.md#start-with-windows).
+
+## Getting logs for support
+
+1. Open **Settings > Advanced > Open logs folder** (or go to `data\logs`).
+2. Attach `app.log` (and `app.log.1` to `app.log.3` if they exist). For more detail set **Log detail** to `DEBUG`, reproduce the problem and attach the files again.
+3. Check the files for personal paths first. They do not contain transcript text.
+
+The log rotates at 1 MB and keeps 3 older files. If `data\logs` cannot be written, the log is in `%TEMP%\english_tutor\logs`.
 
 ## Wrong or duplicated microphone
 
@@ -76,7 +120,7 @@ The recording was shorter than 0.25 seconds or its peak level was below 0.01. Ho
 
 ## Conversation log problems
 
-- **`Conversation log unavailable: Could not write the conversation log: ...`.** The folder `data\conversations` (or `TUTOR_DATA_DIR\conversations`) could not be created or written, for example because the path is read-only, a file with that name exists, or the drive is missing. The notice appears once; the conversation continues without logging and each failure is also a console warning. Point `TUTOR_DATA_DIR` at a writable folder and restart.
+- **`Conversation log unavailable: Could not write the conversation log: ...`.** The folder `data\conversations` (or `TUTOR_DATA_DIR\conversations`) could not be created or written, for example because the path is read-only, a file with that name exists, or the drive is missing. The notice appears once; the conversation continues without logging and each failure is also a console warning. Point `TUTOR_DATA_DIR` (or the **Data folder** setting) at a writable folder and restart.
 - The log file is created when the first transcript is saved, not at start-up, so an empty folder right after launch is normal.
 
 ## Practice problems

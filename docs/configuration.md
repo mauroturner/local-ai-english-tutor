@@ -1,6 +1,6 @@
 # Configuration
 
-All settings are read once at start-up (`config.load_config`) from the defaults, the [settings file](#settings-file) and environment variables, in that order of increasing priority. Every variable is optional. An empty or whitespace-only value counts as "not set" and the default is used.
+All settings are read once at start-up (`config.load_config`) from the defaults, the [settings file](#settings-file) and environment variables, in that order of increasing priority. Most people change settings in the [Settings window](#settings-window); the variables below are for power users, scripts and tests. Every variable is optional. An empty or whitespace-only value counts as "not set" and the default is used.
 
 If a value is invalid the app prints `Configuration error: <message>` to standard error and exits with code `2` before opening a window. The message names the variable, for example `TUTOR_HISTORY_EXCHANGES must be an integer, got 'abc'` or `TUTOR_OLLAMA_TIMEOUT must be greater than 0, got 0.0`.
 
@@ -21,9 +21,9 @@ If a value is invalid the app prints `Configuration error: <message>` to standar
 | `TUTOR_TTS` | boolean | `1` | Voice output. Accepted: `1`, `true`, `yes`, `on` / `0`, `false`, `no`, `off` (case-insensitive). When off, the app is text-only and logs `Voice output disabled (TUTOR_TTS=0).` |
 | `TUTOR_PIPER_EXE` | path | auto-detected | Path to `piper.exe`. See [Piper resolution order](#piper-resolution-order) |
 | `TUTOR_PIPER_VOICE` | path | `<folder of piper.exe>\voices\en_US-lessac-medium.onnx` | Voice model. A file with the same name plus `.json` (for example `en_US-lessac-medium.onnx.json`) must sit next to it |
-| `TUTOR_PTT_KEY` | string | `v` | Push-to-talk key, as a key name understood by the `keyboard` package. Shown capitalised (`V`, `Right Ctrl`) in the window hint and in the `Ready: hold <KEY>` status. See [Push-to-talk key](#push-to-talk-key) |
+| `TUTOR_PTT_KEY` | string | `v` | Push-to-talk key, as a key name understood by the `keyboard` package. Shown capitalised (`V`, `Right Ctrl`) in the window's hold hint. See [Push-to-talk key](#push-to-talk-key) |
 | `TUTOR_DATA_DIR` | path | `<project root>\data` | Folder for the conversation logs and the mistake history. A relative path is relative to the working directory. See [Local data](#local-data) |
-| `TUTOR_LOG_LEVEL` | string | `INFO` | Python logging level name (`DEBUG`, `INFO`, `WARNING`, ...). Upper-cased; an unknown name falls back to `INFO`. Logs go to the console |
+| `TUTOR_LOG_LEVEL` | string | `INFO` | Python logging level name (`DEBUG`, `INFO`, `WARNING`, ...). Upper-cased; an unknown name falls back to `INFO`. Logs go to the console and to [`logspp.log`](#application-log) |
 | `TUTOR_SETTINGS_FILE` | path | `<data folder>\settings.json` | Location of the settings file. See [Settings file](#settings-file) |
 
 Notes:
@@ -48,7 +48,11 @@ User settings are saved in `settings.json`. Environment variables keep working a
   "version": 1,
   "settings": {
     "language": "en", "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
-    "density": "comfortable", "tts_enabled": true, "ptt_key": "v",
+    "density": "comfortable", "tts_enabled": true,
+    "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
+    "notify_report": true, "data_dir": "", "export_dir": "", "ptt_key": "v",
+    "shortcut_end_session": "Ctrl+E", "shortcut_settings": "Ctrl+,",
+    "shortcut_chat_tab": "Ctrl+1", "shortcut_mistakes_tab": "Ctrl+2",
     "whisper_device": "auto", "whisper_model": "large-v3",
     "ollama_url": "http://localhost:11434", "ollama_model": "llama3:8b-instruct-q4_K_M",
     "log_level": "INFO"
@@ -62,13 +66,136 @@ Missing keys use their default and unknown keys are ignored. A value that is inv
 
 **Corrupt or unsupported file.** If the file is not valid JSON, has the wrong structure or a `version` other than 1, it is renamed to `settings.json.corrupt-YYYYmmdd-HHMMSS`, the app starts with the defaults and shows `Settings were unreadable; saved a copy as <name> and started with defaults`. If the rename fails, settings are read-only for that run and nothing is overwritten.
 
+## Settings window
+
+Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a draft until you click **Save**.
+
+| Feature | Behaviour |
+| --- | --- |
+| Sidebar | Six categories: General, Appearance, Audio & notifications, Storage, Shortcuts, Advanced. **Ctrl+PageUp** / **Ctrl+PageDown** move between them |
+| Search | Box above the categories (**Ctrl+F**). Ignores case and accents and looks at the names, descriptions and keywords, in the current language and in English. Results are grouped by category with a match count; **Esc** clears the box, **Enter** jumps to the first result |
+| Unsaved changes | The footer shows `● Unsaved changes (n)` and the title gets a dot. **Save** (**Ctrl+S**) is disabled when nothing changed or a field has an error. **Cancel**, **Esc** or closing the window asks `Discard changes?` when something is pending |
+| Preview | Only the appearance mode and the chat font size preview while you edit; **Cancel** puts them back. Everything else is applied on **Save** |
+| Restart required | Rows with an amber `Restart required` pill take effect after a restart. After **Save** a banner lists them with **Restart now** (asks first if the conversation has turns) and **Later** |
+| Locked by environment | A setting whose `TUTOR_*` variable is set shows `Set by TUTOR_...` and is disabled. See [Settings file](#settings-file) |
+| Restore defaults | Asks for confirmation, resets the draft (locked settings are kept) and waits for **Save** |
+| Resizable | Default 860 x 600, minimum 720 x 480. The content column is capped at 640 px and centred, so wide windows stay readable |
+| Push-to-talk | Paused while Settings is open (the window says so), because typing there would otherwise start recordings |
+
+### General
+
+| Setting | Values (default) | Applies | Notes |
+| --- | --- | --- | --- |
+| Interface language | `en`, `es` (`en`) | Restart | Buttons, labels, status messages and dates in the Mistakes tab (`Nov 12, 2026` / `12 nov 2026`). The tutor, corrections, reports and conversation logs stay English |
+| Start with Windows | on / off (off) | Save | Not stored in `settings.json`; see [Start with Windows](#start-with-windows) |
+
+### Appearance
+
+| Setting | Values (default) | Applies | Notes |
+| --- | --- | --- | --- |
+| Theme | `system`, `light`, `dark` (`system`) | Live | `system` follows the Windows app mode |
+| Interface scale | 0.8, 0.9, 1.0, 1.1, 1.25, 1.5 (1.0) | Live | Scales every widget |
+| Chat font size | 10 to 22 (13) | Live | Chat bubbles only |
+| Layout density | `comfortable`, `compact` (`comfortable`) | Restart | Spacing between elements |
+
+### Audio and notifications
+
+| Setting | Default | Applies | Notes |
+| --- | --- | --- | --- |
+| Voice output (`TUTOR_TTS`) | on | Restart | Off means text-only replies |
+| Sound when recording starts / stops, sound on errors | on | Live | Three short beeps (start 880 Hz, stop 660 Hz, error 2 x 330 Hz) on their own audio stream, so they never cut off the tutor's voice. The error beep is silent while loading or speaking and plays at most once every 2 s. Transcripts are never touched |
+| Desktop notification for the report | on | Live | A Windows toast `Your session report is ready` when the report arrives while the app window is not focused. Windows **Focus Assist / Do not disturb** may hide it; if the toast fails, the taskbar button flashes instead |
+
+### Storage
+
+| Setting | Default | Applies | Notes |
+| --- | --- | --- | --- |
+| Data folder (`TUTOR_DATA_DIR`) | empty = `<project root>\data` | Restart | Where conversations, mistakes and logs go. **Existing files are not moved**; the app just starts using the new folder. `settings.json` never moves. On **Save** the folder is created and a write test runs; failures appear under the row |
+| Export folder | empty = `Documents` | Live | Where the save dialogs start |
+
+| Action | What it does |
+| --- | --- |
+| Open data folder | Opens the folder in Explorer (created if missing) |
+| Export last report | Saves the last report as Markdown (`session-report-YYYYmmdd-HHMMSS.md`). Disabled until a session has ended |
+| Export mistakes | Saves the whole mistake list as CSV (`mistakes-YYYYmmdd-HHMMSS.csv`): UTF-8 with BOM so Excel opens it correctly, English headers, ISO dates, examples joined with ` \| ` |
+| Delete conversation logs | After confirmation deletes only `session-*.log` in `<data folder>\conversations` |
+| Delete mistake history | After confirmation empties the mistake history and its practice scores |
+
+Both delete actions are refused while the tutor is busy or a practice drill is running, and cannot be undone. Settings and the application log are never touched. Files are written atomically (temporary file, then replace).
+
+### Shortcuts
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| Push-to-talk key (`TUTOR_PTT_KEY`) | `v` | Restart. Global: works with other windows focused. See [Push-to-talk key](#push-to-talk-key) |
+| End session | `Ctrl+E` | In-app, live |
+| Open settings | `Ctrl+,` | In-app, live |
+| Go to the Chat tab / Mistakes tab | `Ctrl+1` / `Ctrl+2` | In-app, live |
+
+Click **Change...** and press the new key in the capture dialog (**Esc** cancels). In-app shortcuts are bound to the main window only, so they work when it is focused. Conflicts are checked as you edit:
+
+| Kind | Result |
+| --- | --- |
+| Invalid text, duplicate of another action, no Ctrl/Alt (bare F-keys are allowed), reserved (`Ctrl+C/V/X/A/Z/Y/F/S`, `Alt+F4`) | Blocks **Save** |
+| Overlap with the push-to-talk key (for example PTT `right ctrl` and any `Ctrl+` shortcut) | Warning only |
+
+### Advanced
+
+| Setting | Default | Applies | Notes |
+| --- | --- | --- | --- |
+| Speech recognition device (`TUTOR_WHISPER_DEVICE`) | `auto` | Restart | `auto`, `cuda`, `cpu` |
+| Speech recognition model (`TUTOR_WHISPER_MODEL`) | `large-v3` | Restart | Pick from the list or type any model name or path |
+| Ollama server URL (`TUTOR_OLLAMA_URL`) | `http://localhost:11434` | Restart | Must be `http` or `https` with a host and no query. A host other than localhost shows a warning |
+| Ollama model (`TUTOR_OLLAMA_MODEL`) | `llama3:8b-instruct-q4_K_M` | Restart | Must already be pulled |
+| Log detail (`TUTOR_LOG_LEVEL`) | `INFO` | Live | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+
+| Action | What it does |
+| --- | --- |
+| Test Ollama connection | Checks the URL and model **currently in the form**, even before you save, with a 3 s timeout, without freezing the window. Result under the row: connected and model installed; server up but model missing (run `ollama pull <model>`); server not reachable (`ollama serve`); no answer in time; invalid address |
+| Open logs folder | Opens `<data folder>\logs` (created if missing); attach the files when asking for support |
+| Restore default settings | See the table above |
+
+### Start with Windows
+
+The switch writes one value to the **current user's** registry, no administrator rights needed:
+
+| Item | Value |
+| --- | --- |
+| Key | `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run` |
+| Value name | `EnglishTutor` |
+| Value data | `"<folder of python.exe>\pythonw.exe" "<project root>\main.py"` (`pythonw.exe` when it exists, so no console window opens) |
+
+The switch shows the real registry state each time Settings opens. If the entry points to an old location (you moved the project or its Python environment) the row says so and **Save** rewrites it.
+
+**Remove it by hand:** turn the switch off and **Save**, or run `reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v EnglishTutor /f`, or disable the entry in Task Manager > Startup apps.
+
+**Caveats.**
+
+- Windows starts the app from another working directory, so a **relative** `TUTOR_DATA_DIR`, `TUTOR_PIPER_EXE` or `TUTOR_PIPER_VOICE` will not be found. The row warns about it; use absolute paths.
+- Loading the Whisper model slows the first minutes after sign-in.
+- Ollama may not be running yet at sign-in; the connection is checked once the app is open, and you can use **Test connection** later.
+- The entry runs the project's `main.py` from where it is now. If you move or delete the folder, the entry breaks until you update or remove it.
+
+### Application log
+
+The app writes `<data folder>\logs\app.log` (UTF-8) at the level chosen in **Log detail**; the console shows the same records when there is one. The file rotates at **1 MB** and keeps **3** older files (`app.log.1` to `app.log.3`), so the logs never grow without bound. If the logs folder cannot be created, the log goes to `%TEMP%\english_tutor\logs` and a warning says so. Errors raised inside the window are logged there too. **Delete conversation logs** does not remove it.
+
+### Not included, on purpose
+
+| Not offered | Why |
+| --- | --- |
+| Accounts, login, cloud sync | There is no backend: the app is offline by design and sync would contradict that |
+| Update channels | There are no published releases to update from |
+| Proxy and ports | Every connection is to localhost (Ollama); the only download is the one-time Whisper model |
+| Live language switching, moving existing data to a new folder, tray icon | Language and data folder need a restart; moving data and a tray icon were left out to keep the app dependency-free |
+
 ## Push-to-talk key
 
 The default is **V** (`TUTOR_PTT_KEY=v`). The hook does not suppress key presses, so while you hold V with another application focused, that application also receives the letter. If that bothers you, use a non-printing key such as `TUTOR_PTT_KEY=right ctrl`. Names such as `f9` or `space` are standard `keyboard` names but were not exercised while writing this document.
 
 Left and right Ctrl share one scan code, and the `keyboard` package matches modifier keys by scan code, so a plain registration for "right ctrl" would also fire on **left** Ctrl (every Ctrl+C). To avoid that, when the configured key is exactly `left ctrl`, `right ctrl`, `left alt` or `right alt`, the app asks Windows (`GetKeyNameTextW`) for the localized name of that side and accepts only events whose name is either the configured text or the localized one. For example, on Spanish Windows the right Ctrl key reports `CTRL DERECHA`, while the left one reports `CTRL`. If the lookup fails, no side filter is applied and push-to-talk still works (but the other side also triggers it). Any other key (for example `v` or `f9`) has no filter.
 
-The key is not suppressed, so if you choose Right Ctrl, shortcuts that include it still reach the focused application and will also start a recording.
+The key is not suppressed, so if you choose Right Ctrl, shortcuts that include it still reach the focused application and will also start a recording. Change the key in **Settings > Shortcuts**; the new key applies after a restart.
 
 ## Piper resolution order
 
@@ -87,7 +214,7 @@ Piper counts as available only if the executable, the `.onnx` voice and the `.on
 
 ## Local data
 
-The app writes two kinds of files under the data folder (`TUTOR_DATA_DIR`, default `<project root>\data`, which is `data\` in the repository when running from source). `data/`, `logs/` and `*.log` are git-ignored.
+The app writes these files under the data folder (`TUTOR_DATA_DIR` or the **Data folder** setting, default `<project root>\data`, which is `data\` in the repository when running from source): the conversation logs and the mistake history described below, plus `settings.json` ([Settings file](#settings-file)) and `logspp.log` ([Application log](#application-log)). `data/`, `logs/` and `*.log` are git-ignored.
 
 ### Conversation logs
 
@@ -140,10 +267,10 @@ Multi-line entries (the report) continue on following lines indented by four spa
 
 ### Wiping the data
 
-Close the app, then delete what you want to forget:
+The easy way is **Settings > Storage > Delete conversation logs / Delete mistake history** (with confirmation, [details](#storage)). To do it by hand, close the app, then delete what you want to forget:
 
 ```powershell
-Remove-Item -Recurse -Force data                      # everything
+Remove-Item -Recurse -Force data                      # everything, including settings.json
 Remove-Item -Recurse -Force data\conversations        # logs only
 Remove-Item data\mistakes.json                        # mistake history only
 ```

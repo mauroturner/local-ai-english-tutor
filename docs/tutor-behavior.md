@@ -78,6 +78,17 @@ Without Piper the same content appears in the chat and nothing is spoken.
 
 The reply is asked to be one to three short sentences, plain text (no lists, emojis or markdown, because it is read aloud), always ending with one follow-up question, and never to mention your mistakes.
 
+## What the settings change (and what they never do)
+
+| Setting | Effect on the tutor |
+| --- | --- |
+| Interface language (English / Spanish) | Only the app's own text (buttons, labels, status messages, dates in the Mistakes tab). Alex always speaks and corrects in **English**; the report, tips, practice questions and conversation logs stay English |
+| Sound cues | Short beeps for recording start, stop and errors. They are played on a separate audio stream and never alter, delay or replace a transcript |
+| Voice output | Off means text-only replies; corrections and the report are unchanged |
+| Chat font size, theme, scale, density | Presentation only |
+| Ollama model, Whisper model and device | Change quality and speed; the rules in this page (literal transcription, correction guards) apply to any of them. Use **Test connection** to confirm a model is installed |
+| Exports | **Export last report** writes the report text shown in the chat as Markdown; **Export mistakes** writes the mistake list as CSV. Neither is re-processed by the model |
+
 ## End-of-session report
 
 Clicking **End session** (only possible when idle) sends the learner's raw sentences and the recorded errors of the last 40 turns to the model with a second prompt. The chat then shows:
@@ -265,4 +276,4 @@ Treat the tutor as a conversation partner with a safety net, not as an exam grad
    english-tutor
    ```
 
-The app checks at start-up that the exact name is installed. A bigger model may catch more errors, at the cost of more memory and slower replies; raise `TUTOR_OLLAMA_TIMEOUT` if replies time out. The model must support Ollama's structured outputs (`format` with a JSON schema); the default was tested that way, other models were not tested here.
+Set the model in **Settings > Advanced** (restart needed) or with the variable. The app checks at start-up that the exact name is installed, and **Test connection** checks it on demand. A bigger model may catch more errors, at the cost of more memory and slower replies; raise `TUTOR_OLLAMA_TIMEOUT` if replies time out. The model must support Ollama's structured outputs (`format` with a JSON schema); the default was tested that way, other models were not tested here.

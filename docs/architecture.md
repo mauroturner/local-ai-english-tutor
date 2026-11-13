@@ -9,15 +9,17 @@ All code lives in `src/english_tutor/`. Every source file is below about 400 lin
 | Layer | Package / module | Contains | May import |
 | --- | --- | --- | --- |
 | Domain | `domain/` | Value objects, correction rules, mistake-history rules, prompts and JSON schemas, text formatting. Pure Python, no I/O | nothing else in the project |
-| Ports | `ports.py` | `Protocol` interfaces, `AudioClip`, adapter exception types | domain |
+| Ports | `ports.py` | `Protocol` interfaces, `AudioClip`, `ConnectionResult`, adapter exception types | domain, `audio.cues` |
 | Audio helpers | `audio/` | Pure audio processing, microphone list and de-duplication | ports (for `AudioClip`) |
-| Application | `application/` | `ConversationSession` (state machine), practice drill, mistake book, report builder, events, history, `SerialWorker` | domain, ports, `audio.processing` |
-| Adapters | `adapters/` | Whisper, Ollama, Piper, sounddevice, keyboard, log file and JSON store implementations | domain, ports, config, `audio.devices` |
-| UI | `ui/` | customtkinter window (container) and widgets (presentational) | application, domain, config |
-| Config | `config.py` | `TUTOR_*` environment variables to an immutable `AppConfig` | standard library only |
+| Application | `application/` | `ConversationSession` (state machine), practice drill, mistake book, report builder, events, history, `SerialWorker`, `SettingsService`, `PttGate`, maintenance jobs | domain, ports, `settings`, `audio.processing` |
+| Adapters | `adapters/` | Whisper, Ollama, Piper, sounddevice, keyboard, log file, JSON stores, Windows auto-start and toast implementations | domain, ports, config, settings, `audio.devices` |
+| Settings | `settings/` | Pure settings model, registry, draft, shortcut logic. Standard library only | config |
+| i18n | `i18n/` | English and Spanish string catalogs, date and time formats | standard library only |
+| UI | `ui/` | customtkinter main window and Settings window (containers) and widgets (presentational) | application, domain, config, settings, i18n |
+| Config | `config.py` | `TUTOR_*` environment variables (plus settings overrides) to an immutable `AppConfig` | standard library only |
 | Composition root | `__main__.py` | Builds adapters, session and window, then runs the main loop | everything |
 
-Dependencies point inwards: the application layer never imports an adapter, and `ui/widgets.py` and `ui/mistakes_view.py` do not import the application layer at all (they receive plain data and callbacks).
+Dependencies point inwards: the application layer never imports an adapter (the UI imports only two tiny file helpers, `atomic_io` and `folders`; the rest, such as `open_folder` and `check_connection`, arrives through `UiServices`), and `ui/widgets.py` and `ui/mistakes_view.py` do not import the application layer at all (they receive plain data and callbacks).
 
 ## Ports and adapters
 
@@ -104,7 +106,7 @@ flowchart LR
     JStore --> JSON[("data/mistakes.json")]
 ```
 
-Notes on the wiring:
+Notes on the wiring (the settings-related ports are described in [Settings subsystem](#settings-subsystem)):
 
 - `PushToTalk` is satisfied by `KeyboardPushToTalk`, but the session does not hold a reference to it: the composition root registers `session.on_ptt_press` and `session.on_ptt_release` as its callbacks.
 - `OllamaTutorModel` implements both `TutorModel` and `PracticeCoach`; the composition root passes the same instance for both (`tutor` and `coach=tutor`).
@@ -114,9 +116,9 @@ Notes on the wiring:
 
 | File | Responsibility |
 | --- | --- |
-| `__main__.py` | Composition root. `main()` loads config (exit code 2 and a stderr message on `ConfigError`), configures logging, builds adapters (a `NullSynthesizer` when voice output is off or Piper is missing; `FileConversationLog` and `JsonMistakeStore` under `cfg.data_dir`), the session and the window, starts push-to-talk, runs `mainloop`, and shuts down |
+| `__main__.py` | Composition root. `main()` loads `settings.json` and the config (exit code 2 and a stderr message on `ConfigError`), configures logging and language, builds adapters (a `NullSynthesizer` when voice output is off or Piper is missing; `FileConversationLog` and `JsonMistakeStore` under `cfg.data_dir`), the session and the window, starts push-to-talk, runs `mainloop`, and shuts down |
 | `config.py` | `AppConfig` (frozen dataclass, `ptt_label` property), `load_config`, `resolve_piper_exe`, `key_label`, `ConfigError`; range-checked numeric helpers |
-| `ports.py` | Protocols `SpeechToText`, `TutorModel`, `PracticeCoach`, `SpeechSynthesizer`, `AudioRecorder`, `PushToTalk`, `ConversationLog`, `MistakeStore`; `AudioClip`; `LogSpeaker`; exceptions `AdapterError`, `LlmUnavailable`, `SttError`, `TtsError`, `StorageError` |
+| `ports.py` | Protocols `SpeechToText`, `TutorModel`, `PracticeCoach`, `SpeechSynthesizer`, `AudioRecorder`, `PushToTalk`, `ConversationLog`, `MistakeStore`, `SettingsStore`, `AutoStart`, `CuePlayer`, `Notifier`; `ConnectionCheck`, `ConnectionResult`; `AudioClip`; `LogSpeaker`; exceptions `AdapterError`, `LlmUnavailable`, `SttError`, `TtsError`, `StorageError` |
 | `domain/models.py` | `Severity`, `SessionState`, `PracticeOutcome`, `Correction`, `TutorReply`, `PracticeReply`, `MistakeRecord`, `Turn`, `Transcript`, `ChatMessage`, `SessionFeedback`, `SessionReport` |
 | `domain/corrections.py` | `normalize`, `is_cosmetic`, `filter_corrections`, `dedupe`, `pick_live`, `spoken_line` |
 | `domain/mistakes.py` | Pure mistake-history rules: `mistake_key`, `add_corrections`, `add_practice`, `rank` (`MAX_EXAMPLES` = 3) |
@@ -130,23 +132,61 @@ Notes on the wiring:
 | `application/mistake_book.py` | `MistakeBook`: in-memory mistake history backed by a `MistakeStore`; storage errors go to a warning callback |
 | `application/journal.py` | `SafeJournal` (a conversation log whose failures warn instead of raising), `NullConversationLog`, `NullMistakeStore` |
 | `application/report.py` | `collect_errors`, `make_report` (end-of-session report; feedback failures kept as text) |
-| `application/events.py` | Event dataclasses sent to the UI: `StateChanged`, `UserSaid`, `TutorSaid`, `ReportReady`, `ErrorRaised`, `LevelChanged`, `MistakesChanged`, `PracticeChanged`, `PracticeFeedback` |
+| `application/events.py` | Event dataclasses sent to the UI: `StateChanged`, `UserSaid`, `TutorSaid`, `ReportReady`, `ErrorRaised`, `LevelChanged`, `MistakesChanged`, `PracticeChanged`, `PracticeFeedback`, `DataCleared` |
 | `application/history.py` | `ChatHistory`: bounded memory of user/assistant pairs |
 | `application/worker.py` | `SerialWorker` (one daemon thread, one job at a time) and `InlineRunner` (runs jobs on the caller's thread, for tests) |
 | `adapters/whisper_stt.py` | `build_transcribe_kwargs`, `WhisperTranscriber` (lazy import, CUDA warm-up, CPU fallback) |
 | `adapters/ollama_chat.py` | `OllamaTutorModel`: `check`, `reply`, `feedback`, `practice` over `/api/chat` with structured output |
+| `adapters/ollama_check.py` | `check_connection(url, model)`: classifies the `/api/tags` answer (ok, model missing, unreachable, timeout, bad URL) for the Settings window; shares `model_installed` with `OllamaTutorModel.check` |
 | `adapters/ollama_parsing.py` | Tolerant JSON parsing of model answers (`parse_tutor_reply`, `parse_feedback`, `parse_practice_reply`); never raises |
 | `adapters/piper_tts.py` | `PiperSynthesizer` (runs `piper.exe`, plays the WAV), `NullSynthesizer` |
 | `adapters/sounddevice_recorder.py` | `SoundDeviceRecorder`: callback-mode input stream, level meter values |
 | `adapters/keyboard_ptt.py` | `KeyboardPushToTalk`: global key hooks, ignores auto-repeat, filters the Left/Right side of Ctrl/Alt via `side_names` |
 | `adapters/file_conversation_log.py` | `FileConversationLog`: one timestamped `.log` file per session |
 | `adapters/json_mistake_store.py` | `JsonMistakeStore`: versioned `mistakes.json`, atomic save, corrupt-file backup |
-| `ui/app_window.py` | `TutorWindow` (container): layout with Chat and Mistakes tabs, event queue and pump, enables/disables controls |
+| `adapters/json_settings_store.py`, `adapters/atomic_io.py` | `JsonSettingsStore`: versioned `settings.json`, corrupt-file backup; `atomic_write_text` is shared by saves and exports |
+| `adapters/windows_autostart.py` | `WindowsAutoStart`: the `EnglishTutor` value under `HKCU\...\Run`; `autostart_command` |
+| `adapters/windows_notifier.py` | `WindowsNotifier`: toast through `powershell.exe -EncodedCommand`, taskbar flash fallback |
+| `adapters/sounddevice_cues.py` | `SoundDeviceCuePlayer`: plays `audio/cues.py` beeps on its own output stream |
+| `adapters/folders.py` | `open_folder`, `validate_folder` (create and write-test a folder) |
+| `ui/app_window.py` | `TutorWindow` (container): header with the Settings button, Chat and Mistakes tabs, footer (level meter, state chip, End session, one status line), event queue and pump, enables/disables controls |
+| `ui/state_style.py` | `state_style` (chip text and colour per state) and `status_line` (what the status line says, so the hold hint appears once) |
+| `ui/feedback.py`, `ui/feedback_rules.py` | Turn session events into sound cues and report toasts (pure rules in the second file) |
+| `ui/shortcut_binder.py`, `ui/banners.py`, `ui/tooltip.py` | In-app shortcuts, restart banner, hover tooltips |
+| `ui/settings/` | `SettingsWindow` and its parts: `rows`, `pages`, `chrome` (sidebar, footer), `commands` (Save, Cancel, restore), `actions` (folders, export, delete), `connection` (Test connection), `key_capture`, `live` |
+| `ui/services.py` | `UiServices`: everything the Settings window needs from the rest of the app, injected by `main()` |
 | `ui/widgets.py` | `ChatView`, `PracticeBanner`, `MicSelector`, `LevelMeter`, `StatusBar`, `ControlBar` (presentational) |
 | `ui/mistakes_view.py` | `MistakesView`: ranked list of mistakes with a Practice button per row (first 50) |
-| `ui/theme.py` | Colours, fonts, appearance mode |
+| `ui/theme.py` | Every colour as a (light, dark) pair, spacing tokens by density, fonts, appearance mode and scale |
 
 Heavy libraries (`faster_whisper`, `sounddevice`, `keyboard`, `scipy.io.wavfile`) are imported lazily inside adapter methods, and `TutorWindow` is imported only after the configuration is valid. This keeps the tests free of hardware and lets configuration errors appear without loading Tk.
+
+## Settings subsystem
+
+Settings are a separate slice that never touches the conversation core. The Settings window edits a draft and the composition root applies the result.
+
+| Piece | Where | Role |
+| --- | --- | --- |
+| `UserSettings` | `settings/model.py` | Frozen dataclass with every user setting, its default, validation (an invalid value falls back **alone** to its default), `ENV_VARS` (setting -> `TUTOR_*`), `RESTART_FIELDS`, `settings_env` |
+| Registry | `settings/registry.py` | Pure list of `SettingSpec` (category, label key, control, keywords, restart flag); drives the pages and the search |
+| Draft | `settings/draft.py` | Pure: edits, errors, dirty keys, restart keys, restore defaults (locked fields kept) |
+| Shortcuts | `settings/shortcuts.py` | Pure: parse/format combos, Tk key sequences, conflict detection |
+| `SettingsStore` port | `ports.py`, `adapters/json_settings_store.py` | Versioned `settings.json`, atomic save (`adapters/atomic_io.py`), corrupt-file backup |
+| `SettingsService` | `application/preferences.py` | Load (with env-locked fields), save, ask `AutoStart` to change; runs on the Tk thread |
+| `AutoStart` port | `ports.py`, `adapters/windows_autostart.py` | HKCU `Run` value `EnglishTutor`; the `winreg` module is injected so tests use a fake |
+| `CuePlayer`, `Notifier` ports | `adapters/sounddevice_cues.py`, `adapters/windows_notifier.py` | Sound cues and the report toast; both never block and never raise |
+| `ConnectionCheck` port | `ports.py`, `adapters/ollama_check.py` | `check(url, model) -> ConnectionResult` for **Test connection** |
+| `PttGate` | `application/ptt_gate.py` | Sits between the keyboard hook and the session; presses are dropped while Settings is open |
+| Maintenance | `application/maintenance.py` | Jobs that delete logs or mistakes; `ConversationSession.clear_data` runs them on the worker and only when idle |
+| i18n | `i18n/` | `t(key)`, `format_date`, `translate_status`; English and Spanish catalogs with the same keys |
+| Logging | `logging_setup.py` | `configure_logging`: rotating `app.log` plus the console |
+| Window | `ui/settings/` | `SettingsWindow` (container), rows, pages, key capture, storage actions, `ConnectionTester` |
+
+Precedence is **defaults < `settings.json` < `TUTOR_*`**. `main()` loads the stored settings, turns them into overrides with `settings_env`, and passes them to `load_config(overrides=...)`; `AppConfig` itself is unchanged. UI-only preferences (theme, scale, shortcuts, cues) go straight to the window as `UserSettings`.
+
+**Live versus restart.** Theme, scale, chat font size, cues, toast, export folder, shortcuts and log level are applied on **Save** by `ui/settings/live.py`. Everything else (language, density, voice, data folder, push-to-talk key, Whisper and Ollama settings) is listed in `RESTART_FIELDS`; **Save** shows a banner and **Restart now** relaunches through `restart.py` after the old process released the microphone, keyboard hook and GPU.
+
+**Threads.** All of it runs on the Tk thread except three short-lived helpers, each a daemon thread that never touches Tk: the connection check (`ConnectionTester` polls it with `after`, every 150 ms), the sound cue player (own `sounddevice.OutputStream`, one cue at a time) and the PowerShell toast. Deleting data goes through the session worker so it cannot race a turn.
 
 ## Session states and practice mode
 
@@ -199,7 +239,7 @@ The session never calls Tk. It calls an `EventSink` (`emit`) with immutable even
 _pump():  get_nowait() until queue.Empty  ->  _dispatch(event)  ->  self.after(30, _pump)
 ```
 
-`_dispatch` maps events to widgets: `StateChanged` updates the status line and the controls, `UserSaid` / `TutorSaid` add chat bubbles (plus the correction card), `ReportReady` adds the report, `ErrorRaised` adds a notice line, `LevelChanged` updates the meter, `MistakesChanged` rebuilds the Mistakes tab, `PracticeChanged` shows or hides the practice banner (and switches to the Chat tab), and `PracticeFeedback` adds the verdict bubble followed by the next question. Events emitted before the window exists are dropped by the sink.
+`_dispatch` maps events to widgets: `StateChanged` updates the state chip, the status line (via `status_line`) and the controls, `UserSaid` / `TutorSaid` add chat bubbles (plus the correction card), `ReportReady` adds the report, `ErrorRaised` adds a notice line, `LevelChanged` updates the meter, `MistakesChanged` rebuilds the Mistakes tab, `PracticeChanged` shows or hides the practice banner (and switches to the Chat tab), and `PracticeFeedback` adds the verdict bubble followed by the next question, and `DataCleared` adds a notice (and updates the open Settings footer). Each event also goes to `Feedback`, which may play a cue or show the report toast. Events emitted before the window exists are dropped by the sink.
 
 Control enabling (`_refresh_controls`): **End session** and every **Practice** button need an idle session outside a drill; **Stop practice** needs only an idle session. Microphone selection is handled on the Tk thread (`_on_mic_change` calls `session.set_input_device`). Closing the window calls `session.shutdown()` and then `destroy()`.
 
