@@ -53,6 +53,8 @@ class PracticeServices:
     emit: EventSink
     journal: Callable[[LogSpeaker, str], None]
     speak: Callable[[str], None]
+    vocabulary_result: Callable[[str, PracticeOutcome], None] = lambda key, outcome: None
+    """Where the result of a drill on a saved phrase goes (instead of the mistake book)."""
 
 
 def open_practice(drill: PracticeDrill, coach: PracticeCoach, svc: PracticeServices) -> bool:
@@ -99,8 +101,11 @@ def run_practice_turn(
         return False
     reply = judge_fluency(drill.target, reply, pauses)
     if reply.parsed_ok and reply.outcome is not PracticeOutcome.NOT_USED:
-        book.add_practice(drill.target.key, reply.outcome)
-        svc.emit(MistakesChanged(book.snapshot()))
+        if drill.target.severity is Severity.VOCABULARY:
+            svc.vocabulary_result(drill.target.key, reply.outcome)
+        else:
+            book.add_practice(drill.target.key, reply.outcome)
+            svc.emit(MistakesChanged(book.snapshot()))
     svc.emit(PracticeFeedback(reply.outcome, reply.feedback, reply.next_prompt))
     svc.journal("practice", f"[{reply.outcome.value}] {reply.feedback}")
     svc.journal("tutor", reply.next_prompt)

@@ -14,6 +14,7 @@ from ..domain.models import (
     SessionState,
 )
 from ..domain.progress import SessionStats
+from ..domain.vocabulary import VocabEntry
 
 
 @dataclass(frozen=True)
@@ -71,6 +72,20 @@ class ListeningFeedback:
 
     perfect: bool
     text: str
+
+
+@dataclass(frozen=True)
+class VocabularyChanged:
+    """The saved phrases (newest first), sent after loading and after each change."""
+
+    entries: tuple[VocabEntry, ...]
+
+
+@dataclass(frozen=True)
+class PhraseSaved:
+    """A phrase was added to the word list."""
+
+    entry: VocabEntry
 
 
 @dataclass(frozen=True)
@@ -137,6 +152,8 @@ SessionEvent = (
     | ProgressChanged
     | ScenarioChanged
     | ListeningChanged
+    | VocabularyChanged
+    | PhraseSaved
     | ListeningFeedback
     | PracticeFeedback
     | DataCleared

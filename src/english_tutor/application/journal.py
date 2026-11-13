@@ -7,6 +7,7 @@ from collections.abc import Callable, Sequence
 
 from ..domain.models import MistakeRecord
 from ..domain.progress import SessionStats
+from ..domain.vocabulary import VocabEntry
 from ..ports import ConversationLog, LogSpeaker
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,17 @@ class NullMistakeStore:
 
     def save(self, records: Sequence[MistakeRecord]) -> None:
         """Ignore the records."""
+
+
+class NullVocabularyStore:
+    """A word list store that remembers nothing."""
+
+    def load(self) -> list[VocabEntry]:
+        """Return an empty list."""
+        return []
+
+    def save(self, entries: Sequence[VocabEntry]) -> None:
+        """Ignore the entries."""
 
 
 class NullSessionStatsStore:

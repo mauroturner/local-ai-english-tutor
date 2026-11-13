@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ..application.preferences import SettingsService
-from ..application.ptt_gate import PttGate
+from ..application.ptt_gate import GateGroup, PttGate
 from ..domain.models import MistakeRecord, SessionReport
 from ..ports import AutoStart, ConnectionCheck, ConnectionResult, ConnectionStatus
 from ..settings.model import UserSettings
@@ -73,7 +73,7 @@ class UiServices:
     on_applied: Callable[[UserSettings], None] = _ignore
     on_restart_needed: Callable[[Sequence[str]], None] = _ignore
     enabled_actions: frozenset[str] = ENABLED_ACTIONS
-    ptt_gate: PttGate | None = None
+    ptt_gate: PttGate | GateGroup | None = None
     clear_logs: Callable[[], bool] = _refuse
     """Ask the session to delete the conversation logs; False when it is busy."""
     clear_mistakes: Callable[[], bool] = _refuse

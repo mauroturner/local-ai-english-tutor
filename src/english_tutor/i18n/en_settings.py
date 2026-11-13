@@ -119,6 +119,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.clear_mistakes.help": "Permanently deletes every recorded mistake and its "
     "practice statistics.",
     # Shortcuts
+    "setting.ptt_key_es.label": "Key to ask in Spanish",
+    "setting.ptt_key_es.help": "Hold this key and ask in Spanish how to say something in English "
+    "(for example: \"cómo se dice tengo ganas de salir\"). The phrase is spoken and saved to "
+    "your word list.",
     "setting.ptt_key.label": "Push-to-talk key",
     "setting.ptt_key.help": "Hold this key to speak. Other applications still receive it.",
     "setting.shortcut_end_session.label": "End session",

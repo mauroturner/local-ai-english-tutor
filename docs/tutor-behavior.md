@@ -66,6 +66,15 @@ The model's output is not trusted blindly. `domain/corrections.py` applies these
 
 The code does **not** check that a `corrected` phrase is actually right, and it does not re-classify severity; those depend on the model.
 
+## Word list and "how do I say...?"
+
+The **Words** tab keeps phrases you want to learn (`data/vocabulary.json`, up to 500): the phrase, its meaning in Spanish, an English example, how many times you practised it and when it is next due (the same 1 / 3 / 7 / 14 / 30-day ladder as the mistakes). Two ways to add one:
+
+- **Save a phrase** (Words tab): the tutor model picks one useful word or phrase from Alex's last words (`Tutor said: ...`) and gives its meaning and an example.
+- **Hold the Spanish key** (default `b`, **Settings > Shortcuts > Key to ask in Spanish**, restart needed) and ask in Spanish, for example "cómo se dice tengo ganas de salir". That recording is transcribed with `language="es"`, is **not** a turn of the conversation (no corrections, no history, no statistics, no word timings), the model gives the English phrase, Alex says `You can say: ...` and it is saved to the list. The key is ignored while a drill is running or when it is the same as the normal push-to-talk key.
+
+**Practice** on a saved phrase runs the usual practice drill with a vocabulary target (`TARGET (vocabulary, not a mistake)`): the coach asks questions whose answer contains the phrase; the result updates the word's score and review date, never the mistake history. **Delete** removes a phrase. The model prompts for phrases carry no `LEARNER` section (so the example sentences do not use your name) and the text is cleaned (one line, no double quotes, bounded) before it is stored or put in a prompt. Saved phrases are personal text kept in plain JSON like the rest of `data/`.
+
 ## Listening and speaking drills
 
 The **Drills** menu next to the Repeat / Slower / End session buttons starts one of three exercises (only when the app is idle and not practising; **End session**, practice and the scenario picker are blocked while one runs). A banner shows the sentence and has **Next** and **Stop drill**. Answers go through the same push-to-talk key, but they are **not** sent to the tutor: nothing is corrected, recorded as a mistake or added to the session report or statistics. Every sentence and verdict is written to the conversation log as `DRILL`, and spoken.

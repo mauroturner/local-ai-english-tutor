@@ -122,6 +122,7 @@ def test_env_vars_map_the_documented_fields():
         "tts_enabled": "TUTOR_TTS",
         "data_dir": "TUTOR_DATA_DIR",
         "ptt_key": "TUTOR_PTT_KEY",
+        "ptt_key_es": "TUTOR_PTT_KEY_ES",
         "whisper_device": "TUTOR_WHISPER_DEVICE",
         "whisper_model": "TUTOR_WHISPER_MODEL",
         "ollama_url": "TUTOR_OLLAMA_URL",

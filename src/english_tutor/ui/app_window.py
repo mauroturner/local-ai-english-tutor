@@ -17,6 +17,7 @@ from ..application.events import (
     MistakesChanged,
     ListeningChanged,
     ListeningFeedback,
+    PhraseSaved,
     PracticeChanged,
     PracticeFeedback,
     ProgressChanged,
@@ -26,6 +27,7 @@ from ..application.events import (
     StateChanged,
     TutorSaid,
     UserSaid,
+    VocabularyChanged,
 )
 from ..application.session import ConversationSession
 from ..audio.devices import InputDevice
@@ -46,6 +48,7 @@ from .goal import goal_text, topic_text
 from .listening_banner import ListeningBanner
 from .mistakes_view import MistakesView
 from .progress_view import ProgressView
+from .words_view import WordsView
 from .widgets import (
     ChatView,
     ControlBar,
@@ -206,6 +209,14 @@ class TutorWindow(ctk.CTk):
             on_weekly=self._on_weekly_review,
         )
         self._mistakes.pack(fill="both", expand=True)
+        words_tab = self._tabs.add(t("tab.words"))
+        self._words = WordsView(
+            words_tab,
+            on_practice=self._on_practice,
+            on_remove=self._session.remove_phrase,
+            on_save=self._session.save_phrase,
+        )
+        self._words.pack(fill="both", expand=True)
         progress_tab = self._tabs.add(t("tab.progress"))
         self._progress = ProgressView(progress_tab)
         self._progress.pack(fill="both", expand=True)
@@ -272,6 +283,10 @@ class TutorWindow(ctk.CTk):
             outcome = PracticeOutcome.CORRECT if event.perfect else PracticeOutcome.INCORRECT
             self._chat.add_practice_feedback(outcome, event.text)
             self._listening_banner.show_feedback(event.text)
+        elif isinstance(event, VocabularyChanged):
+            self._words.show(event.entries)
+        elif isinstance(event, PhraseSaved):
+            self._chat.add_notice(t("chat.phrase_saved", phrase=event.entry.phrase))
         elif isinstance(event, ScenarioChanged):
             self._scenario.show(event.key)
         elif isinstance(event, ReportReady):
@@ -325,6 +340,7 @@ class TutorWindow(ctk.CTk):
         self._listening_banner.set_enabled(self._idle)
         self._scenario.set_enabled(free and not self._session.turns)
         self._mistakes.set_enabled(free)
+        self._words.set_enabled(free)
         self._banner.set_enabled(self._idle)
 
     # ---------------------------------------------------------------- handlers

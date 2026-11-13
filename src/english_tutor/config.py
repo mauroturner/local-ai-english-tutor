@@ -32,8 +32,14 @@ class AppConfig:
     piper_exe: Path | None = None
     piper_voice: Path = Path("piper/voices/en_US-lessac-medium.onnx")
     ptt_key: str = "v"
+    ptt_key_es: str = "b"
     log_level: str = "INFO"
     data_dir: Path = Path("data")
+
+    @property
+    def ptt_label_es(self) -> str:
+        """Human-readable name of the key held to ask in Spanish."""
+        return key_label(self.ptt_key_es)
 
     @property
     def ptt_label(self) -> str:
@@ -203,6 +209,7 @@ def load_config(
         piper_exe=exe,
         piper_voice=voice,
         ptt_key=_str(env, "TUTOR_PTT_KEY", "v"),
+        ptt_key_es=_str(env, "TUTOR_PTT_KEY_ES", "b"),
         log_level=_str(env, "TUTOR_LOG_LEVEL", "INFO").upper(),
         data_dir=Path(data_raw) if data_raw else root / "data",
     )

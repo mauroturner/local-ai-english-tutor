@@ -140,6 +140,7 @@ Both delete actions are refused while the tutor is busy or a practice drill is r
 
 | Setting | Default | Notes |
 | --- | --- | --- |
+| Key to ask in Spanish (`TUTOR_PTT_KEY_ES`) | `b` | Restart. Hold it and ask in Spanish how to say something in English; see [Word list](tutor-behavior.md#word-list-and-how-do-i-say). Same rules as the push-to-talk key; ignored if it is the same key |
 | Push-to-talk key (`TUTOR_PTT_KEY`) | `v` | Restart. Global: works with other windows focused. See [Push-to-talk key](#push-to-talk-key) |
 | End session | `Ctrl+E` | In-app, live |
 | Open settings | `Ctrl+,` | In-app, live |
@@ -282,6 +283,18 @@ Multi-line entries (the report) continue on following lines indented by four spa
 - **Saving.** After every change the file is written to `mistakes.json.tmp` in the same folder, flushed, and swapped in with `os.replace`, so a failed save never destroys the previous file.
 - **Corrupt or unsupported file.** If the file is not valid JSON, has the wrong structure or a `version` other than 1, it is renamed to `mistakes.json.corrupt-YYYYmmdd-HHMMSS`, the app shows `Mistake history was unreadable; saved a copy as <name> and started a new one`, and starts with an empty history. If the rename itself fails, the store becomes read-only for that run (nothing is overwritten) and a message says so. Single bad entries inside a valid file are skipped with a console warning.
 - **Failures never block a turn.** Storage problems (log or history) are shown once per kind as a chat notice (`Conversation log unavailable: ...`, `Mistake history not saved: ...`) and logged as console warnings; the conversation continues and the in-memory history stays correct for the run.
+
+### Word list
+
+`data\vocabulary.json`, versioned JSON (`{"version": 1, "words": [...]}`), one entry per saved phrase:
+
+```json
+{"phrase": "a lot of fun", "meaning": "muy divertido", "example": "The party was a lot of fun.",
+ "added": "2026-11-13T10:00:00", "practice": {"attempts": 2, "successes": 1},
+ "review": {"due": "2026-11-16", "step": 1}}
+```
+
+Same safety rules as the mistake history (atomic saves, a bad file is renamed to `vocabulary.json.corrupt-YYYYmmdd-HHMMSS`, bad entries are skipped, a failed save shows `Word list not saved: ...` once). Delete it by hand with `Remove-Item data\vocabulary.json`.
 
 ### Session statistics
 

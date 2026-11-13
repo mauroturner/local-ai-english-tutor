@@ -52,6 +52,7 @@ class UserSettings:
     data_dir: str = ""
     export_dir: str = ""
     ptt_key: str = "v"
+    ptt_key_es: str = "b"
     shortcut_end_session: str = "Ctrl+E"
     shortcut_settings: str = "Ctrl+,"
     shortcut_chat_tab: str = "Ctrl+1"
@@ -69,6 +70,7 @@ ENV_VARS: dict[str, str] = {
     "tts_enabled": "TUTOR_TTS",
     "data_dir": "TUTOR_DATA_DIR",
     "ptt_key": "TUTOR_PTT_KEY",
+    "ptt_key_es": "TUTOR_PTT_KEY_ES",
     "whisper_device": "TUTOR_WHISPER_DEVICE",
     "whisper_model": "TUTOR_WHISPER_MODEL",
     "ollama_url": "TUTOR_OLLAMA_URL",
@@ -84,6 +86,7 @@ RESTART_FIELDS: frozenset[str] = frozenset(
         "tts_enabled",
         "data_dir",
         "ptt_key",
+        "ptt_key_es",
         "whisper_device",
         "whisper_model",
         "ollama_url",

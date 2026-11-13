@@ -8,9 +8,11 @@ from ..application.events import (
     ProgressChanged,
     ReportReady,
     SessionEvent,
+    VocabularyChanged,
 )
 from ..domain.models import MistakeRecord, SessionReport
 from ..domain.progress import SessionStats
+from ..domain.vocabulary import VocabEntry
 from ..i18n import t
 
 
@@ -21,6 +23,7 @@ class SessionSnapshot:
         self.report: SessionReport | None = None
         self.mistakes: tuple[MistakeRecord, ...] = ()
         self.sessions: tuple[SessionStats, ...] = ()
+        self.words: tuple[VocabEntry, ...] = ()
 
     def observe(self, event: SessionEvent) -> None:
         """Update from ``event``; events that do not matter are ignored."""
@@ -30,6 +33,8 @@ class SessionSnapshot:
             self.mistakes = tuple(event.mistakes)
         elif isinstance(event, ProgressChanged):
             self.sessions = tuple(event.sessions)
+        elif isinstance(event, VocabularyChanged):
+            self.words = tuple(event.entries)
 
 
 def cleared_message(event: DataCleared) -> str:

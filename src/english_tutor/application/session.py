@@ -21,11 +21,13 @@ from ..ports import (
     LlmUnavailable,
     MistakeStore,
     PracticeCoach,
+    PhraseHelper,
     SessionStatsStore,
     SpeechSynthesizer,
     SpeechToText,
     TtsError,
     TutorModel,
+    VocabularyStore,
 )
 from .events import (
     ErrorRaised,
@@ -34,14 +36,22 @@ from .events import (
     ProgressChanged,
     ReportReady,
     ScenarioChanged,
+    VocabularyChanged,
     StateChanged,
     TutorSaid,
     UserSaid,
 )
 from .history import ChatHistory
 from .listening import ListeningCoach, ListeningServices
-from .journal import NullConversationLog, NullMistakeStore, NullSessionStatsStore, SafeJournal
+from .journal import (
+    NullConversationLog,
+    NullMistakeStore,
+    NullSessionStatsStore,
+    NullVocabularyStore,
+    SafeJournal,
+)
 from .mistake_book import MistakeBook
+from .vocabulary_book import VocabularyBook
 from .practice import PracticeDrill, PracticeServices
 from .report import make_report
 from .session_actions import SLOWER_SPEECH, Pauses, SessionActions  # noqa: F401  (re-exported)
@@ -85,6 +95,8 @@ class ConversationSession(SessionActions):
         speech_scale: Callable[[], float] = lambda: 1.0,
         scenario: ScenarioChoice | None = None,
         use_memory: Callable[[], bool] = lambda: True,
+        vocabulary: VocabularyStore | None = None,
+        phrases: PhraseHelper | None = None,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -111,8 +123,14 @@ class ConversationSession(SessionActions):
             lambda: self._turns[-1].tutor_reply if self._turns else "",
         ))  # fmt: skip
         self._practice = PracticeServices(
-            self._ask, self._emit, self._journal.record, self._speak
+            self._ask, self._emit, self._journal.record, self._speak, self._vocabulary_result
         )
+        self._phrases = phrases
+        self._vocab = VocabularyBook(
+            vocabulary or NullVocabularyStore(),
+            lambda message: self._warn_once("vocabulary", message),
+        )
+        self._spanish = False  # the recording in progress is a request in Spanish
         self._book = MistakeBook(
             mistakes or NullMistakeStore(),
             lambda message: self._warn_once("mistakes", message),
@@ -197,6 +215,8 @@ class ConversationSession(SessionActions):
         self._book.load()
         self._emit(MistakesChanged(self._book.snapshot()))
         self._stats.load()
+        self._vocab.load()
+        self._emit(VocabularyChanged(self._vocab.snapshot()))
         try:
             device = self._stt.load()
         except Exception as exc:  # any load failure must be shown, not crash the worker
@@ -240,10 +260,17 @@ class ConversationSession(SessionActions):
         self._runner.close()
 
     # ------------------------------------------------------------------- turn
-    def on_ptt_press(self) -> None:
-        """Start recording; ignored unless the session is idle."""
+    def on_ptt_press(self, spanish: bool = False) -> None:
+        """Start recording; ignored unless the session is idle.
+
+        ``spanish`` marks a request in Spanish ("how do I say..."), which needs the
+        phrase helper and no running drill.
+        """
+        if spanish and (self._phrases is None or self._practicing()):
+            return
         if not self._transition(SessionState.IDLE, SessionState.RECORDING, "Listening..."):
             return
+        self._spanish = spanish
         self._submit(self._start_recording)
 
     def _start_recording(self) -> None:
@@ -290,7 +317,11 @@ class ConversationSession(SessionActions):
             self._set_state(SessionState.IDLE, "Too short or too quiet, try again")
             return
         try:
-            transcript = self._stt.transcribe(audio, with_words=self._track_pauses())
+            spanish = self._spanish
+            transcript = self._stt.transcribe(
+                audio, with_words=self._track_pauses() and not spanish,
+                language="es" if spanish else "en",
+            )
         except Exception as exc:  # Whisper/CUDA raise assorted runtime errors
             logger.exception("Transcription failed")
             self._fail(f"Transcription failed: {exc}")
@@ -301,6 +332,9 @@ class ConversationSession(SessionActions):
             return
         self._emit(UserSaid(raw))
         self._journal.record("you", raw)
+        if spanish:  # a request for a phrase, not a turn of the conversation
+            self._phrase_request(raw)
+            return
         pauses = find_hesitations(transcript.words)  # no words unless tracking is on
         with self._lock:
             drill = self._drill

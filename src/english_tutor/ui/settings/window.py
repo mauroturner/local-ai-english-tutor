@@ -276,7 +276,7 @@ class SettingsWindow(SettingsCommands, ctk.CTkToplevel):
         """Open the key-capture dialog for ``key``; the result goes to ``apply``."""
         if self._capture_dialog is not None:
             return
-        mode = PTT if key == "ptt_key" else SHORTCUT
+        mode = PTT if key in ("ptt_key", "ptt_key_es") else SHORTCUT
 
         def done(value: str | None) -> None:
             self._capture_dialog = None

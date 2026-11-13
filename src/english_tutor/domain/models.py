@@ -14,6 +14,7 @@ class Severity(str, Enum):
     MAJOR = "major"
     MINOR = "minor"
     HESITATION = "hesitation"  # a long pause, not an error (see domain.hesitation)
+    VOCABULARY = "vocabulary"  # a saved phrase used as a practice target, never a mistake
 
 
 class SessionState(Enum):

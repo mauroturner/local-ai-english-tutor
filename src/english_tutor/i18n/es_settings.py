@@ -121,6 +121,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.clear_mistakes.help": "Elimina de forma permanente todos los errores registrados "
     "y sus estadísticas de práctica.",
     # Atajos
+    "setting.ptt_key_es.label": "Tecla para preguntar en español",
+    "setting.ptt_key_es.help": "Mantén esta tecla y pregunta en español cómo decir algo en inglés "
+    "(por ejemplo: \"cómo se dice tengo ganas de salir\"). La frase se dice en voz alta y se "
+    "guarda en tu lista de palabras.",
     "setting.ptt_key.label": "Tecla para hablar",
     "setting.ptt_key.help": "Mantén pulsada esta tecla para hablar. Las demás aplicaciones "
     "también la reciben.",

@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from ..domain.categories import parse_category
+from ..domain.vocabulary import PhraseSuggestion, clean_suggestion
 from ..domain.models import (
     Correction,
     PracticeOutcome,
@@ -140,4 +141,19 @@ def parse_practice_reply(raw: str) -> PracticeReply:
         outcome=_outcome(data.get("target_used")),
         feedback=feedback.strip() if isinstance(feedback, str) else "",
         next_prompt=(prompt.strip() if isinstance(prompt, str) else "") or FALLBACK_PROMPT,
+    )
+
+
+def parse_phrase(raw: str) -> PhraseSuggestion | None:
+    """Parse a phrase suggestion; None when there is no usable phrase. Never raises."""
+    data = _load_object(raw)
+    if data is None or not isinstance(data.get("phrase"), str):
+        return None
+    meaning, example = data.get("meaning"), data.get("example")
+    return clean_suggestion(
+        PhraseSuggestion(
+            data["phrase"],
+            meaning if isinstance(meaning, str) else "",
+            example if isinstance(example, str) else "",
+        )
     )

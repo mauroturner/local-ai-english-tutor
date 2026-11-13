@@ -95,8 +95,13 @@ class WhisperTranscriber:
         segments, _ = model.transcribe(np.zeros(_SAMPLE_RATE, dtype=np.float32), **kwargs)
         list(segments)
 
-    def transcribe(self, audio_16k: np.ndarray, with_words: bool = False) -> Transcript:
+    def transcribe(
+        self, audio_16k: np.ndarray, with_words: bool = False, language: str = "en"
+    ) -> Transcript:
         """Transcribe 16 kHz mono float32 audio without altering the text.
+
+        ``language`` is "en" for the conversation and "es" for a request in Spanish; word
+        timings are only computed for English.
 
         With ``with_words`` the finished text is also aligned to the audio to
         learn when each word was said; that step never changes the text.
@@ -104,11 +109,11 @@ class WhisperTranscriber:
         if self._model is None:
             raise SttError("Speech model is not loaded yet")
         try:
-            segments, _ = self._model.transcribe(audio_16k, **self._kwargs)
+            segments, _ = self._model.transcribe(audio_16k, **{**self._kwargs, "language": language})
             text = "".join(seg.text for seg in list(segments)).strip()
         except Exception as exc:  # decoding errors are library specific
             raise SttError(f"Transcription failed: {exc}") from exc
-        words = self._timed_words(audio_16k, text) if with_words and text else ()
+        words = self._timed_words(audio_16k, text) if with_words and text and language == "en" else ()
         return Transcript(text, len(audio_16k) / _SAMPLE_RATE, words)
 
     def _timed_words(self, audio_16k: np.ndarray, text: str) -> tuple[TimedWord, ...]:

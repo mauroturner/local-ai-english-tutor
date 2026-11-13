@@ -14,7 +14,16 @@ from typing import Any
 from ..domain.drills import DrillKind
 from ..domain.models import Hesitation, SessionState
 from ..domain.scenarios import get_scenario
-from .events import ErrorRaised, PracticeChanged, ScenarioChanged, StateChanged, TutorSaid
+from ..domain.models import PracticeOutcome
+from .events import (
+    ErrorRaised,
+    PhraseSaved,
+    PracticeChanged,
+    ScenarioChanged,
+    StateChanged,
+    TutorSaid,
+    VocabularyChanged,
+)
 from .practice import PracticeDrill, open_practice, run_practice_turn
 
 SLOWER_SPEECH = 1.35
@@ -38,6 +47,8 @@ class SessionActions:
     _practice: Any
     _scenario: Any
     _last_spoken: str
+    _vocab: Any
+    _phrases: Any
     _emit: Callable[[Any], None]
     _journal: Any
 
@@ -76,6 +87,62 @@ class SessionActions:
     def _replay(self, slower: bool) -> None:
         self._speak(self._last_spoken, SLOWER_SPEECH if slower else 1.0)
         self._set_state(SessionState.IDLE, self._ready_message())
+
+    # ------------------------------------------------------------------ word list
+    def save_phrase(self) -> None:
+        """Add a phrase from the tutor's last words to the word list; ignored unless idle."""
+        with self._lock:
+            ready = (
+                self._state is SessionState.IDLE
+                and not self._practicing()
+                and self._phrases is not None
+                and bool(self._last_reply())
+            )
+            if ready:
+                self._state = SessionState.THINKING
+        if not ready:
+            return
+        self._emit(StateChanged(SessionState.THINKING, "Choosing a phrase..."))
+        self._submit(lambda: self._save_phrase_job(self._last_reply(), False))
+
+    def _last_reply(self) -> str:
+        return self._turns[-1].tutor_reply if self._turns else self._last_spoken
+
+    def _save_phrase_job(self, text: str, spanish: bool) -> None:
+        suggestion = self._ask(lambda: self._phrases.suggest_phrase(text, spanish))
+        entry = self._vocab.add(suggestion) if suggestion is not None else None
+        if entry is not None:
+            self._emit(VocabularyChanged(self._vocab.snapshot()))
+            self._emit(PhraseSaved(entry))
+            self._journal.record("tutor", f"Saved phrase: {entry.phrase} ({entry.meaning})")
+            if spanish:
+                said = f"You can say: {entry.phrase}."
+                if entry.example:
+                    said += f" For example: {entry.example}"
+                self._emit(TutorSaid(said))
+                self._speak(said)
+        self._set_state(SessionState.IDLE, self._ready_message())
+
+    def _phrase_request(self, spanish_text: str) -> None:
+        """Answer "how do I say ..." (already transcribed in Spanish) with a saved phrase."""
+        self._set_state(SessionState.THINKING, "Looking for the English phrase...")
+        self._save_phrase_job(spanish_text, True)
+
+    def remove_phrase(self, key: str) -> None:
+        """Delete a phrase from the word list; ignored unless idle."""
+        with self._lock:
+            if self._state is not SessionState.IDLE:
+                return
+        self._submit(lambda: self._forget_phrase(key))
+
+    def _forget_phrase(self, key: str) -> None:
+        self._vocab.remove(key)
+        self._emit(VocabularyChanged(self._vocab.snapshot()))
+
+    def _vocabulary_result(self, key: str, outcome: PracticeOutcome) -> None:
+        """A drill on a saved phrase ended with ``outcome``: move its review date."""
+        self._vocab.practice(key, outcome)
+        self._emit(VocabularyChanged(self._vocab.snapshot()))
 
     def _practicing(self) -> bool:
         """Whether a practice or listening drill is running (the lock is held by callers)."""
@@ -141,7 +208,7 @@ class SessionActions:
         self._submit(lambda: self._open_practice(key))
 
     def _open_practice(self, key: str) -> None:
-        record = self._book.get(key)
+        record = self._book.get(key) or self._vocab.target(key)
         if self._coach is None or record is None:
             self._fail("Practice is not available for that mistake.")
             return

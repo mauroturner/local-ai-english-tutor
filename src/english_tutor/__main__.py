@@ -11,6 +11,7 @@ from .adapters.file_conversation_log import FileConversationLog
 from .adapters.folders import open_folder
 from .adapters.json_mistake_store import JsonMistakeStore
 from .adapters.json_session_store import JsonSessionStore
+from .adapters.json_vocabulary_store import JsonVocabularyStore
 from .adapters.json_settings_store import JsonSettingsStore
 from .adapters.keyboard_ptt import KeyboardPushToTalk
 from .adapters.ollama_chat import OllamaTutorModel
@@ -25,7 +26,7 @@ from .application.events import ErrorRaised, LevelChanged, SessionEvent
 from .application.maintenance import clear_logs, clear_memory, clear_mistakes
 from .application.scenario_choice import ScenarioChoice
 from .application.preferences import SettingsService
-from .application.ptt_gate import PttGate
+from .application.ptt_gate import GateGroup, PttGate
 from .application.session import ConversationSession
 from .audio.devices import list_input_devices
 from .config import (
@@ -132,6 +133,8 @@ def main() -> int:
         conversation_log=conversation_log,
         mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
         session_stats=JsonSessionStore(cfg.data_dir / "sessions.json"),
+        vocabulary=JsonVocabularyStore(cfg.data_dir / "vocabulary.json"),
+        phrases=tutor,
         coach=tutor,
         track_pauses=lambda: current[0].track_pauses,
         suggest_natural=lambda: current[0].suggest_natural,
@@ -140,6 +143,7 @@ def main() -> int:
         use_memory=lambda: current[0].session_memory,
     )
     gate = PttGate(session.on_ptt_press, session.on_ptt_release)
+    gate_es = PttGate(lambda: session.on_ptt_press(spanish=True), session.on_ptt_release)
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)
     services = UiServices(
         settings_service,
@@ -148,7 +152,7 @@ def main() -> int:
         apply_log_level=_apply_log_level,
         on_applied=on_applied,
         on_restart_needed=lambda keys: window_ref[0].show_restart_banner(keys),
-        ptt_gate=gate,
+        ptt_gate=GateGroup(gate, gate_es),
         autostart=autostart,
         check_ollama=check_connection,
         clear_logs=lambda: session.clear_data(clear_logs(conversation_log.clear)),
@@ -176,8 +180,13 @@ def main() -> int:
         window.post(ErrorRaised(warning))
 
     ptt = KeyboardPushToTalk(cfg.ptt_key)
+    ptt_es = KeyboardPushToTalk(cfg.ptt_key_es)
     try:
         ptt.start(gate.press, gate.release)
+        if cfg.ptt_key_es.strip().lower() == cfg.ptt_key.strip().lower():
+            window.post(ErrorRaised("The key to ask in Spanish is the same as the push-to-talk key."))
+        else:
+            ptt_es.start(gate_es.press, gate_es.release)
     except Exception as exc:  # the keyboard hook needs OS privileges on some systems
         logger.exception("Push-to-talk unavailable")
         window.post(ErrorRaised(f"PTT unavailable: {exc}"))
@@ -188,6 +197,7 @@ def main() -> int:
         window.mainloop()
     finally:
         ptt.stop()
+        ptt_es.stop()
         session.shutdown()
         cue_player.close()
         if window.restart_requested:

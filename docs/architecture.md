@@ -129,6 +129,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `domain/progress.py` | `SessionStats` (the numbers of one finished session, with per-100-word rates), `build_stats`, `count_words`, `trend`, `week_summary`, `best_session`, `streak_days`, `goal_met` |
 | `domain/drills.py`, `domain/shadowing.py` | Listening and speaking drills: choosing sentences and minimal pairs, `judge`, and the word-by-word `compare` |
 | `domain/topics.py` | `weakest_category`, `topic_of_the_day` (the suggestion under the scenario picker) |
+| `domain/vocabulary.py`, `domain/vocab_prompts.py` | The word list rules (`VocabEntry`, `add_entry`, `practice_entry`, `as_target`) and the prompts that ask the model for a phrase |
 | `domain/scenarios.py` | `Scenario`, `SCENARIOS`, `with_scenario` (the SCENARIO prompt section), `unused_vocabulary` |
 | `domain/formatting.py` | Plain-text renderings shared by the UI and the log: `format_report`, `correction_text`, `practice_speech` |
 | `audio/processing.py` | `to_mono`, `resample` (polyphase), `peak_normalize`, `prepare_for_stt` |
@@ -138,6 +139,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `application/practice.py` | `PracticeDrill` (target + its own bounded history), `open_practice`, `run_practice_turn` |
 | `application/mistake_book.py` | `MistakeBook`: in-memory mistake history backed by a `MistakeStore`; storage errors go to a warning callback |
 | `application/journal.py` | `SafeJournal` (a conversation log whose failures warn instead of raising), `NullConversationLog`, `NullMistakeStore`, `NullSessionStatsStore` |
+| `application/vocabulary_book.py` | `VocabularyBook`: the saved phrases in memory, backed by a `VocabularyStore`; storage errors go to a warning callback |
 | `application/listening.py` | `ListeningCoach`: runs a shadowing, minimal-pair or dictation drill for the session (events `ListeningChanged`, `ListeningFeedback`) |
 | `application/scenario_choice.py` | `ScenarioChoice`: the scenario of the running session, shared by `ConversationSession` and `OllamaTutorModel` |
 | `application/session_stats.py` | `StatsRecorder`: marks the session start, stores its `SessionStats` through the `SessionStatsStore` port when the session ends, keeps every stored session in memory and announces the list with `ProgressChanged` (after loading and after each session); failures warn once |
@@ -155,6 +157,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `adapters/keyboard_ptt.py` | `KeyboardPushToTalk`: global key hooks, ignores auto-repeat, filters the Left/Right side of Ctrl/Alt via `side_names` |
 | `adapters/file_conversation_log.py` | `FileConversationLog`: one timestamped `.log` file per session |
 | `adapters/json_mistake_store.py` | `JsonMistakeStore`: versioned `mistakes.json`, atomic save, corrupt-file backup |
+| `adapters/json_vocabulary_store.py`, `adapters/json_document.py` | `JsonVocabularyStore`: versioned `vocabulary.json`; `VersionedJsonList` holds the shared read/quarantine/atomic-write rules |
 | `adapters/json_session_store.py` | `JsonSessionStore`: versioned `sessions.json` (one `SessionStats` per finished session), atomic append, corrupt-file backup |
 | `adapters/json_settings_store.py`, `adapters/atomic_io.py` | `JsonSettingsStore`: versioned `settings.json`, corrupt-file backup; `atomic_write_text` is shared by saves and exports |
 | `adapters/windows_autostart.py` | `WindowsAutoStart`: the `EnglishTutor` value under `HKCU\...\Run`; `autostart_command` |

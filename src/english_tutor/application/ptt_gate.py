@@ -7,6 +7,32 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 
 
+class GateGroup:
+    """Several gates suspended and resumed together (one per push-to-talk key)."""
+
+    def __init__(self, *gates: PttGate) -> None:
+        self._gates = gates
+
+    def suspend(self) -> None:
+        """Suspend every gate."""
+        for gate in self._gates:
+            gate.suspend()
+
+    def resume(self) -> None:
+        """Resume every gate."""
+        for gate in self._gates:
+            gate.resume()
+
+    @contextmanager
+    def paused(self) -> Iterator[None]:
+        """Suspend every gate for the duration of a ``with`` block."""
+        self.suspend()
+        try:
+            yield
+        finally:
+            self.resume()
+
+
 class PttGate:
     """Sits between the keyboard hook and the session.
 

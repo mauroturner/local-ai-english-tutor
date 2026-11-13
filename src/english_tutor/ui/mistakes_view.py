@@ -19,6 +19,7 @@ _BADGES = {
     Severity.MAJOR: "BADGE_MAJOR",
     Severity.MINOR: "BADGE_MINOR",
     Severity.HESITATION: "BADGE_PAUSE",
+    Severity.VOCABULARY: "BADGE_PAUSE",
 }
 """Theme colour name of each badge (looked up when drawn, so theme changes apply)."""
 

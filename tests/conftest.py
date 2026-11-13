@@ -44,14 +44,18 @@ class FakeSTT:
         self.loaded = False
         self.received: list[np.ndarray] = []
         self.with_words: list[bool] = []
+        self.languages: list[str] = []
 
     def load(self) -> str:
         self.loaded = True
         return "fake-device"
 
-    def transcribe(self, audio_16k: np.ndarray, with_words: bool = False) -> Transcript:
+    def transcribe(
+        self, audio_16k: np.ndarray, with_words: bool = False, language: str = "en"
+    ) -> Transcript:
         self.received.append(audio_16k)
         self.with_words.append(with_words)
+        self.languages.append(language)
         item = self.texts.pop(0)  # a plain text, or a Transcript with word timings
         if not isinstance(item, Transcript):
             return Transcript(item, 1.0)
@@ -189,6 +193,41 @@ class FakeSessionStatsStore:
         return count
 
 
+class FakeVocabularyStore:
+    """In-memory VocabularyStore; the ``*_error`` attributes make calls raise."""
+
+    def __init__(self) -> None:
+        self.entries: list = []
+        self.saves: list = []
+        self.load_error: Exception | None = None
+        self.save_error: Exception | None = None
+
+    def load(self) -> list:
+        if self.load_error is not None:
+            raise self.load_error
+        return list(self.entries)
+
+    def save(self, entries) -> None:
+        if self.save_error is not None:
+            raise self.save_error
+        self.saves.append(list(entries))
+
+
+class FakePhrases:
+    """Scripted PhraseHelper; items may be PhraseSuggestion or an exception to raise."""
+
+    def __init__(self, items=()) -> None:
+        self.items = list(items)
+        self.calls: list[tuple[str, bool]] = []
+
+    def suggest_phrase(self, text: str, spanish: bool):
+        self.calls.append((text, spanish))
+        item = self.items.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+
 class FakeCoach:
     """Scripted PracticeCoach; items may be PracticeReply or an exception to raise."""
 
@@ -256,6 +295,12 @@ class Harness:
 def fake_store() -> FakeMistakeStore:
     """A fresh in-memory mistake store."""
     return FakeMistakeStore()
+
+
+@pytest.fixture
+def fake_vocab() -> FakeVocabularyStore:
+    """A fresh in-memory word list store."""
+    return FakeVocabularyStore()
 
 
 @pytest.fixture
@@ -350,7 +395,7 @@ def make_harness():
     def _make(
         texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None,
         coach=None, track_pauses=None, session_stats=None, suggest_natural=None,
-        speech_scale=None, scenario=None, use_memory=None,
+        speech_scale=None, scenario=None, use_memory=None, vocabulary=None, phrases=None,
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -368,6 +413,8 @@ def make_harness():
             speech_scale=speech_scale or (lambda: 1.0),
             scenario=scenario,
             use_memory=use_memory or (lambda: True),
+            vocabulary=vocabulary,
+            phrases=phrases,
         )
         session.start()
         if isinstance(runner, ManualRunner):

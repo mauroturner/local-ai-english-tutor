@@ -70,6 +70,17 @@ def target_block(target: MistakeRecord) -> str:
             'otherwise "not_used". Never "incorrect": the app measures the pauses itself.\n'
             "- Ask questions whose natural answer contains this phrase."
         )
+    if target.severity is Severity.VOCABULARY:
+        return (
+            "TARGET (vocabulary, not a mistake):\n"
+            f'- The learner is learning this English phrase: "{_clean(target.corrected)}"'
+            f' (meaning: "{_clean(target.original)}").\n'
+            f'- Example: "{_clean(target.explanation)}"\n'
+            '- "target_used": "correct" when they used the phrase naturally (small changes of '
+            'tense or person are fine), "incorrect" when they used it wrongly, "not_used" '
+            "otherwise.\n"
+            "- Ask questions whose natural answer contains this phrase."
+        )
     return (
         "TARGET:\n"
         f'- The learner said: "{_clean(target.original)}"\n'

@@ -155,6 +155,7 @@ REGISTRY: tuple[SettingSpec, ...] = (
             "limpiar", "memoria"), danger=True),
     # Shortcuts
     _setting("ptt_key", _SC, Control.KEY, _KEY_WORDS + ("push to talk", "microphone")),
+    _setting("ptt_key_es", _SC, Control.KEY, _KEY_WORDS + ("spanish", "espanol", "how do i say", "como se dice")),
     _setting("shortcut_end_session", _SC, _SHORTCUT, _KEY_WORDS),
     _setting("shortcut_settings", _SC, _SHORTCUT, _KEY_WORDS),
     _setting("shortcut_chat_tab", _SC, _SHORTCUT, _KEY_WORDS),

@@ -20,6 +20,7 @@ from .domain.models import (
     TutorReply,
 )
 from .domain.progress import SessionStats
+from .domain.vocabulary import PhraseSuggestion, VocabEntry
 
 
 class AdapterError(Exception):
@@ -57,8 +58,10 @@ class SpeechToText(Protocol):
         """Load the model and return a description of the device used."""
         ...
 
-    def transcribe(self, audio_16k: np.ndarray, with_words: bool = False) -> Transcript:
-        """Transcribe float32 mono audio sampled at 16 kHz.
+    def transcribe(
+        self, audio_16k: np.ndarray, with_words: bool = False, language: str = "en"
+    ) -> Transcript:
+        """Transcribe float32 mono audio sampled at 16 kHz in ``language`` ("en" or "es").
 
         ``with_words`` also asks for word timings (``Transcript.words``); the
         text must be exactly the same either way.
@@ -143,6 +146,26 @@ class MistakeStore(Protocol):
 
     def save(self, records: Sequence[MistakeRecord]) -> None:
         """Replace the stored records; raises StorageError on failure."""
+        ...
+
+
+class VocabularyStore(Protocol):
+    """Persistent personal word list."""
+
+    def load(self) -> list[VocabEntry]:
+        """Return the saved phrases; raises StorageError when unusable."""
+        ...
+
+    def save(self, entries: Sequence[VocabEntry]) -> None:
+        """Replace the saved phrases; raises StorageError on failure."""
+        ...
+
+
+class PhraseHelper(Protocol):
+    """Suggests a phrase to learn."""
+
+    def suggest_phrase(self, text: str, spanish: bool) -> PhraseSuggestion:
+        """A phrase from the tutor's ``text``, or the English way to say a Spanish request."""
         ...
 
 

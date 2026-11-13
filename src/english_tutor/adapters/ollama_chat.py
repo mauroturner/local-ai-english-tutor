@@ -10,6 +10,8 @@ import requests
 
 from ..domain.learner import LearnerProfile, explanation_rule, with_profile
 from ..domain.scenarios import FREE, with_scenario
+from ..domain.vocab_prompts import PHRASE_SCHEMA, phrase_system_prompt, phrase_user_message
+from ..domain.vocabulary import PhraseSuggestion
 from ..domain.models import (
     ChatMessage,
     MistakeRecord,
@@ -26,9 +28,9 @@ from ..domain.prompts import (
     build_report_user_message,
 )
 from ..domain.practice_prompts import PRACTICE_SCHEMA, build_practice_system_prompt
-from ..ports import LlmUnavailable
+from ..ports import AdapterError, LlmUnavailable
 from .ollama_check import model_installed
-from .ollama_parsing import parse_feedback, parse_practice_reply, parse_tutor_reply
+from .ollama_parsing import parse_feedback, parse_phrase, parse_practice_reply, parse_tutor_reply
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +81,17 @@ class OllamaTutorModel:
             raise LlmUnavailable(
                 f"Model {self._model} not found: run `ollama pull {self._model}`"
             )
+
+    def suggest_phrase(self, text: str, spanish: bool) -> PhraseSuggestion:
+        """Ask for a phrase to learn from the tutor's ``text`` (or from a Spanish request)."""
+        messages = [
+            ChatMessage("system", phrase_system_prompt(spanish)),
+            ChatMessage("user", phrase_user_message(text, spanish)),
+        ]
+        suggestion = parse_phrase(self._chat(messages, PHRASE_SCHEMA))
+        if suggestion is None:
+            raise AdapterError("The tutor model did not suggest a phrase. Try again.")
+        return suggestion
 
     def _turn_prompt(self) -> str:
         profile = self._profile()
