@@ -114,3 +114,22 @@ def test_a_failed_save_keeps_the_old_file(tmp_path, monkeypatch):
         store.append(stats(words=1))
     monkeypatch.undo()
     assert make(tmp_path).load() == [stats()]
+
+
+def test_a_read_error_never_overwrites_the_history(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    store = make(tmp_path)
+    store.append(stats())
+    path = tmp_path / "data" / "sessions.json"
+    before = path.read_text(encoding="utf-8")
+
+    def locked(self, *args, **kwargs):
+        raise PermissionError("file is locked")
+
+    monkeypatch.setattr(Path, "read_text", locked)
+    with pytest.raises(StorageError, match="Could not read"):
+        store.append(stats(words=1))
+    monkeypatch.undo()
+    assert path.read_text(encoding="utf-8") == before
+    assert list((tmp_path / "data").glob("*.corrupt-*")) == []

@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 _VERSION = 1
 
 
+class _MovedAside(StorageError):
+    """The unreadable file was renamed to ``.corrupt-<time>``; a new file may start."""
+
+
 class JsonSessionStore:
     """Reads and writes ``{"version": 1, "sessions": [...]}``.
 
@@ -52,9 +56,7 @@ class JsonSessionStore:
         """Add one session to the file; a quarantined file starts a new one."""
         try:
             sessions = self.load()
-        except StorageError:
-            if self._read_only:
-                raise
+        except _MovedAside:  # the old file is safe under another name
             logger.warning("Session statistics were unreadable; started a new file")
             sessions = []
         self._write([*sessions, stats])
@@ -80,7 +82,7 @@ class JsonSessionStore:
                 "Session statistics were unreadable and could not be backed up; "
                 "they are read-only this run"
             ) from exc
-        raise StorageError(
+        raise _MovedAside(
             f"Session statistics were unreadable; saved a copy as {backup.name} "
             "and started a new file"
         )
