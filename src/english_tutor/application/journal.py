@@ -43,6 +43,10 @@ class NullSessionStatsStore:
     def append(self, stats: SessionStats) -> None:
         """Ignore the statistics."""
 
+    def clear_memory(self) -> int:
+        """Nothing is stored, so nothing is removed."""
+        return 0
+
 
 class SafeJournal:
     """Wraps a conversation log: a storage failure warns once and never raises."""

@@ -59,6 +59,7 @@ class SettingSpec:
 
 ACTION_KEYS = frozenset({
     "open_data_folder", "export_report", "export_mistakes", "clear_logs", "clear_mistakes",
+    "clear_memory",
     "test_connection", "open_logs_folder", "restore_defaults", "autostart",
 })  # fmt: skip
 
@@ -116,6 +117,8 @@ REGISTRY: tuple[SettingSpec, ...] = (
              "fluidez", "silencio", "practice", "practicar")),
     _setting("suggest_natural", _G, _SWITCH, ("native", "natural", "rephrase", "phrasing", "style",
              "nativo", "frase", "sugerir")),
+    _setting("session_memory", _G, _SWITCH, ("memory", "remember", "privacy", "history", "previous",
+             "memoria", "recordar", "privacidad", "sesiones")),
     _setting("daily_goal_minutes", _G, Control.SLIDER, ("goal", "minutes", "streak", "daily",
              "habit", "meta", "minutos", "racha", "diaria", "habito")),
     _action("autostart", _G, ("startup", "boot", "sign in", "registry", "inicio", "windows")),
@@ -143,6 +146,8 @@ REGISTRY: tuple[SettingSpec, ...] = (
             "limpiar"), danger=True),
     _action("clear_mistakes", _S, ("delete", "remove", "privacy", "wipe", "borrar", "limpiar"),
             danger=True),
+    _action("clear_memory", _S, ("delete", "remove", "privacy", "wipe", "memory", "notes", "borrar",
+            "limpiar", "memoria"), danger=True),
     # Shortcuts
     _setting("ptt_key", _SC, Control.KEY, _KEY_WORDS + ("push to talk", "microphone")),
     _setting("shortcut_end_session", _SC, _SHORTCUT, _KEY_WORDS),

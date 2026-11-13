@@ -94,6 +94,14 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.clear_logs.label": "Eliminar registros de conversación",
     "setting.clear_logs.help": "Elimina de forma permanente todos los archivos de conversación "
     "guardados. Tu historial de errores se conserva.",
+    "setting.clear_memory.label": "Eliminar memoria de sesiones",
+    "setting.clear_memory.help": "Elimina de forma permanente las notas que el tutor guardó sobre "
+    "lo que conversaron, para que olvide las sesiones anteriores. Los números y gráficos se "
+    "conservan.",
+    "setting.session_memory.label": "Recordar sesiones anteriores",
+    "setting.session_memory.help": "Al terminar una sesión el tutor escribe unas notas cortas "
+    "sobre lo que contaste (un viaje, un trabajo, planes) y la próxima conversación puede "
+    "preguntarte por eso. Las notas quedan en este equipo, en data/sessions.json.",
     "setting.clear_mistakes.label": "Eliminar historial de errores",
     "setting.clear_mistakes.help": "Elimina de forma permanente todos los errores registrados "
     "y sus estadísticas de práctica.",
@@ -193,6 +201,9 @@ SETTINGS_STRINGS: dict[str, str] = {
     "registro de conversación (session-*.log) de esta carpeta:\n{folder}\n\nTu historial de "
     "errores, tus ajustes y los registros de la aplicación no se ven afectados. Esta acción "
     "no se puede deshacer.",
+    "settings.clear_memory_title": "¿Eliminar la memoria de sesiones?",
+    "settings.clear_memory_message": "Se eliminarán de forma permanente las notas de {count} "
+    "sesión(es) anterior(es). No se puede deshacer.",
     "settings.clear_mistakes_title": "¿Eliminar el historial de errores?",
     "settings.clear_mistakes_message": "Se eliminarán de forma permanente los {count} errores "
     "registrados y sus estadísticas de práctica. Los registros de conversación y los ajustes "
@@ -211,6 +222,7 @@ SETTINGS_STRINGS: dict[str, str] = {
     "ejecución y que la carga del modelo de voz ralentice los primeros minutos. Los problemas "
     "de conexión se indican cuando la aplicación esté abierta.",
     "data.cleared_logs": "Se eliminaron {count} archivo(s) de registro de conversación.",
+    "data.cleared_memory": "Memoria de sesiones eliminada ({count} sesión(es) tenían notas).",
     "data.cleared_mistakes": "Historial de errores eliminado ({count} errores).",
     # Probar conexión
     "button.test": "Probar",

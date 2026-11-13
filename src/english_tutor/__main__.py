@@ -22,7 +22,7 @@ from .adapters.whisper_stt import WhisperTranscriber
 from .adapters.windows_autostart import NullAutoStart, WindowsAutoStart, autostart_command
 from .adapters.windows_notifier import WindowsNotifier, tk_hwnd
 from .application.events import ErrorRaised, LevelChanged, SessionEvent
-from .application.maintenance import clear_logs, clear_mistakes
+from .application.maintenance import clear_logs, clear_memory, clear_mistakes
 from .application.scenario_choice import ScenarioChoice
 from .application.preferences import SettingsService
 from .application.ptt_gate import PttGate
@@ -137,6 +137,7 @@ def main() -> int:
         suggest_natural=lambda: current[0].suggest_natural,
         speech_scale=lambda: speech_scale(current[0].level),
         scenario=scenario,
+        use_memory=lambda: current[0].session_memory,
     )
     gate = PttGate(session.on_ptt_press, session.on_ptt_release)
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)
@@ -152,6 +153,8 @@ def main() -> int:
         check_ollama=check_connection,
         clear_logs=lambda: session.clear_data(clear_logs(conversation_log.clear)),
         clear_mistakes=lambda: session.clear_data(clear_mistakes),
+        clear_memory=lambda: session.clear_data(clear_memory(session.forget_memory)),
+        memory_count=lambda: sum(1 for s in window_ref[0].snapshot.sessions if s.memory),
         is_free=lambda: window_ref[0].is_free,
         last_report=lambda: window_ref[0].snapshot.report,
         mistakes=lambda: window_ref[0].snapshot.mistakes,

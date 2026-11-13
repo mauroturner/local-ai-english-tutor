@@ -15,7 +15,7 @@ The app keeps your history on disk in plain text under `data\` (or `TUTOR_DATA_D
 
 - `data\conversations\session-*.log` contains everything you said (the raw transcripts), the tutor's replies, the tips, the long pauses found in your speech, the session reports and the practice results.
 - `data\mistakes.json` contains your recurring mistakes and long pauses, up to three example sentences of yours per item, and your practice scores. The tutor model also receives your name and pronouns from the settings.
-- `data\sessions.json` contains one line of numbers per session (date, duration, words, mistake and pause counts); no sentences.
+- `data\sessions.json` contains one entry per session: numbers (date, duration, words, mistake and pause counts) and, unless **Remember earlier sessions** is off, a few short notes written by the tutor model about what you talked about (for example a trip or your job). They are sent back to the same local model at the start of later conversations and never leave the computer. Delete them with **Settings > Storage > Delete session memory**.
 - `data\settings.json` contains your preferences and `data\logs\app.log` the application log (see [below](#settings-and-the-application-log)).
 - Files you export (report as Markdown, mistakes as CSV) contain the same text and live wherever you saved them; the app does not track or clean them up.
 - In the mistakes CSV, a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'`, so a spreadsheet shows it as text instead of running it as a formula (the text comes from transcription and the language model).
@@ -75,6 +75,7 @@ The delete buttons in **Settings > Storage** ask for confirmation first and are 
 | --- | --- | --- |
 | Delete conversation logs | Files named `session-*.log` in `<data folder>\conversations` | Other files and sub-folders, the mistake history, `settings.json`, `logs\app.log` |
 | Delete mistake history | Empties `mistakes.json` (writes an empty list) | Conversation logs, settings |
+| Delete session memory | Removes the notes from every entry of `sessions.json` | The session numbers, conversation logs, settings |
 
 Deleted files are removed with the normal file API, not securely wiped. **Export** buttons write only where you point the save dialog, using a temporary file and a replace so a failed export never leaves a half-written file.
 

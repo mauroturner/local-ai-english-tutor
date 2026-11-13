@@ -28,6 +28,7 @@ _BUTTON_TEXT = {
     "export_mistakes": "button.export",
     "clear_logs": "button.delete",
     "clear_mistakes": "button.delete",
+    "clear_memory": "button.delete",
     "test_connection": "button.test",
 }
 _RESULT_COLOURS = {

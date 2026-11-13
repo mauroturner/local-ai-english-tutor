@@ -35,6 +35,7 @@ class UserSettings:
     level: str = DEFAULT_LEVEL
     track_pauses: bool = True
     suggest_natural: bool = True
+    session_memory: bool = True
     daily_goal_minutes: int = 10  # 0 switches the goal off
     appearance_mode: str = "system"
     ui_scale: float = 1.0

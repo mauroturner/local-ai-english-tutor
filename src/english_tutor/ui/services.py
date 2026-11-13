@@ -20,7 +20,8 @@ Confirm = Callable[..., bool]
 
 ENABLED_ACTIONS = frozenset({
     "open_data_folder", "open_logs_folder", "restore_defaults",
-    "export_report", "export_mistakes", "clear_logs", "clear_mistakes", "autostart",
+    "export_report", "export_mistakes", "clear_logs", "clear_mistakes", "clear_memory",
+    "autostart",
     "test_connection",
 })  # fmt: skip
 """Action rows the Settings window offers."""
@@ -77,6 +78,10 @@ class UiServices:
     """Ask the session to delete the conversation logs; False when it is busy."""
     clear_mistakes: Callable[[], bool] = _refuse
     """Ask the session to delete the mistake history; False when it is busy."""
+    clear_memory: Callable[[], bool] = _refuse
+    """Ask the session to delete the notes of earlier sessions; False when it is busy."""
+    memory_count: Callable[[], int] = lambda: 0  # noqa: E731
+    """How many stored sessions have notes (shown in the confirmation)."""
     is_free: Callable[[], bool] = lambda: True  # noqa: E731
     """Whether the session is idle and not practising (data may be deleted)."""
     last_report: Callable[[], SessionReport | None] = lambda: None  # noqa: E731

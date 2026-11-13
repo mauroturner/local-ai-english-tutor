@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 import numpy as np
@@ -169,6 +169,7 @@ class FakeSessionStatsStore:
         self.sessions: list[SessionStats] = []
         self.error: Exception | None = None
         self.load_error: Exception | None = None
+        self.clear_error: Exception | None = None
 
     def load(self) -> list[SessionStats]:
         if self.load_error is not None:
@@ -179,6 +180,13 @@ class FakeSessionStatsStore:
         if self.error is not None:
             raise self.error
         self.sessions.append(stats)
+
+    def clear_memory(self) -> int:
+        if self.clear_error is not None:
+            raise self.clear_error
+        count = sum(1 for s in self.sessions if s.memory)
+        self.sessions = [replace(s, memory=None) for s in self.sessions]
+        return count
 
 
 class FakeCoach:
@@ -342,7 +350,7 @@ def make_harness():
     def _make(
         texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None,
         coach=None, track_pauses=None, session_stats=None, suggest_natural=None,
-        speech_scale=None, scenario=None,
+        speech_scale=None, scenario=None, use_memory=None,
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -359,6 +367,7 @@ def make_harness():
             suggest_natural=suggest_natural or (lambda: True),
             speech_scale=speech_scale or (lambda: 1.0),
             scenario=scenario,
+            use_memory=use_memory or (lambda: True),
         )
         session.start()
         if isinstance(runner, ManualRunner):

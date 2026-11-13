@@ -47,7 +47,7 @@ User settings are saved in `settings.json`. Environment variables keep working a
 {
   "version": 1,
   "settings": {
-    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "level": "B1", "track_pauses": true, "suggest_natural": true, "daily_goal_minutes": 10,
+    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "level": "B1", "track_pauses": true, "suggest_natural": true, "session_memory": true, "daily_goal_minutes": 10,
     "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
     "density": "comfortable", "tts_enabled": true,
     "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
@@ -93,6 +93,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Your pronouns | `he` (he/him), `she` (she/her), `they` (they/them) (`he`) | Save | Used when the tutor refers to you in the third person, for example in the report |
 | English level | `A2`, `B1`, `B2`, `C1` (`B1`) | Save | Tells the tutor how simple its words should be and how many corrections to give per message; at A2 the voice also speaks about 15 % slower. Applies to the next message. See [Prompts](tutor-behavior.md#prompts) |
 | Track long pauses | on / off (on) | Save | Adds pauses of 1.2 s or more inside a sentence to the Mistakes tab and lists slow starts (3 s or more) in the report; never counted as errors. The same word timings feed the [pronunciation hints](tutor-behavior.md#pronunciation-hints) of the report. See [Long pauses](tutor-behavior.md#long-pauses) |
+| Remember earlier sessions | on / off (on) | Save | At the end of a session the tutor writes a few short notes about what you shared and the next conversations can ask about them (the last 3 sessions' notes are used). Off stops writing and using notes; it does not delete them. See [Session memory](tutor-behavior.md#session-memory) |
 | Daily goal | 0 to 60 minutes (10) | Save | Minutes of conversation to aim for each day; the main window shows `Today: 4 / 10 min` and your streak. 0 switches the goal off (the streak is still shown). Minutes come from the saved sessions, so they count when you press **End session** |
 | Suggest more natural phrasing | on / off (on) | Save | When a sentence has no error but a native speaker would say it differently, shows `More natural: "..."` under the reply. Never a mistake, never spoken, never stored in the history; see [Natural phrasing](tutor-behavior.md#natural-phrasing) |
 | Start with Windows | on / off (off) | Save | Not stored in `settings.json`; see [Start with Windows](#start-with-windows) |
@@ -128,6 +129,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Export mistakes | Saves the whole mistake list as CSV (`mistakes-YYYYmmdd-HHMMSS.csv`): UTF-8 with BOM so Excel opens it correctly, English headers, ISO dates, examples joined with ` \| `, and a last `category` column (empty when unknown) |
 | Delete conversation logs | After confirmation deletes only `session-*.log` in `<data folder>\conversations` |
 | Delete mistake history | After confirmation empties the mistake history and its practice scores |
+| Delete session memory | After confirmation removes the notes kept for the tutor from every stored session; the session numbers stay |
 
 Both delete actions are refused while the tutor is busy or a practice drill is running, and cannot be undone. Settings and the application log are never touched. Files are written atomically (temporary file, then replace).
 
@@ -290,13 +292,14 @@ Multi-line entries (the report) continue on following lines indented by four spa
       "started_at": "2026-11-13T10:00:00", "duration_s": 300.0,
       "turns": 5, "words": 80, "speech_s": 40.0,
       "major": 2, "minor": 3, "pauses": 1, "slow_starts": 1,
-      "categories": {"prepositions": 2, "verb_tense": 1}, "scenario": "restaurant"
+      "categories": {"prepositions": 2, "verb_tense": 1}, "scenario": "restaurant",
+      "memory": "Visited Cordoba with his sister.\nWorks at a bank."
     }
   ]
 }
 ```
 
-- **Numbers.** `duration_s` runs from the first answer to the end of the session; `speech_s` is the recorded speech (used for words per minute); `major` / `minor` count every correction made, repeats included; `pauses` and `slow_starts` count long pauses inside sentences and before the first word; `categories` (optional) counts the corrections per kind of mistake, leaving out `other`; `scenario` (optional) is the role-play practised. Quitting without pressing **End session** stores nothing for that run.
+- **Numbers.** `duration_s` runs from the first answer to the end of the session; `speech_s` is the recorded speech (used for words per minute); `major` / `minor` count every correction made, repeats included; `pauses` and `slow_starts` count long pauses inside sentences and before the first word; `categories` (optional) counts the corrections per kind of mistake, leaving out `other`; `scenario` (optional) is the role-play practised; `memory` (optional) holds the notes written for the next session (personal data, up to 5 lines). Quitting without pressing **End session** stores nothing for that run.
 - **Saving, corrupt file, failures.** Same rules as the mistake history: atomic swap of `sessions.json.tmp`, a bad file is renamed to `sessions.json.corrupt-YYYYmmdd-HHMMSS` and a new one starts, bad entries are skipped, and a failed save shows `Session statistics not saved: ...` once and never blocks the report.
 
 ### Wiping the data
@@ -307,7 +310,7 @@ The easy way is **Settings > Storage > Delete conversation logs / Delete mistake
 Remove-Item -Recurse -Force data                      # everything, including settings.json
 Remove-Item -Recurse -Force data\conversations        # logs only
 Remove-Item data\mistakes.json                        # mistake history only
-Remove-Item data\sessions.json                        # session statistics only
+Remove-Item data\sessions.json                        # session statistics and memory notes
 ```
 
 Use the path of your `TUTOR_DATA_DIR` if you changed it. Files are plain, unencrypted text; see [security-notes.md](security-notes.md).

@@ -9,8 +9,9 @@ from typing import Callable, Literal, TypeVar
 from ..audio.processing import prepare_for_stt
 from ..domain.corrections import compose_speech, filter_corrections, pick_live, pick_natural
 from ..domain.formatting import correction_text, format_report
+from ..domain.memory import clean_memory, memory_block
 from ..domain.hesitation import as_corrections, explanation, find_hesitations, low_confidence
-from ..domain.models import Hesitation, SessionState, Turn
+from ..domain.models import ChatMessage, Hesitation, SessionState, Turn
 from ..domain.scenarios import FREE, get_scenario
 from ..ports import (
     AdapterError,
@@ -84,6 +85,7 @@ class ConversationSession:
         suggest_natural: Callable[[], bool] = lambda: True,
         speech_scale: Callable[[], float] = lambda: 1.0,
         scenario: ScenarioChoice | None = None,
+        use_memory: Callable[[], bool] = lambda: True,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -102,6 +104,7 @@ class ConversationSession:
         self._suggest_natural = suggest_natural  # read every turn, like track_pauses
         self._speech_scale = speech_scale  # Piper length_scale for the learner's level
         self._last_spoken = ""
+        self._use_memory = use_memory  # read when the tutor is asked and when a session ends
         self._scenario = scenario or ScenarioChoice()  # shared with the tutor model
         self._drill: PracticeDrill | None = None
         self._practice = PracticeServices(
@@ -302,7 +305,7 @@ class ConversationSession:
             self._practice_turn(drill, raw, pauses)
             return
         self._set_state(SessionState.THINKING, "Thinking...")
-        reply = self._ask(lambda: self._tutor.reply(self._history.messages(), raw))
+        reply = self._ask(lambda: self._tutor.reply(self._conversation(), raw))
         if reply is None:
             return
         corrections = filter_corrections(raw, reply.corrections)
@@ -324,6 +327,20 @@ class ConversationSession:
         self._record_mistakes(turn)
         self._speak(compose_speech(reply.reply, live))
         self._set_state(SessionState.IDLE, "Ready")
+
+    def _conversation(self) -> list[ChatMessage]:
+        """The chat history, led by the notes of earlier sessions when memory is on."""
+        notes = memory_block(self._stats.recent_memory()) if self._use_memory() else ""
+        history = self._history.messages()
+        return [ChatMessage("system", notes), *history] if notes else history
+
+    def forget_memory(self) -> int:
+        """Delete the notes of every earlier session; returns how many had notes.
+
+        Runs on the worker (see ``clear_data``); raises StorageError when the file
+        cannot be rewritten.
+        """
+        return self._stats.clear_memory()
 
     def _ask(self, call: Callable[[], _T]) -> _T | None:
         """Run a model call; on failure show the error, return to IDLE and give None."""
@@ -469,7 +486,8 @@ class ConversationSession:
         self._journal.new_session()
         if report.feedback is not None and report.feedback.summary:
             self._speak(report.feedback.summary)
-        self._stats.finish(tuple(self._turns), None if scenario == FREE else scenario)
+        notes = clean_memory(report.feedback.memory) if report.feedback and self._use_memory() else None
+        self._stats.finish(tuple(self._turns), None if scenario == FREE else scenario, notes)
         self._turns.clear()
         self._history.clear()
         if self._scenario.set(FREE) != scenario:  # a new session starts as a free conversation

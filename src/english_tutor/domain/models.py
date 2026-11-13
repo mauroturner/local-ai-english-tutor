@@ -124,6 +124,7 @@ class SessionFeedback:
     summary: str
     strengths: tuple[str, ...] = ()
     focus_areas: tuple[str, ...] = ()
+    memory: str = ""  # notes about the learner for the next session (may be empty)
 
 
 @dataclass(frozen=True)

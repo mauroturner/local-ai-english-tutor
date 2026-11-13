@@ -100,9 +100,9 @@ class PracticeFeedback:
 
 @dataclass(frozen=True)
 class DataCleared:
-    """Stored data was deleted: ``count`` conversation log files or mistake records."""
+    """Stored data was deleted: ``count`` log files, mistake records or sessions with notes."""
 
-    kind: Literal["logs", "mistakes"]
+    kind: Literal["logs", "mistakes", "memory"]
     count: int
 
 

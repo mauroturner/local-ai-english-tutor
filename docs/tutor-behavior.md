@@ -66,6 +66,12 @@ The model's output is not trusted blindly. `domain/corrections.py` applies these
 
 The code does **not** check that a `corrected` phrase is actually right, and it does not re-classify severity; those depend on the model.
 
+## Session memory
+
+When a session ends, the same call that writes the feedback also returns `memory`: a few short notes about what you talked about and shared (a trip, a job, plans). They are cleaned (`clean_memory`: at most 5 lines and 600 characters, no bullets or control characters) and stored with that session in `data/sessions.json`. Before each answer of a later conversation the tutor receives the notes of your **last 3 sessions that have some** as an extra `MEMORY` system message ahead of the chat history, worded as background to ask a natural follow-up about, never to recite and never as instructions. Practice drills and the report do not receive it.
+
+Controls: **Settings > General > Remember earlier sessions** (on by default, read live) stops both writing new notes and using stored ones; **Settings > Storage > Delete session memory** erases every stored note (session numbers and charts stay). Turning the switch off does not delete notes already stored. The notes come from a small model summarising what you said, so they can be wrong or oddly phrased; they are personal data, see [security-notes.md](security-notes.md#stored-data-is-unencrypted).
+
 ## Pronunciation hints
 
 The word timings used for [long pauses](#long-pauses) also carry how sure the recogniser was of each word (its probability, 0 to 1). Words under **0.35**, with at least 3 letters, are collected per turn and listed once in the report as `Check your pronunciation (the recogniser was unsure about): ...`. They are hints: never stored in the mistake history, never counted as errors, never sent to the model. They exist only when **Track long pauses** is on, because that switch is what asks for word timings.
@@ -241,8 +247,11 @@ spoken English. You receive what the learner said and the list of errors recorde
 - If there are no recorded errors, say so and suggest one way to stretch (richer vocabulary, longer answers).
 - "Long pauses" are not errors: they show phrases the learner found hard to say. If there are any,
   you may suggest practicing them for fluency, but never call them mistakes.
+- "memory": 2 to 4 short lines of plain text, one fact per line, about the topics the learner talked
+  about and the facts they shared (a trip, a job, family, plans) that a friendly tutor could ask about
+  next time. Never include mistakes. Use "" if there is nothing worth remembering.
 Plain text only inside the JSON fields. Answer ONLY with JSON:
-{"summary": "...", "strengths": ["..."], "focus_areas": ["..."]}
+{"summary": "...", "strengths": ["..."], "focus_areas": ["..."], "memory": "..."}
 ```
 
 The user message is built by `build_report_user_message`:
@@ -323,7 +332,7 @@ Message order for a practice call: this system prompt, the drill history (last 4
 
 ### Output schemas
 
-`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]` and `category` in the ten model categories) plus a required `natural` string. `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings). `PRACTICE_SCHEMA`: object with required `target_used` (one of `correct`, `incorrect`, `not_used`), `feedback` and `next_prompt` (strings).
+`TURN_SCHEMA`: object with required `reply` (string) and `errors` (array of objects with required `original`, `corrected`, `explanation` strings and `severity` in `["major", "minor"]` and `category` in the ten model categories) plus a required `natural` string. `REPORT_SCHEMA`: object with required `summary` (string), `strengths` and `focus_areas` (arrays of strings) and `memory` (string). `PRACTICE_SCHEMA`: object with required `target_used` (one of `correct`, `incorrect`, `not_used`), `feedback` and `next_prompt` (strings).
 
 If the model still returns something unparseable, the raw text is used as the reply with no corrections (or as the summary, for the report). If even that is empty, the app uses `Sorry, I lost my train of thought. Could you say that again?` or `I could not write the feedback this time.` (for practice: `Let's keep going. Tell me about your day.`)
 

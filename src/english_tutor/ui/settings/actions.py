@@ -65,6 +65,7 @@ class StorageActions:
             "export_mistakes": self._export_mistakes,
             "clear_logs": self._clear_logs,
             "clear_mistakes": self._clear_mistakes,
+            "clear_memory": self._clear_memory,
         }
 
     def unavailable(self, key: str) -> str | None:
@@ -149,6 +150,13 @@ class StorageActions:
             t("settings.clear_logs_title"),
             t("settings.clear_logs_message", folder=folder),
             self._services.clear_logs,
+        )
+
+    def _clear_memory(self) -> None:
+        self._delete(
+            t("settings.clear_memory_title"),
+            t("settings.clear_memory_message", count=self._services.memory_count()),
+            self._services.clear_memory,
         )
 
     def _clear_mistakes(self) -> None:

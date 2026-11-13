@@ -116,6 +116,7 @@ def parse_feedback(raw: str) -> SessionFeedback:
         summary=data["summary"].strip() or FALLBACK_SUMMARY,
         strengths=_string_list(data.get("strengths")),
         focus_areas=_string_list(data.get("focus_areas")),
+        memory=memory if isinstance(memory := data.get("memory"), str) else "",
     )
 
 

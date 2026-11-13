@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from datetime import datetime
 
+from ..domain.memory import MAX_SUMMARIES
 from ..domain.models import Turn
 from ..domain.progress import SessionStats, build_stats
 from ..ports import SessionStatsStore
@@ -54,12 +56,30 @@ class StatsRecorder:
         if self._started is None:
             self._started = self._clock()
 
-    def finish(self, turns: Sequence[Turn], scenario: str | None = None) -> None:
+    def recent_memory(self) -> tuple[str, ...]:
+        """The notes of the latest sessions that have some, oldest first."""
+        notes = [s.memory for s in self._sessions if s.memory]
+        return tuple(notes[-MAX_SUMMARIES:])
+
+    def clear_memory(self) -> int:
+        """Forget every note, in memory and on disk; raises StorageError when disk fails.
+
+        Returns how many sessions had notes. The memory copy is only cleared once the
+        file was, so the learner is never told notes are gone while they are not.
+        """
+        count = self._store.clear_memory()
+        self._sessions = [replace(s, memory=None) for s in self._sessions]
+        self._on_change(tuple(self._sessions))
+        return count
+
+    def finish(
+        self, turns: Sequence[Turn], scenario: str | None = None, memory: str | None = None
+    ) -> None:
         """Store the statistics of ``turns`` (nothing when there were none) and reset."""
         started, self._started = self._started, None
         if not turns or started is None:
             return
-        stats = build_stats(turns, started, self._clock(), scenario)
+        stats = build_stats(turns, started, self._clock(), scenario, memory)
         try:
             self._store.append(stats)
         except Exception as exc:  # StorageError by contract; anything else is also non-fatal

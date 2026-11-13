@@ -30,7 +30,7 @@ def test_turn_schema_offers_every_model_category_and_never_fluency():
 
 
 def test_report_schema_required_fields():
-    assert REPORT_SCHEMA["required"] == ["summary", "strengths", "focus_areas"]
+    assert REPORT_SCHEMA["required"] == ["summary", "strengths", "focus_areas", "memory"]
 
 
 def test_turn_prompt_keeps_corrections_out_of_reply_and_allows_empty_errors():

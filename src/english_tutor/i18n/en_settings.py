@@ -93,6 +93,13 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.clear_logs.label": "Delete conversation logs",
     "setting.clear_logs.help": "Permanently deletes every saved conversation file. "
     "Your mistake history is kept.",
+    "setting.clear_memory.label": "Delete session memory",
+    "setting.clear_memory.help": "Permanently deletes the notes the tutor kept about what you "
+    "talked about, so it forgets earlier sessions. Session numbers and charts stay.",
+    "setting.session_memory.label": "Remember earlier sessions",
+    "setting.session_memory.help": "At the end of a session the tutor writes a few short notes "
+    "about what you shared (a trip, a job, plans) and the next conversation can ask about them. "
+    "The notes stay on this computer in data/sessions.json.",
     "setting.clear_mistakes.label": "Delete mistake history",
     "setting.clear_mistakes.help": "Permanently deletes every recorded mistake and its "
     "practice statistics.",
@@ -188,6 +195,9 @@ SETTINGS_STRINGS: dict[str, str] = {
     "settings.clear_logs_message": "Every conversation log file (session-*.log) in this "
     "folder will be permanently deleted:\n{folder}\n\nYour mistake history, settings and "
     "application logs are not affected. This cannot be undone.",
+    "settings.clear_memory_title": "Delete session memory?",
+    "settings.clear_memory_message": "The notes of {count} earlier session(s) will be deleted "
+    "permanently. This cannot be undone.",
     "settings.clear_mistakes_title": "Delete mistake history?",
     "settings.clear_mistakes_message": "All {count} recorded mistakes and their practice "
     "statistics will be permanently deleted. Conversation logs and settings are not affected. "
@@ -205,6 +215,7 @@ SETTINGS_STRINGS: dict[str, str] = {
     "speech model slows the first minutes. Connection problems are reported once the app "
     "is open.",
     "data.cleared_logs": "Deleted {count} conversation log file(s).",
+    "data.cleared_memory": "Session memory deleted ({count} session(s) had notes).",
     "data.cleared_mistakes": "Mistake history deleted ({count} mistakes).",
     # Test connection
     "button.test": "Test",

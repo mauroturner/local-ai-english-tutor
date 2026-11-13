@@ -157,6 +157,10 @@ class SessionStatsStore(Protocol):
         """Add one finished session; raises StorageError on failure."""
         ...
 
+    def clear_memory(self) -> int:
+        """Remove the memory notes of every session; returns how many had notes."""
+        ...
+
 
 class SettingsStore(Protocol):
     """Persistent user settings as a plain field-name -> value mapping."""

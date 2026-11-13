@@ -28,6 +28,21 @@ def clear_mistakes(book: MistakeBook, journal: SafeJournal, emit: EventSink) -> 
     emit(DataCleared("mistakes", count))
 
 
+def clear_memory(forget: Callable[[], int]) -> ClearJob:
+    """Build a job that calls ``forget()`` (returns how many sessions had notes)."""
+
+    def job(book: MistakeBook, journal: SafeJournal, emit: EventSink) -> None:
+        try:
+            count = forget()
+        except StorageError as exc:
+            logger.warning("Session memory not cleared: %s", exc)
+            emit(ErrorRaised(f"Could not delete the session memory: {exc}"))
+            return
+        emit(DataCleared("memory", count))
+
+    return job
+
+
 def clear_logs(delete: Callable[[], int]) -> ClearJob:
     """Build a job that calls ``delete()`` (returns how many files it removed).
 

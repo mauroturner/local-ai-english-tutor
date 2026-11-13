@@ -6,10 +6,12 @@ import json
 import logging
 import os
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ..domain.memory import clean_memory
 from ..domain.progress import SessionStats
 from ..ports import StorageError
 from .atomic_io import atomic_write_text
@@ -60,6 +62,19 @@ class JsonSessionStore:
             logger.warning("Session statistics were unreadable; started a new file")
             sessions = []
         self._write([*sessions, stats])
+
+    def clear_memory(self) -> int:
+        """Remove the memory notes of every stored session; returns how many had notes.
+
+        The numbers of the sessions are kept. Nothing is written when there was
+        nothing to remove.
+        """
+        sessions = self.load()
+        kept = [s for s in sessions if s.memory]
+        if not kept:
+            return 0
+        self._write([replace(s, memory=None) for s in sessions])
+        return len(kept)
 
     @staticmethod
     def _entries(data: Any) -> list[Any]:
@@ -123,6 +138,8 @@ def _to_dict(stats: SessionStats) -> dict[str, Any]:
         data["categories"] = dict(stats.categories)
     if stats.scenario:
         data["scenario"] = stats.scenario
+    if stats.memory:
+        data["memory"] = stats.memory
     return data
 
 
@@ -170,4 +187,5 @@ def _parse_entry(entry: Any) -> SessionStats:
         slow_starts=_count(entry, "slow_starts"),
         categories=_parse_categories(entry),
         scenario=_parse_scenario(entry),
+        memory=clean_memory(entry.get("memory") if isinstance(entry.get("memory"), str) else None),
     )

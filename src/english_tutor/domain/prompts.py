@@ -37,8 +37,9 @@ REPORT_SCHEMA = {
         "summary": {"type": "string"},
         "strengths": {"type": "array", "items": {"type": "string"}},
         "focus_areas": {"type": "array", "items": {"type": "string"}},
+        "memory": {"type": "string"},
     },
-    "required": ["summary", "strengths", "focus_areas"],
+    "required": ["summary", "strengths", "focus_areas", "memory"],
 }
 
 TURN_SYSTEM_PROMPT = """\
@@ -95,8 +96,11 @@ spoken English. You receive what the learner said and the list of errors recorde
 - If there are no recorded errors, say so and suggest one way to stretch (richer vocabulary, longer answers).
 - "Long pauses" are not errors: they show phrases the learner found hard to say. If there are any,
   you may suggest practicing them for fluency, but never call them mistakes.
+- "memory": 2 to 4 short lines of plain text, one fact per line, about the topics the learner talked
+  about and the facts they shared (a trip, a job, family, plans) that a friendly tutor could ask about
+  next time. Never include mistakes. Use "" if there is nothing worth remembering.
 Plain text only inside the JSON fields. Answer ONLY with JSON:
-{"summary": "...", "strengths": ["..."], "focus_areas": ["..."]}
+{"summary": "...", "strengths": ["..."], "focus_areas": ["..."], "memory": "..."}
 """
 
 

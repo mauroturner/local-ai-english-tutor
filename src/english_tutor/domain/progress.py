@@ -40,6 +40,7 @@ class SessionStats:
     slow_starts: int  # long waits before the first word
     categories: tuple[tuple[str, int], ...] = ()  # mistakes per kind, most frequent first
     scenario: str | None = None  # the role-play practised, None for a free conversation
+    memory: str | None = None  # notes for the next session (personal data, see domain.memory)
 
     @property
     def words_per_minute(self) -> float:
@@ -58,7 +59,11 @@ class SessionStats:
 
 
 def build_stats(
-    turns: Sequence[Turn], started_at: datetime, ended_at: datetime, scenario: str | None = None
+    turns: Sequence[Turn],
+    started_at: datetime,
+    ended_at: datetime,
+    scenario: str | None = None,
+    memory: str | None = None,
 ) -> SessionStats:
     """Fold the turns of a session into its statistics."""
     corrections = [c for turn in turns for c in turn.corrections]
@@ -75,6 +80,7 @@ def build_stats(
         slow_starts=sum(1 for h in hesitations if h.at_start),
         categories=count_categories(corrections),
         scenario=scenario,
+        memory=memory,
     )
 
 
