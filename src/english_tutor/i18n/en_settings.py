@@ -54,6 +54,12 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.suggest_natural.help": "When your sentence is correct but a native speaker would "
     "say it differently, shows a more natural version under the reply. It is never counted as a "
     "mistake.",
+    "setting.reminder_time.label": "Daily reminder",
+    "setting.reminder_time.help": "Time of day (HH:MM, for example 19:30) for a Windows "
+    "notification asking you to practise, only if you have not reached today's goal. It only "
+    "appears while the app is open. Leave it empty for no reminder.",
+    "reminder.title": "English practice",
+    "reminder.body": "Time to practise! A few minutes of conversation keeps your streak going.",
     "setting.daily_goal_minutes.label": "Daily goal",
     "setting.daily_goal_minutes.help": "Minutes of conversation to aim for each day, from 0 to "
     "60. The main window shows today's minutes and your streak of days in a row. 0 switches the "

@@ -54,6 +54,12 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.suggest_natural.label": "Sugerir frases más naturales",
     "setting.suggest_natural.help": "Cuando tu frase es correcta pero un nativo la diría "
     "distinto, muestra una versión más natural debajo de la respuesta. Nunca cuenta como error.",
+    "setting.reminder_time.label": "Recordatorio diario",
+    "setting.reminder_time.help": "Hora del día (HH:MM, por ejemplo 19:30) para una notificación de "
+    "Windows que te invita a practicar, solo si todavía no cumpliste la meta de hoy. Solo aparece "
+    "mientras la app está abierta. Déjalo vacío para no tener recordatorio.",
+    "reminder.title": "Práctica de inglés",
+    "reminder.body": "¡Hora de practicar! Unos minutos de conversación mantienen tu racha.",
     "setting.daily_goal_minutes.label": "Meta diaria",
     "setting.daily_goal_minutes.help": "Minutos de conversación que quieres lograr cada día, de 0 "
     "a 60. La ventana principal muestra los minutos de hoy y tu racha de días seguidos. 0 "

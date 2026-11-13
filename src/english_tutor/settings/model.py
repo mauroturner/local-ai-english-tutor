@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from ..config import PARSERS, ConfigError, check_between
+from ..domain.reminder import normalize_time, time_error
 from ..domain.learner import (
     DEFAULT_LEVEL,
     LEVELS,
@@ -38,6 +39,7 @@ class UserSettings:
     suggest_natural: bool = True
     session_memory: bool = True
     daily_goal_minutes: int = 10  # 0 switches the goal off
+    reminder_time: str = ""  # HH:MM of the daily reminder, empty = off
     appearance_mode: str = "system"
     ui_scale: float = 1.0
     chat_font_size: int = 13
@@ -143,6 +145,8 @@ def _parse_field(name: str, raw: Any, default: Any) -> Any:
     text = _as_text(name, raw, rule.kind)
     if name == "learner_name":  # an empty name is valid, so the shared parser cannot be used
         return _checked_name(name, text)
+    if name == "reminder_time":  # empty means "off"
+        return _checked_time(name, text)
     value = PARSERS[rule.kind]({name: text}, name, default)
     if isinstance(value, str):
         value = value.lower() if rule.lower else value.upper() if rule.upper else value
@@ -164,6 +168,13 @@ def parse_field(name: str, raw: Any) -> Any:
     if name not in _DEFAULTS:
         raise KeyError(name)
     return _parse_field(name, raw, _DEFAULTS[name])
+
+
+def _checked_time(name: str, text: str) -> str:
+    error = time_error(text)
+    if error:
+        raise ConfigError(f"{name}: {error}")
+    return normalize_time(text)
 
 
 def _checked_url(name: str, value: str) -> str:

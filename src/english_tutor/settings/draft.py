@@ -17,7 +17,7 @@ from .shortcuts import Conflict, find_conflicts, format_combo, parse_combo
 _FIELD_NAMES = tuple(f.name for f in dataclasses.fields(UserSettings))
 _SHORTCUT_KEYS = tuple(name for name in _FIELD_NAMES if name.startswith("shortcut_"))
 _DEFAULTS = dataclasses.asdict(UserSettings())
-_MAY_BE_EMPTY = frozenset({"learner_name"})
+_MAY_BE_EMPTY = frozenset({"learner_name", "reminder_time"})
 """Text settings where empty is a real choice even though the default is not empty."""
 
 

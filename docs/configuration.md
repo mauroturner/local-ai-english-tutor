@@ -47,7 +47,7 @@ User settings are saved in `settings.json`. Environment variables keep working a
 {
   "version": 1,
   "settings": {
-    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "level": "B1", "explain_language": "en", "track_pauses": true, "suggest_natural": true, "session_memory": true, "daily_goal_minutes": 10,
+    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "level": "B1", "explain_language": "en", "track_pauses": true, "suggest_natural": true, "session_memory": true, "reminder_time": "", "daily_goal_minutes": 10,
     "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
     "density": "comfortable", "tts_enabled": true,
     "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
@@ -95,6 +95,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | English level | `A2`, `B1`, `B2`, `C1` (`B1`) | Save | Tells the tutor how simple its words should be and how many corrections to give per message; at A2 the voice also speaks about 15 % slower. Applies to the next message. See [Prompts](tutor-behavior.md#prompts) |
 | Track long pauses | on / off (on) | Save | Adds pauses of 1.2 s or more inside a sentence to the Mistakes tab and lists slow starts (3 s or more) in the report; never counted as errors. The same word timings feed the [pronunciation hints](tutor-behavior.md#pronunciation-hints) of the report. See [Long pauses](tutor-behavior.md#long-pauses) |
 | Remember earlier sessions | on / off (on) | Save | At the end of a session the tutor writes a few short notes about what you shared and the next conversations can ask about them (the last 3 sessions' notes are used). Off stops writing and using notes; it does not delete them. See [Session memory](tutor-behavior.md#session-memory) |
+| Daily reminder | `HH:MM`, for example `19:30`; empty = off (empty) | Save | A Windows notification at that time asking you to practise. It appears once a day, only while the app is open, from the chosen time up to two hours later (a reminder missed because the app was closed is not shown late), and only if today's goal is not met yet (with the goal off: if there is no session today). Minutes come from finished sessions |
 | Daily goal | 0 to 60 minutes (10) | Save | Minutes of conversation to aim for each day; the main window shows `Today: 4 / 10 min` and your streak. 0 switches the goal off (the streak is still shown). Minutes come from the saved sessions, so they count when you press **End session** |
 | Suggest more natural phrasing | on / off (on) | Save | When a sentence has no error but a native speaker would say it differently, shows `More natural: "..."` under the reply. Never a mistake, never spoken, never stored in the history; see [Natural phrasing](tutor-behavior.md#natural-phrasing) |
 | Start with Windows | on / off (off) | Save | Not stored in `settings.json`; see [Start with Windows](#start-with-windows) |

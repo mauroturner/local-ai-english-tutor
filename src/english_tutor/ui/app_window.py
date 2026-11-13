@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import queue
 from collections.abc import Callable, Sequence
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import customtkinter as ctk
@@ -32,6 +32,7 @@ from ..audio.devices import InputDevice
 from ..config import AppConfig
 from ..domain.drills import DrillKind
 from ..domain.models import PracticeOutcome, SessionState
+from ..domain.reminder import should_remind
 from ..domain.review_schedule import next_due
 from ..domain.scenarios import KEYS as SCENARIO_KEYS
 from ..i18n import t
@@ -63,6 +64,7 @@ from .tooltip import Tooltip
 logger = logging.getLogger(__name__)
 
 _PUMP_INTERVAL_MS = 30
+_REMINDER_CHECK_MS = 30_000
 DEFAULT_SIZE = (640, 820)
 MIN_SIZE = (520, 600)
 
@@ -94,6 +96,8 @@ class TutorWindow(ctk.CTk):
         self._on_data_cleared = on_data_cleared or (lambda text: None)
         self.snapshot = SessionSnapshot()
         self._feedback = Feedback(self, cue_player, notifier)
+        self._notifier = notifier
+        self._reminded_on: date | None = None
         self.restart_requested = False
         self._sp = theme.spacing(self._settings.density)
         self._events: queue.Queue[SessionEvent] = queue.Queue()
@@ -145,6 +149,7 @@ class TutorWindow(ctk.CTk):
         })  # fmt: skip
         self._binder.apply(self._settings)
         self.after(_PUMP_INTERVAL_MS, self._pump)
+        self.after(_REMINDER_CHECK_MS, self._check_reminder)
 
     def _build_header(
         self, devices: Sequence[InputDevice], default_device: InputDevice | None
@@ -341,6 +346,20 @@ class TutorWindow(ctk.CTk):
         self._settings = settings
         self._binder.apply(settings)
         self._refresh_goal()
+
+    def _check_reminder(self) -> None:
+        """Show the daily reminder when it is due (checked twice a minute while the app runs)."""
+        settings, now = self._settings, datetime.now()
+        if self._notifier is not None and should_remind(
+            now, settings.reminder_time, self.snapshot.sessions, settings.daily_goal_minutes,
+            self._reminded_on,
+        ):
+            self._reminded_on = now.date()
+            try:
+                self._notifier.notify(t("reminder.title"), t("reminder.body"))
+            except Exception:  # a notification problem must never disturb the app
+                logger.warning("Could not show the reminder", exc_info=True)
+        self.after(_REMINDER_CHECK_MS, self._check_reminder)
 
     def _refresh_goal(self) -> None:
         text = goal_text(self.snapshot.sessions, self._settings.daily_goal_minutes, date.today())

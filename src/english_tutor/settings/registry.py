@@ -121,6 +121,8 @@ REGISTRY: tuple[SettingSpec, ...] = (
              "nativo", "frase", "sugerir")),
     _setting("session_memory", _G, _SWITCH, ("memory", "remember", "privacy", "history", "previous",
              "memoria", "recordar", "privacidad", "sesiones")),
+    _setting("reminder_time", _G, Control.TEXT, ("remind", "notification", "alarm", "time", "daily",
+             "recordatorio", "aviso", "hora", "notificacion")),
     _setting("daily_goal_minutes", _G, Control.SLIDER, ("goal", "minutes", "streak", "daily",
              "habit", "meta", "minutos", "racha", "diaria", "habito")),
     _action("autostart", _G, ("startup", "boot", "sign in", "registry", "inicio", "windows")),
