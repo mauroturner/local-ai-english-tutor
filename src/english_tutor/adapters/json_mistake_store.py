@@ -7,13 +7,13 @@ import logging
 import os
 from collections.abc import Callable, Sequence
 from dataclasses import replace
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from ..domain.corrections import normalize
 from ..domain.mistakes import MAX_EXAMPLES, mistake_key
-from ..domain.models import MistakeRecord, Severity
+from ..domain.models import MistakeRecord, ReviewState, Severity
 from ..ports import StorageError
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ class JsonMistakeStore:
 
 
 def _to_dict(record: MistakeRecord) -> dict[str, Any]:
-    return {
+    data: dict[str, Any] = {
         "original": record.original,
         "corrected": record.corrected,
         "explanation": record.explanation,
@@ -134,6 +134,28 @@ def _to_dict(record: MistakeRecord) -> dict[str, Any]:
             "successes": record.practice_successes,
         },
     }
+    if record.category:  # optional fields are written only when set (additive within version 1)
+        data["category"] = record.category
+    if record.review is not None:
+        data["review"] = {"due": record.review.due.isoformat(), "step": record.review.step}
+    return data
+
+
+def _parse_category(entry: Any) -> str | None:
+    value = entry.get("category")
+    return value.strip() or None if isinstance(value, str) else None
+
+
+def _parse_review(entry: Any) -> ReviewState | None:
+    """The stored schedule; a damaged one is dropped (the mistake itself is kept)."""
+    raw = entry.get("review")
+    if not isinstance(raw, dict):
+        return None
+    try:
+        step = int(raw.get("step", 0))
+        return ReviewState(date.fromisoformat(raw["due"]), step) if step >= 0 else None
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def _parse_entry(entry: Any) -> MistakeRecord:
@@ -156,6 +178,8 @@ def _parse_entry(entry: Any) -> MistakeRecord:
         examples=tuple(str(e) for e in entry.get("examples", ()))[-MAX_EXAMPLES:],
         practice_attempts=max(0, int(practice.get("attempts", 0))),
         practice_successes=max(0, int(practice.get("successes", 0))),
+        category=_parse_category(entry),
+        review=_parse_review(entry),
     )
 
 
@@ -172,4 +196,6 @@ def _combine(a: MistakeRecord, b: MistakeRecord) -> MistakeRecord:
         examples=examples,
         practice_attempts=a.practice_attempts + b.practice_attempts,
         practice_successes=a.practice_successes + b.practice_successes,
+        category=newest.category or other.category,
+        review=newest.review or other.review,
     )

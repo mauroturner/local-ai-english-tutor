@@ -149,3 +149,66 @@ def test_failed_backup_makes_the_store_read_only(tmp_path, monkeypatch):
     with pytest.raises(StorageError, match="read-only"):
         store.save([record()])
     assert path.read_text(encoding="utf-8") == "garbage"  # never overwritten
+
+
+# ---- optional category and review fields (additive within version 1) -------------
+
+
+def test_optional_fields_round_trip(tmp_path):
+    from datetime import date
+
+    from english_tutor.domain.models import ReviewState
+
+    store = make(tmp_path)
+    saved = [record(category="verb tense", review=ReviewState(date(2026, 11, 14), 2))]
+    store.save(saved)
+    assert make(tmp_path).load() == saved
+    entry = json.loads((tmp_path / "data" / "mistakes.json").read_text(encoding="utf-8"))["mistakes"][0]
+    assert entry["category"] == "verb tense"
+    assert entry["review"] == {"due": "2026-11-14", "step": 2}
+
+
+def test_optional_fields_are_not_written_when_unset(tmp_path):
+    store = make(tmp_path)
+    store.save([record()])
+    entry = json.loads((tmp_path / "data" / "mistakes.json").read_text(encoding="utf-8"))["mistakes"][0]
+    assert "category" not in entry and "review" not in entry
+
+
+def test_a_file_without_the_new_fields_still_loads(tmp_path):
+    store = make(tmp_path)
+    store.save([record()])
+    loaded = make(tmp_path).load()
+    assert loaded[0].category is None and loaded[0].review is None
+
+
+@pytest.mark.parametrize(
+    "review",
+    [None, "tomorrow", {"due": "not a date"}, {"step": 1}, {"due": "2026-11-14", "step": -1},
+     {"due": "2026-11-14", "step": "x"}],
+)
+def test_a_damaged_review_is_dropped_but_the_mistake_is_kept(tmp_path, review):
+    store = make(tmp_path)
+    store.save([record()])
+    path = tmp_path / "data" / "mistakes.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["mistakes"][0]["review"] = review
+    data["mistakes"][0]["category"] = 42
+    path.write_text(json.dumps(data), encoding="utf-8")
+    loaded = make(tmp_path).load()
+    assert len(loaded) == 1
+    assert loaded[0].review is None and loaded[0].category is None
+
+
+def test_duplicate_entries_keep_the_known_category_and_review(tmp_path):
+    from datetime import date
+
+    from english_tutor.domain.models import ReviewState
+
+    review = ReviewState(date(2026, 11, 20), 1)
+    store = make(tmp_path)
+    older = record(last_seen=datetime(2026, 11, 2, 9, 0, 0), category="articles", review=review)
+    newer = record(last_seen=datetime(2026, 11, 3, 9, 0, 0))
+    store.save([older, newer])
+    merged = make(tmp_path).load()[0]
+    assert (merged.category, merged.review) == ("articles", review)

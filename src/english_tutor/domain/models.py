@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Literal
 
@@ -154,6 +154,14 @@ class PracticeReply:
 
 
 @dataclass(frozen=True)
+class ReviewState:
+    """When a mistake is next due for review and how far up the schedule it has climbed."""
+
+    due: date
+    step: int = 0  # position in the review ladder (see domain.review_schedule)
+
+
+@dataclass(frozen=True)
 class MistakeRecord:
     """A recurring mistake, grouped by its normalized original/corrected pair."""
 
@@ -168,3 +176,5 @@ class MistakeRecord:
     examples: tuple[str, ...]
     practice_attempts: int = 0
     practice_successes: int = 0
+    category: str | None = None  # kind of mistake, once known
+    review: ReviewState | None = None  # None until the mistake is scheduled
