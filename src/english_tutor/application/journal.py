@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable, Sequence
 
 from ..domain.models import MistakeRecord
+from ..domain.progress import SessionStats
 from ..ports import ConversationLog, LogSpeaker
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,17 @@ class NullMistakeStore:
 
     def save(self, records: Sequence[MistakeRecord]) -> None:
         """Ignore the records."""
+
+
+class NullSessionStatsStore:
+    """A statistics store that remembers nothing."""
+
+    def load(self) -> list[SessionStats]:
+        """Return no sessions."""
+        return []
+
+    def append(self, stats: SessionStats) -> None:
+        """Ignore the statistics."""
 
 
 class SafeJournal:

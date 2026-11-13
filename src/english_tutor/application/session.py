@@ -18,6 +18,7 @@ from ..ports import (
     LlmUnavailable,
     MistakeStore,
     PracticeCoach,
+    SessionStatsStore,
     SpeechSynthesizer,
     SpeechToText,
     TtsError,
@@ -34,10 +35,11 @@ from .events import (
     UserSaid,
 )
 from .history import ChatHistory
-from .journal import NullConversationLog, NullMistakeStore, SafeJournal
+from .journal import NullConversationLog, NullMistakeStore, NullSessionStatsStore, SafeJournal
 from .mistake_book import MistakeBook
 from .practice import PracticeDrill, PracticeServices, open_practice, run_practice_turn
 from .report import make_report
+from .session_stats import StatsRecorder
 from .worker import Runner, SerialWorker
 
 logger = logging.getLogger(__name__)
@@ -70,6 +72,7 @@ class ConversationSession:
         ptt_label: str = "V",
         conversation_log: ConversationLog | None = None,
         mistakes: MistakeStore | None = None,
+        session_stats: SessionStatsStore | None = None,
         coach: PracticeCoach | None = None,
         track_pauses: Callable[[], bool] = lambda: True,
     ) -> None:
@@ -94,6 +97,10 @@ class ConversationSession:
         self._book = MistakeBook(
             mistakes or NullMistakeStore(),
             lambda message: self._warn_once("mistakes", message),
+        )
+        self._stats = StatsRecorder(
+            session_stats or NullSessionStatsStore(),
+            lambda message: self._warn_once("stats", message),
         )
         self._history = ChatHistory(history_exchanges)
         self._turns: list[Turn] = []
@@ -279,8 +286,11 @@ class ConversationSession:
             return
         corrections = filter_corrections(raw, reply.corrections)
         live, _ = pick_live(corrections)
-        turn = Turn(len(self._turns) + 1, raw, reply.reply, corrections, live, pauses)
+        turn = Turn(
+            len(self._turns) + 1, raw, reply.reply, corrections, live, pauses, transcript.duration_s
+        )
         self._turns.append(turn)
+        self._stats.turn_done()
         self._history.add_exchange(raw, reply.reply)
         self._emit(TutorSaid(reply.reply, live))
         self._journal.record("tutor", reply.reply)
@@ -396,6 +406,7 @@ class ConversationSession:
         self._journal.new_session()
         if report.feedback is not None and report.feedback.summary:
             self._speak(report.feedback.summary)
+        self._stats.finish(tuple(self._turns))
         self._turns.clear()
         self._history.clear()
         self._set_state(SessionState.IDLE, "Ready")

@@ -15,6 +15,7 @@ The app keeps your history on disk in plain text under `data\` (or `TUTOR_DATA_D
 
 - `data\conversations\session-*.log` contains everything you said (the raw transcripts), the tutor's replies, the tips, the long pauses found in your speech, the session reports and the practice results.
 - `data\mistakes.json` contains your recurring mistakes and long pauses, up to three example sentences of yours per item, and your practice scores. The tutor model also receives your name and pronouns from the settings.
+- `data\sessions.json` contains one line of numbers per session (date, duration, words, mistake and pause counts); no sentences.
 - `data\settings.json` contains your preferences and `data\logs\app.log` the application log (see [below](#settings-and-the-application-log)).
 - Files you export (report as Markdown, mistakes as CSV) contain the same text and live wherever you saved them; the app does not track or clean them up.
 - In the mistakes CSV, a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'`, so a spreadsheet shows it as text instead of running it as a formula (the text comes from transcription and the language model).

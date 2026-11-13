@@ -93,6 +93,7 @@ class Turn:
     corrections: tuple[Correction, ...]
     live_correction: Correction | None
     hesitations: tuple[Hesitation, ...] = ()
+    speech_s: float = 0.0  # seconds of recorded speech
 
 
 @dataclass(frozen=True)

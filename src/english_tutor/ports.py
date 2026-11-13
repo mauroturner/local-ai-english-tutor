@@ -19,6 +19,7 @@ from .domain.models import (
     Turn,
     TutorReply,
 )
+from .domain.progress import SessionStats
 
 
 class AdapterError(Exception):
@@ -139,6 +140,18 @@ class MistakeStore(Protocol):
 
     def save(self, records: Sequence[MistakeRecord]) -> None:
         """Replace the stored records; raises StorageError on failure."""
+        ...
+
+
+class SessionStatsStore(Protocol):
+    """Persistent per-session statistics."""
+
+    def load(self) -> list[SessionStats]:
+        """Return the stored sessions, oldest first; raises StorageError when unusable."""
+        ...
+
+    def append(self, stats: SessionStats) -> None:
+        """Add one finished session; raises StorageError on failure."""
         ...
 
 

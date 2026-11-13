@@ -110,7 +110,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 
 - `PushToTalk` is satisfied by `KeyboardPushToTalk`, but the session does not hold a reference to it: the composition root registers `session.on_ptt_press` and `session.on_ptt_release` as its callbacks.
 - `OllamaTutorModel` implements both `TutorModel` and `PracticeCoach`; the composition root passes the same instance for both (`tutor` and `coach=tutor`).
-- The logging and mistake-history ports are optional: without them the session uses `NullConversationLog` and `NullMistakeStore` (`application/journal.py`).
+- The logging, mistake-history and session-statistics ports are optional: without them the session uses `NullConversationLog`, `NullMistakeStore` and `NullSessionStatsStore` (`application/journal.py`).
 
 ## Module table
 
@@ -126,13 +126,15 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `domain/practice_prompts.py` | `PRACTICE_SYSTEM_PROMPT`, `PRACTICE_SCHEMA`, `PRACTICE_START`, `build_practice_system_prompt` |
 | `domain/learner.py` | `LearnerProfile`, `profile_block`, `with_profile`: the name and pronouns added to every prompt |
 | `domain/hesitation.py` | `find_hesitations`, `as_corrections`, `pause_inside`, `restore_times`, `matching_words`: long pauses from word timings |
+| `domain/progress.py` | `SessionStats` (the numbers of one finished session), `build_stats`, `count_words` |
 | `domain/formatting.py` | Plain-text renderings shared by the UI and the log: `format_report`, `correction_text`, `practice_speech` |
 | `audio/processing.py` | `to_mono`, `resample` (polyphase), `peak_normalize`, `prepare_for_stt` |
 | `audio/devices.py` | `InputDevice`, `dedupe_input_devices` (WASAPI > DirectSound > MME), `resolve_default`, `list_input_devices` |
 | `application/session.py` | `ConversationSession`: PTT handling, turn pipeline, practice entry points, report, failure guard |
 | `application/practice.py` | `PracticeDrill` (target + its own bounded history), `open_practice`, `run_practice_turn` |
 | `application/mistake_book.py` | `MistakeBook`: in-memory mistake history backed by a `MistakeStore`; storage errors go to a warning callback |
-| `application/journal.py` | `SafeJournal` (a conversation log whose failures warn instead of raising), `NullConversationLog`, `NullMistakeStore` |
+| `application/journal.py` | `SafeJournal` (a conversation log whose failures warn instead of raising), `NullConversationLog`, `NullMistakeStore`, `NullSessionStatsStore` |
+| `application/session_stats.py` | `StatsRecorder`: marks the session start and stores its `SessionStats` through the `SessionStatsStore` port when the session ends; failures warn once |
 | `application/report.py` | `collect_errors`, `make_report` (end-of-session report; feedback failures kept as text) |
 | `application/events.py` | Event dataclasses sent to the UI: `StateChanged`, `UserSaid`, `TutorSaid`, `ReportReady`, `ErrorRaised`, `LevelChanged`, `MistakesChanged`, `PracticeChanged`, `PracticeFeedback`, `DataCleared` |
 | `application/history.py` | `ChatHistory`: bounded memory of user/assistant pairs |
@@ -147,6 +149,7 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `adapters/keyboard_ptt.py` | `KeyboardPushToTalk`: global key hooks, ignores auto-repeat, filters the Left/Right side of Ctrl/Alt via `side_names` |
 | `adapters/file_conversation_log.py` | `FileConversationLog`: one timestamped `.log` file per session |
 | `adapters/json_mistake_store.py` | `JsonMistakeStore`: versioned `mistakes.json`, atomic save, corrupt-file backup |
+| `adapters/json_session_store.py` | `JsonSessionStore`: versioned `sessions.json` (one `SessionStats` per finished session), atomic append, corrupt-file backup |
 | `adapters/json_settings_store.py`, `adapters/atomic_io.py` | `JsonSettingsStore`: versioned `settings.json`, corrupt-file backup; `atomic_write_text` is shared by saves and exports |
 | `adapters/windows_autostart.py` | `WindowsAutoStart`: the `EnglishTutor` value under `HKCU\...\Run`; `autostart_command` |
 | `adapters/windows_notifier.py` | `WindowsNotifier`: toast through `powershell.exe -EncodedCommand`, taskbar flash fallback |

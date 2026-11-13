@@ -10,6 +10,7 @@ from pathlib import Path
 from .adapters.file_conversation_log import FileConversationLog
 from .adapters.folders import open_folder
 from .adapters.json_mistake_store import JsonMistakeStore
+from .adapters.json_session_store import JsonSessionStore
 from .adapters.json_settings_store import JsonSettingsStore
 from .adapters.keyboard_ptt import KeyboardPushToTalk
 from .adapters.ollama_chat import OllamaTutorModel
@@ -126,6 +127,7 @@ def main() -> int:
         ptt_label=cfg.ptt_label,
         conversation_log=conversation_log,
         mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
+        session_stats=JsonSessionStore(cfg.data_dir / "sessions.json"),
         coach=tutor,
         track_pauses=lambda: current[0].track_pauses,
     )

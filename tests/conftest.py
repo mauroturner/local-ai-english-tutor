@@ -22,6 +22,7 @@ from english_tutor.domain.models import (
     Turn,
     TutorReply,
 )
+from english_tutor.domain.progress import SessionStats
 from english_tutor.ports import AudioClip, LlmUnavailable, StorageError, TtsError
 
 
@@ -159,6 +160,22 @@ class FakeMistakeStore:
         self.saves.append(list(records))
 
 
+class FakeSessionStatsStore:
+    """In-memory SessionStatsStore; ``error`` makes ``append`` raise."""
+
+    def __init__(self) -> None:
+        self.sessions: list[SessionStats] = []
+        self.error: Exception | None = None
+
+    def load(self) -> list[SessionStats]:
+        return list(self.sessions)
+
+    def append(self, stats: SessionStats) -> None:
+        if self.error is not None:
+            raise self.error
+        self.sessions.append(stats)
+
+
 class FakeCoach:
     """Scripted PracticeCoach; items may be PracticeReply or an exception to raise."""
 
@@ -226,6 +243,12 @@ class Harness:
 def fake_store() -> FakeMistakeStore:
     """A fresh in-memory mistake store."""
     return FakeMistakeStore()
+
+
+@pytest.fixture
+def fake_stats() -> FakeSessionStatsStore:
+    """A fresh in-memory session statistics store."""
+    return FakeSessionStatsStore()
 
 
 @pytest.fixture
@@ -313,7 +336,7 @@ def make_harness():
 
     def _make(
         texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None,
-        coach=None, track_pauses=None,
+        coach=None, track_pauses=None, session_stats=None,
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -324,6 +347,7 @@ def make_harness():
             runner=runner if runner is not None else InlineRunner(),
             conversation_log=log,
             mistakes=store,
+            session_stats=session_stats,
             coach=coach,
             track_pauses=track_pauses or (lambda: True),
         )

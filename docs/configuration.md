@@ -270,6 +270,26 @@ Multi-line entries (the report) continue on following lines indented by four spa
 - **Corrupt or unsupported file.** If the file is not valid JSON, has the wrong structure or a `version` other than 1, it is renamed to `mistakes.json.corrupt-YYYYmmdd-HHMMSS`, the app shows `Mistake history was unreadable; saved a copy as <name> and started a new one`, and starts with an empty history. If the rename itself fails, the store becomes read-only for that run (nothing is overwritten) and a message says so. Single bad entries inside a valid file are skipped with a console warning.
 - **Failures never block a turn.** Storage problems (log or history) are shown once per kind as a chat notice (`Conversation log unavailable: ...`, `Mistake history not saved: ...`) and logged as console warnings; the conversation continues and the in-memory history stays correct for the run.
 
+### Session statistics
+
+`data\sessions.json`, versioned JSON, one entry per finished session (written when you press **End session**, only if you answered at least once):
+
+```json
+{
+  "version": 1,
+  "sessions": [
+    {
+      "started_at": "2026-11-13T10:00:00", "duration_s": 300.0,
+      "turns": 5, "words": 80, "speech_s": 40.0,
+      "major": 2, "minor": 3, "pauses": 1, "slow_starts": 1
+    }
+  ]
+}
+```
+
+- **Numbers.** `duration_s` runs from the first answer to the end of the session; `speech_s` is the recorded speech (used for words per minute); `major` / `minor` count every correction made, repeats included; `pauses` and `slow_starts` count long pauses inside sentences and before the first word. Quitting without pressing **End session** stores nothing for that run.
+- **Saving, corrupt file, failures.** Same rules as the mistake history: atomic swap of `sessions.json.tmp`, a bad file is renamed to `sessions.json.corrupt-YYYYmmdd-HHMMSS` and a new one starts, bad entries are skipped, and a failed save shows `Session statistics not saved: ...` once and never blocks the report.
+
 ### Wiping the data
 
 The easy way is **Settings > Storage > Delete conversation logs / Delete mistake history** (with confirmation, [details](#storage)). To do it by hand, close the app, then delete what you want to forget:
@@ -278,6 +298,7 @@ The easy way is **Settings > Storage > Delete conversation logs / Delete mistake
 Remove-Item -Recurse -Force data                      # everything, including settings.json
 Remove-Item -Recurse -Force data\conversations        # logs only
 Remove-Item data\mistakes.json                        # mistake history only
+Remove-Item data\sessions.json                        # session statistics only
 ```
 
 Use the path of your `TUTOR_DATA_DIR` if you changed it. Files are plain, unencrypted text; see [security-notes.md](security-notes.md).
