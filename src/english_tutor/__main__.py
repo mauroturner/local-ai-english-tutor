@@ -37,7 +37,7 @@ from .i18n import set_language
 from .logging_setup import configure_logging
 from .ports import AutoStart, SpeechSynthesizer
 from .restart import finish_restart
-from .settings.model import settings_env
+from .settings.model import UserSettings, learner_profile, settings_env
 
 logger = logging.getLogger("english_tutor")
 
@@ -105,9 +105,16 @@ def main() -> int:
             window_ref[0].post(event)
 
     recorder = SoundDeviceRecorder(on_level=lambda value: emit(LevelChanged(value)))
+    profile = [learner_profile(loaded.settings)]  # replaced on Save; read by the worker
     tutor = OllamaTutorModel(
-        cfg.ollama_url, cfg.ollama_model, cfg.ollama_timeout_s, cfg.llm_temperature
+        cfg.ollama_url, cfg.ollama_model, cfg.ollama_timeout_s, cfg.llm_temperature,
+        profile=lambda: profile[0],
     )
+
+    def on_applied(saved: UserSettings) -> None:
+        profile[0] = learner_profile(saved)
+        window_ref[0].apply_settings(saved)
+
     conversation_log = FileConversationLog(cfg.data_dir / "conversations")
     session = ConversationSession(
         WhisperTranscriber(cfg),
@@ -128,7 +135,7 @@ def main() -> int:
         UiPaths(cfg.data_dir, cfg.data_dir / "logs"),
         open_folder,
         apply_log_level=_apply_log_level,
-        on_applied=lambda saved: window_ref[0].apply_settings(saved),
+        on_applied=on_applied,
         on_restart_needed=lambda keys: window_ref[0].show_restart_banner(keys),
         ptt_gate=gate,
         autostart=autostart,

@@ -100,7 +100,7 @@ Click the gear button (or press **Ctrl+,**) to open the Settings window. It has 
 
 | Category | What you can change |
 | --- | --- |
-| General | Interface language (English or Spanish; the tutor always speaks English), start with Windows |
+| General | Interface language (English or Spanish; the tutor always speaks English), your name and pronouns (used by the tutor), start with Windows |
 | Appearance | Light, dark or system theme, interface scale, chat font size, layout density |
 | Audio & notifications | Voice output, sound cues for recording start/stop/errors, desktop notification when the report is ready |
 | Storage | Data folder, export folder, open the folder, export the last report (Markdown) or the mistake list (CSV), delete conversation logs or mistake history |

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import requests
 
+from ..domain.learner import LearnerProfile, with_profile
 from ..domain.models import (
     ChatMessage,
     MistakeRecord,
@@ -45,12 +46,14 @@ class OllamaTutorModel:
         timeout_s: float,
         temperature: float,
         session: requests.Session | None = None,
+        profile: Callable[[], LearnerProfile] = LearnerProfile,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._timeout_s = timeout_s
         self._temperature = temperature
         self._http = session if session is not None else requests.Session()
+        self._profile = profile  # read on every call, so a saved change applies at once
 
     def check(self) -> None:
         """Raise LlmUnavailable if Ollama is down or the model is not pulled."""
@@ -77,7 +80,7 @@ class OllamaTutorModel:
     def reply(self, history: Sequence[ChatMessage], user_text: str) -> TutorReply:
         """Send system prompt + history + the raw learner text."""
         messages = [
-            ChatMessage("system", TURN_SYSTEM_PROMPT),
+            ChatMessage("system", with_profile(TURN_SYSTEM_PROMPT, self._profile())),
             *history,
             ChatMessage("user", user_text),
         ]
@@ -86,7 +89,7 @@ class OllamaTutorModel:
     def feedback(self, turns: Sequence[Turn]) -> SessionFeedback:
         """Ask for the overall session feedback."""
         messages = [
-            ChatMessage("system", REPORT_SYSTEM_PROMPT),
+            ChatMessage("system", with_profile(REPORT_SYSTEM_PROMPT, self._profile())),
             ChatMessage("user", build_report_user_message(turns)),
         ]
         return parse_feedback(self._chat(messages, REPORT_SCHEMA))
@@ -96,7 +99,7 @@ class OllamaTutorModel:
     ) -> PracticeReply:
         """Judge one practice answer about ``target`` and ask the next question."""
         messages = [
-            ChatMessage("system", build_practice_system_prompt(target)),
+            ChatMessage("system", build_practice_system_prompt(target, self._profile())),
             *history,
             ChatMessage("user", learner_text),
         ]

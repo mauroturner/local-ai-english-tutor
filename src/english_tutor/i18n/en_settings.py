@@ -13,6 +13,9 @@ SETTINGS_STRINGS: dict[str, str] = {
     # Choice option names
     "option.language.en": "English",
     "option.language.es": "Español",
+    "option.learner_pronouns.he": "He/him",
+    "option.learner_pronouns.she": "She/her",
+    "option.learner_pronouns.they": "They/them",
     "option.appearance_mode.system": "System",
     "option.appearance_mode.light": "Light",
     "option.appearance_mode.dark": "Dark",
@@ -25,6 +28,12 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.language.label": "Interface language",
     "setting.language.help": "Language of menus and messages, and the date and time format. "
     "The tutor always speaks English.",
+    "setting.learner_name.label": "Your name",
+    "setting.learner_name.help": "The tutor calls you by this name now and then. "
+    "Leave it empty to not be called by name.",
+    "setting.learner_pronouns.label": "Your pronouns",
+    "setting.learner_pronouns.help": "Used when the tutor refers to you, for example in "
+    "the session report.",
     "setting.autostart.label": "Start with Windows",
     "setting.autostart.help": "Open the app automatically when you sign in.",
     # Appearance

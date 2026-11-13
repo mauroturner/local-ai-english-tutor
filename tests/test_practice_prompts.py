@@ -40,15 +40,16 @@ def test_constants():
 def test_prompt_contains_the_target_block():
     prompt = build_practice_system_prompt(target())
     assert prompt.startswith(PRACTICE_SYSTEM_PROMPT + "\n")
-    assert prompt.endswith(
+    assert (
         'TARGET:\n- The learner said: "I go"\n- Correct form: "I went"\n'
-        "- Rule: Use the past tense."
-    )
+        "- Rule: Use the past tense.\n\nLEARNER:\n"
+    ) in prompt
 
 
 def test_target_fields_are_cleaned():
     messy = target('He said  "no"\n  twice', "x" * 500, "Rule:\n\tspaced   out")
-    block = build_practice_system_prompt(messy).split("TARGET:\n")[1]
+    prompt = build_practice_system_prompt(messy)
+    block = prompt.split("TARGET:\n")[1].split("\n\nLEARNER:")[0]
     assert "He said 'no' twice" in block
     assert '"x' + "x" * 199 + '"' in block
     assert "x" * 201 not in block

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from .learner import LearnerProfile, with_profile
 from .models import MistakeRecord
 
 PRACTICE_START = "START"
@@ -68,6 +69,9 @@ def target_block(target: MistakeRecord) -> str:
     )
 
 
-def build_practice_system_prompt(target: MistakeRecord) -> str:
+def build_practice_system_prompt(
+    target: MistakeRecord, profile: LearnerProfile | None = None
+) -> str:
     """System prompt for a drill on ``target`` (concatenated, never ``str.format``)."""
-    return PRACTICE_SYSTEM_PROMPT + "\n" + target_block(target)
+    prompt = PRACTICE_SYSTEM_PROMPT + "\n" + target_block(target)
+    return with_profile(prompt, profile or LearnerProfile())

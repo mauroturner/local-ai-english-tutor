@@ -83,6 +83,7 @@ The reply is asked to be one to three short sentences, plain text (no lists, emo
 | Setting | Effect on the tutor |
 | --- | --- |
 | Interface language (English / Spanish) | Only the app's own text (buttons, labels, status messages, dates in the Mistakes tab). Alex always speaks and corrects in **English**; the report, tips, practice questions and conversation logs stay English |
+| Your name and pronouns | Added to the end of every prompt (turn, report, practice) as a `LEARNER` section; the next model call after **Save** uses them. They never change how mistakes are judged |
 | Sound cues | Short beeps for recording start, stop and errors. They are played on a separate audio stream and never alter, delay or replace a transcript |
 | Voice output | Off means text-only replies; corrections and the report are unchanged |
 | Chat font size, theme, scale, density | Presentation only |
@@ -135,7 +136,15 @@ Replies took about 1.2 seconds each. Known limit: the model's next question does
 
 ## Prompts
 
-The turn and report prompts are defined in [`src/english_tutor/domain/prompts.py`](../src/english_tutor/domain/prompts.py) as `TURN_SYSTEM_PROMPT` and `REPORT_SYSTEM_PROMPT`; the practice prompt is in [`src/english_tutor/domain/practice_prompts.py`](../src/english_tutor/domain/practice_prompts.py) as `PRACTICE_SYSTEM_PROMPT`. They are quoted here as they stand in the code; the source files are authoritative. The earlier custom Ollama model `english-teacher` is no longer used.
+The turn and report prompts are defined in [`src/english_tutor/domain/prompts.py`](../src/english_tutor/domain/prompts.py) as `TURN_SYSTEM_PROMPT` and `REPORT_SYSTEM_PROMPT`; the practice prompt is in [`src/english_tutor/domain/practice_prompts.py`](../src/english_tutor/domain/practice_prompts.py) as `PRACTICE_SYSTEM_PROMPT`. They are quoted here as they stand in the code; the source files are authoritative. Each prompt is followed by a `LEARNER` section built by `profile_block` in [`src/english_tutor/domain/learner.py`](../src/english_tutor/domain/learner.py), for example:
+
+```text
+LEARNER:
+- Name: "Mauro". Use it now and then, not in every message.
+- Pronouns: he/him. Use them whenever you refer to the learner in the third person.
+```
+
+The earlier custom Ollama model `english-teacher` is no longer used.
 
 ### Turn prompt
 

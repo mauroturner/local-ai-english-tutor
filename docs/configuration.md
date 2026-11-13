@@ -47,7 +47,8 @@ User settings are saved in `settings.json`. Environment variables keep working a
 {
   "version": 1,
   "settings": {
-    "language": "en", "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
+    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he",
+    "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
     "density": "comfortable", "tts_enabled": true,
     "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
     "notify_report": true, "data_dir": "", "export_dir": "", "ptt_key": "v",
@@ -87,6 +88,8 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Setting | Values (default) | Applies | Notes |
 | --- | --- | --- | --- |
 | Interface language | `en`, `es` (`en`) | Restart | Buttons, labels, status messages and dates in the Mistakes tab (`Nov 12, 2026` / `12 nov 2026`). The tutor, corrections, reports and conversation logs stay English |
+| Your name | text, up to 40 characters (`Mauro`) | Save | The tutor uses it now and then. Leave it empty to not be called by name. Quotes, braces, angle brackets, backslashes, backticks and control characters are refused |
+| Your pronouns | `he` (he/him), `she` (she/her), `they` (they/them) (`he`) | Save | Used when the tutor refers to you in the third person, for example in the report |
 | Start with Windows | on / off (off) | Save | Not stored in `settings.json`; see [Start with Windows](#start-with-windows) |
 
 ### Appearance

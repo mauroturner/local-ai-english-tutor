@@ -8,6 +8,7 @@ import pytest
 import requests
 
 from english_tutor.adapters.ollama_chat import OllamaTutorModel
+from english_tutor.domain.learner import LearnerProfile, with_profile
 from english_tutor.domain.models import ChatMessage, Turn
 from english_tutor.domain.prompts import (
     REPORT_SCHEMA,
@@ -72,7 +73,7 @@ def test_reply_payload_and_message_order():
     assert payload["options"] == {"temperature": 0.5, "num_ctx": 4096}
     assert payload["keep_alive"] == "10m"
     assert payload["messages"] == [
-        {"role": "system", "content": TURN_SYSTEM_PROMPT},
+        {"role": "system", "content": with_profile(TURN_SYSTEM_PROMPT, LearnerProfile())},
         {"role": "user", "content": "hi"},
         {"role": "assistant", "content": "hello"},
         {"role": "user", "content": "Could you hear me?"},
@@ -87,7 +88,8 @@ def test_feedback_uses_report_schema_and_prompt():
     result = model(session).feedback(turns)
     payload = session.posts[0]["json"]
     assert payload["format"] == REPORT_SCHEMA
-    assert payload["messages"][0] == {"role": "system", "content": REPORT_SYSTEM_PROMPT}
+    report_prompt = with_profile(REPORT_SYSTEM_PROMPT, LearnerProfile())
+    assert payload["messages"][0] == {"role": "system", "content": report_prompt}
     assert "1. I go home" in payload["messages"][1]["content"]
     assert result.summary == "Good."
 

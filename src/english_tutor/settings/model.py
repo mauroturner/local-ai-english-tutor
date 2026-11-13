@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from ..config import PARSERS, ConfigError, check_between
+from ..domain.learner import PRONOUNS, LearnerProfile, clean_name, name_error
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,8 @@ class UserSettings:
     """Every user setting with its default (see docs/configuration.md)."""
 
     language: str = "en"
+    learner_name: str = "Mauro"
+    learner_pronouns: str = "he"
     appearance_mode: str = "system"
     ui_scale: float = 1.0
     chat_font_size: int = 13
@@ -88,6 +91,7 @@ class _Rule:
 
 _RULES: dict[str, _Rule] = {
     "language": _Rule("str", ("en", "es"), lower=True),
+    "learner_pronouns": _Rule("str", tuple(PRONOUNS), lower=True),
     "appearance_mode": _Rule("str", ("system", "light", "dark"), lower=True),
     "ui_scale": _Rule("float", _SCALES),
     "chat_font_size": _Rule("int", bounds=(10, 22)),
@@ -119,6 +123,8 @@ def _as_text(name: str, raw: Any, kind: str) -> str:
 def _parse_field(name: str, raw: Any, default: Any) -> Any:
     rule = _RULES.get(name) or _Rule("bool" if isinstance(default, bool) else "str")
     text = _as_text(name, raw, rule.kind)
+    if name == "learner_name":  # an empty name is valid, so the shared parser cannot be used
+        return _checked_name(name, text)
     value = PARSERS[rule.kind]({name: text}, name, default)
     if isinstance(value, str):
         value = value.lower() if rule.lower else value.upper() if rule.upper else value
@@ -149,6 +155,13 @@ def _checked_url(name: str, value: str) -> str:
     return value.rstrip("/")
 
 
+def _checked_name(name: str, value: str) -> str:
+    error = name_error(value)
+    if error:
+        raise ConfigError(f"{name}: {error}")
+    return clean_name(value)
+
+
 def parse_settings(raw: Mapping[str, Any]) -> tuple[UserSettings, tuple[str, ...]]:
     """Validate stored values; each bad field falls back alone, with a warning.
 
@@ -166,6 +179,11 @@ def parse_settings(raw: Mapping[str, Any]) -> tuple[UserSettings, tuple[str, ...
         except ConfigError as exc:
             warnings.append(f"Ignored invalid setting: {exc}; using {default!r}.")
     return dataclasses.replace(defaults, **values), tuple(warnings)
+
+
+def learner_profile(settings: UserSettings) -> LearnerProfile:
+    """The name and pronouns the tutor uses, taken from ``settings``."""
+    return LearnerProfile(settings.learner_name, settings.learner_pronouns)
 
 
 def to_json_dict(settings: UserSettings) -> dict[str, Any]:
