@@ -18,6 +18,8 @@ STRINGS: dict[str, str] = {
     "button.end_session": "Finalizar sesión",
     "button.stop_practice": "Detener práctica",
     "button.practice": "Practicar",
+    "button.repeat": "Repetir",
+    "button.repeat_slow": "Más lento",
     "tooltip.settings": "Ajustes ({shortcut})",
     "tooltip.end_session_disabled": "Disponible cuando Alex no esté ocupado",
     # Status chip (one per session state)

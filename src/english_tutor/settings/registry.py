@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 
+from ..domain.learner import LEVELS
 from ..i18n import en
 from .model import ENV_VARS, RESTART_FIELDS
 
@@ -109,6 +110,8 @@ REGISTRY: tuple[SettingSpec, ...] = (
     _setting("learner_name", _G, Control.TEXT, ("name", "nombre", "profile", "perfil", "me")),
     _setting("learner_pronouns", _G, Control.CHOICE, ("pronoun", "pronombre", "gender", "genero",
              "he", "she", "they", "profile", "perfil"), ("he", "she", "they")),
+    _setting("level", _G, Control.CHOICE, ("cefr", "a2", "b1", "b2", "c1", "nivel", "difficulty",
+             "dificultad", "speed", "velocidad"), LEVELS),
     _setting("track_pauses", _G, _SWITCH, ("hesitation", "fluency", "silence", "pause", "pausa",
              "fluidez", "silencio", "practice", "practicar")),
     _setting("suggest_natural", _G, _SWITCH, ("native", "natural", "rephrase", "phrasing", "style",
@@ -146,6 +149,8 @@ REGISTRY: tuple[SettingSpec, ...] = (
     _setting("shortcut_settings", _SC, _SHORTCUT, _KEY_WORDS),
     _setting("shortcut_chat_tab", _SC, _SHORTCUT, _KEY_WORDS),
     _setting("shortcut_mistakes_tab", _SC, _SHORTCUT, _KEY_WORDS),
+    _setting("shortcut_repeat", _SC, _SHORTCUT, _KEY_WORDS + ("repeat", "replay", "repetir")),
+    _setting("shortcut_repeat_slow", _SC, _SHORTCUT, _KEY_WORDS + ("repeat", "slow", "repetir", "lento")),
     # Advanced
     _setting("whisper_device", _AD, Control.CHOICE, ("gpu", "cuda", "cpu", "hardware",
              "acceleration", "aceleracion"), ("auto", "cuda", "cpu")),

@@ -8,6 +8,24 @@ from dataclasses import dataclass
 PRONOUNS: dict[str, str] = {"he": "he/him", "she": "she/her", "they": "they/them"}
 """Stored value -> how the pronouns are written in the prompts."""
 
+LEVELS = ("A2", "B1", "B2", "C1")
+DEFAULT_LEVEL = "B1"
+
+LEVEL_RULES: dict[str, str] = {
+    "A2": "Use only very common words and short sentences (under 10 words). Stay on familiar "
+    "topics. Report at most ONE error per message: the most important one.",
+    "B1": "Use everyday vocabulary and sentences of up to about 15 words. Report at most TWO "
+    "errors per message.",
+    "B2": "Use natural vocabulary, including common phrasal verbs and idioms, and normal "
+    "sentences. Report up to THREE errors per message.",
+    "C1": "Use rich, precise vocabulary, idioms and varied sentences. Also report subtle "
+    "errors of word choice, collocation and register.",
+}
+"""Level -> how the tutor should talk and how many corrections to give (CEFR)."""
+
+SLOW_SPEECH = {"A2": 1.15}
+"""Level -> Piper ``length_scale`` (above 1 is slower); other levels use 1.0."""
+
 MAX_NAME_CHARS = 40
 _FORBIDDEN_NAME_CHARS = frozenset('"\\{}<>`')
 _SPACE_RE = re.compile(r"\s+")
@@ -19,6 +37,7 @@ class LearnerProfile:
 
     name: str = "Mauro"
     pronouns: str = "he"
+    level: str = DEFAULT_LEVEL
 
 
 def name_error(text: str) -> str | None:
@@ -52,7 +71,14 @@ def profile_block(profile: LearnerProfile) -> str:
         f"- Pronouns: {pronouns}. Use them whenever you refer to the learner "
         "in the third person."
     )
+    level = profile.level if profile.level in LEVEL_RULES else DEFAULT_LEVEL
+    lines.append(f"- English level (CEFR): {level}. {LEVEL_RULES[level]}")
     return "\n".join(lines)
+
+
+def speech_scale(level: str) -> float:
+    """Piper ``length_scale`` for the learner's level: slower for beginners."""
+    return SLOW_SPEECH.get(level, 1.0)
 
 
 def with_profile(prompt: str, profile: LearnerProfile) -> str:

@@ -46,6 +46,8 @@ from .worker import Runner, SerialWorker
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
+SLOWER_SPEECH = 1.35
+"""How much "repeat slower" stretches the speech, on top of the level's own pace."""
 Pauses = tuple[Hesitation, ...]
 
 
@@ -77,6 +79,7 @@ class ConversationSession:
         coach: PracticeCoach | None = None,
         track_pauses: Callable[[], bool] = lambda: True,
         suggest_natural: Callable[[], bool] = lambda: True,
+        speech_scale: Callable[[], float] = lambda: 1.0,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -93,6 +96,8 @@ class ConversationSession:
         self._coach = coach
         self._track_pauses = track_pauses  # read every turn, so the setting applies at once
         self._suggest_natural = suggest_natural  # read every turn, like track_pauses
+        self._speech_scale = speech_scale  # Piper length_scale for the learner's level
+        self._last_spoken = ""
         self._drill: PracticeDrill | None = None
         self._practice = PracticeServices(
             self._ask, self._emit, self._journal.record, self._speak
@@ -331,17 +336,32 @@ class ConversationSession:
         self._book.add_corrections(found, turn.user_text)
         self._emit(MistakesChanged(self._book.snapshot()))
 
-    def _speak(self, text: str) -> None:
+    def _speak(self, text: str, slower: float = 1.0) -> None:
         if not self._tts.available:
             return
+        self._last_spoken = text
         self._set_state(SessionState.SPEAKING, "Speaking...")
         try:
-            self._tts.speak(text)
+            self._tts.speak(text, self._speech_scale() * slower)
         except TtsError as exc:
             logger.warning("Speech synthesis failed, continuing text-only: %s", exc)
         except Exception as exc:  # audio stacks raise assorted errors; keep the text
             logger.exception("Unexpected speech synthesis error")
             self._emit(ErrorRaised(f"Voice output failed: {exc}"))
+
+    def repeat_last(self, slower: bool = False) -> None:
+        """Say the tutor's last words again (``slower`` stretches them); ignored unless idle."""
+        with self._lock:
+            if self._state is not SessionState.IDLE or not self._last_spoken:
+                return
+            if not self._tts.available:
+                return
+            self._state = SessionState.SPEAKING
+        self._submit(lambda: self._replay(slower))
+
+    def _replay(self, slower: bool) -> None:
+        self._speak(self._last_spoken, SLOWER_SPEECH if slower else 1.0)
+        self._set_state(SessionState.IDLE, self._ready_message())
 
     # --------------------------------------------------------------- practice
     def start_practice(self, key: str) -> None:

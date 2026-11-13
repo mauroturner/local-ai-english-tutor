@@ -38,6 +38,7 @@ from .i18n import set_language
 from .logging_setup import configure_logging
 from .ports import AutoStart, SpeechSynthesizer
 from .restart import finish_restart
+from .domain.learner import speech_scale
 from .settings.model import UserSettings, learner_profile, settings_env
 
 logger = logging.getLogger("english_tutor")
@@ -131,6 +132,7 @@ def main() -> int:
         coach=tutor,
         track_pauses=lambda: current[0].track_pauses,
         suggest_natural=lambda: current[0].suggest_natural,
+        speech_scale=lambda: speech_scale(current[0].level),
     )
     gate = PttGate(session.on_ptt_press, session.on_ptt_release)
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)

@@ -15,7 +15,14 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from ..config import PARSERS, ConfigError, check_between
-from ..domain.learner import PRONOUNS, LearnerProfile, clean_name, name_error
+from ..domain.learner import (
+    DEFAULT_LEVEL,
+    LEVELS,
+    PRONOUNS,
+    LearnerProfile,
+    clean_name,
+    name_error,
+)
 
 
 @dataclass(frozen=True)
@@ -25,6 +32,7 @@ class UserSettings:
     language: str = "en"
     learner_name: str = "Mauro"
     learner_pronouns: str = "he"
+    level: str = DEFAULT_LEVEL
     track_pauses: bool = True
     suggest_natural: bool = True
     daily_goal_minutes: int = 10  # 0 switches the goal off
@@ -44,6 +52,8 @@ class UserSettings:
     shortcut_settings: str = "Ctrl+,"
     shortcut_chat_tab: str = "Ctrl+1"
     shortcut_mistakes_tab: str = "Ctrl+2"
+    shortcut_repeat: str = "Ctrl+R"
+    shortcut_repeat_slow: str = "Ctrl+Shift+R"
     whisper_device: str = "auto"
     whisper_model: str = "large-v3"
     ollama_url: str = "http://localhost:11434"
@@ -95,6 +105,7 @@ class _Rule:
 _RULES: dict[str, _Rule] = {
     "language": _Rule("str", ("en", "es"), lower=True),
     "learner_pronouns": _Rule("str", tuple(PRONOUNS), lower=True),
+    "level": _Rule("str", LEVELS, upper=True),
     "appearance_mode": _Rule("str", ("system", "light", "dark"), lower=True),
     "ui_scale": _Rule("float", _SCALES),
     "chat_font_size": _Rule("int", bounds=(10, 22)),
@@ -187,7 +198,7 @@ def parse_settings(raw: Mapping[str, Any]) -> tuple[UserSettings, tuple[str, ...
 
 def learner_profile(settings: UserSettings) -> LearnerProfile:
     """The name and pronouns the tutor uses, taken from ``settings``."""
-    return LearnerProfile(settings.learner_name, settings.learner_pronouns)
+    return LearnerProfile(settings.learner_name, settings.learner_pronouns, settings.level)
 
 
 def to_json_dict(settings: UserSettings) -> dict[str, Any]:

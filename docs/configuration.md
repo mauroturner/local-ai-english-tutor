@@ -47,13 +47,14 @@ User settings are saved in `settings.json`. Environment variables keep working a
 {
   "version": 1,
   "settings": {
-    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "track_pauses": true, "suggest_natural": true, "daily_goal_minutes": 10,
+    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "level": "B1", "track_pauses": true, "suggest_natural": true, "daily_goal_minutes": 10,
     "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
     "density": "comfortable", "tts_enabled": true,
     "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
     "notify_report": true, "data_dir": "", "export_dir": "", "ptt_key": "v",
     "shortcut_end_session": "Ctrl+E", "shortcut_settings": "Ctrl+,",
     "shortcut_chat_tab": "Ctrl+1", "shortcut_mistakes_tab": "Ctrl+2",
+    "shortcut_repeat": "Ctrl+R", "shortcut_repeat_slow": "Ctrl+Shift+R",
     "whisper_device": "auto", "whisper_model": "large-v3",
     "ollama_url": "http://localhost:11434", "ollama_model": "llama3:8b-instruct-q4_K_M",
     "log_level": "INFO"
@@ -90,6 +91,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Interface language | `en`, `es` (`en`) | Restart | Buttons, labels, status messages and dates in the Mistakes tab (`Nov 12, 2026` / `12 nov 2026`). The tutor, corrections, reports and conversation logs stay English |
 | Your name | text, up to 40 characters (`Mauro`) | Save | The tutor uses it now and then. Leave it empty to not be called by name. Quotes, braces, angle brackets, backslashes, backticks and control characters are refused |
 | Your pronouns | `he` (he/him), `she` (she/her), `they` (they/them) (`he`) | Save | Used when the tutor refers to you in the third person, for example in the report |
+| English level | `A2`, `B1`, `B2`, `C1` (`B1`) | Save | Tells the tutor how simple its words should be and how many corrections to give per message; at A2 the voice also speaks about 15 % slower. Applies to the next message. See [Prompts](tutor-behavior.md#prompts) |
 | Track long pauses | on / off (on) | Save | Adds pauses of 1.2 s or more inside a sentence to the Mistakes tab and lists slow starts (3 s or more) in the report; never counted as errors. See [Long pauses](tutor-behavior.md#long-pauses) |
 | Daily goal | 0 to 60 minutes (10) | Save | Minutes of conversation to aim for each day; the main window shows `Today: 4 / 10 min` and your streak. 0 switches the goal off (the streak is still shown). Minutes come from the saved sessions, so they count when you press **End session** |
 | Suggest more natural phrasing | on / off (on) | Save | When a sentence has no error but a native speaker would say it differently, shows `More natural: "..."` under the reply. Never a mistake, never spoken, never stored in the history; see [Natural phrasing](tutor-behavior.md#natural-phrasing) |
@@ -137,6 +139,7 @@ Both delete actions are refused while the tutor is busy or a practice drill is r
 | End session | `Ctrl+E` | In-app, live |
 | Open settings | `Ctrl+,` | In-app, live |
 | Go to the Chat tab / Mistakes tab | `Ctrl+1` / `Ctrl+2` | In-app, live |
+| Repeat the last reply / repeat it slowly | `Ctrl+R` / `Ctrl+Shift+R` | In-app, live. The same as the **Repeat** and **Slower** buttons next to End session; they work while the app is idle (also during a practice drill) |
 
 Click **Change...** and press the new key in the capture dialog (**Esc** cancels). In-app shortcuts are bound to the main window only, so they work when it is focused. Conflicts are checked as you edit:
 

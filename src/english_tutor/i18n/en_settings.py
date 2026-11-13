@@ -13,6 +13,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     # Choice option names
     "option.language.en": "English",
     "option.language.es": "Español",
+    "option.level.A2": "A2 - Elementary",
+    "option.level.B1": "B1 - Intermediate",
+    "option.level.B2": "B2 - Upper intermediate",
+    "option.level.C1": "C1 - Advanced",
     "option.learner_pronouns.he": "He/him",
     "option.learner_pronouns.she": "She/her",
     "option.learner_pronouns.they": "They/them",
@@ -34,6 +38,9 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.learner_pronouns.label": "Your pronouns",
     "setting.learner_pronouns.help": "Used when the tutor refers to you, for example in "
     "the session report.",
+    "setting.level.label": "English level",
+    "setting.level.help": "Sets how simple the tutor's words are, how many corrections it gives "
+    "per message and, at A2, how fast it speaks. Applies to the next message.",
     "setting.track_pauses.label": "Track long pauses",
     "setting.track_pauses.help": "Notes where you stop for a long time in a sentence (1.2 s or "
     "more) and adds that phrase to Mistakes to practise saying it in one go. Also reports slow "
@@ -100,6 +107,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.shortcut_chat_tab.help": "Shows the conversation.",
     "setting.shortcut_mistakes_tab.label": "Go to the Mistakes tab",
     "setting.shortcut_mistakes_tab.help": "Shows your recurring mistakes.",
+    "setting.shortcut_repeat.label": "Repeat the last reply",
+    "setting.shortcut_repeat.help": "Says the tutor's last words again.",
+    "setting.shortcut_repeat_slow.label": "Repeat the last reply slowly",
+    "setting.shortcut_repeat_slow.help": "Says the tutor's last words again, more slowly.",
     # Advanced
     "setting.whisper_device.label": "Speech recognition device",
     "setting.whisper_device.help": "Automatic uses the GPU when available. "

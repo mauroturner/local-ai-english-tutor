@@ -122,6 +122,8 @@ class TutorWindow(ctk.CTk):
             "settings": self._shortcut_settings,
             "chat_tab": lambda: self._tabs.set(self._chat_tab_name),
             "mistakes_tab": lambda: self._tabs.set(self._mistakes_tab_name),
+            "repeat": self._session.repeat_last,
+            "repeat_slow": lambda: self._session.repeat_last(slower=True),
         })  # fmt: skip
         self._binder.apply(self._settings)
         self.after(_PUMP_INTERVAL_MS, self._pump)
@@ -183,7 +185,12 @@ class TutorWindow(ctk.CTk):
         self._meter.grid(row=0, column=0, sticky="ew", padx=(0, sp.m))
         self._chip = StatusChip(footer)
         self._chip.grid(row=0, column=1, padx=(0, sp.m))
-        self._controls = ControlBar(footer, on_end_session=self._session.end_session)
+        self._controls = ControlBar(
+            footer,
+            on_end_session=self._session.end_session,
+            on_repeat=self._session.repeat_last,
+            on_repeat_slow=lambda: self._session.repeat_last(slower=True),
+        )
         self._controls.grid(row=0, column=2)
         self._end_tip = Tooltip(
             self._controls.button,
@@ -261,6 +268,7 @@ class TutorWindow(ctk.CTk):
         """End session and Practice need an idle session outside a drill; Stop only idle."""
         free = self.is_free
         self._controls.set_enabled(free)
+        self._controls.set_replay_enabled(self._idle)
         self._mistakes.set_enabled(free)
         self._banner.set_enabled(self._idle)
 

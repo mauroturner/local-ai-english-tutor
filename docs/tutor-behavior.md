@@ -91,6 +91,7 @@ The reply is asked to be one to three short sentences, plain text (no lists, emo
 | Setting | Effect on the tutor |
 | --- | --- |
 | Interface language (English / Spanish) | Only the app's own text (buttons, labels, status messages, dates in the Mistakes tab). Alex always speaks and corrects in **English**; the report, tips, practice questions and conversation logs stay English |
+| English level | Adds the level line to the `LEARNER` section of every prompt (turn, report, practice) and, at A2, makes Piper speak about 15 % slower (`length_scale` 1.15). **Repeat** and **Slower** say the tutor's last words again (Slower multiplies the pace by 1.35). Nothing else changes: mistakes are still judged by the same rules |
 | Your name and pronouns | Added to the end of every prompt (turn, report, practice) as a `LEARNER` section; the next model call after **Save** uses them. They never change how mistakes are judged |
 | Sound cues | Short beeps for recording start, stop and errors. They are played on a separate audio stream and never alter, delay or replace a transcript |
 | Voice output | Off means text-only replies; corrections and the report are unchanged |
@@ -171,7 +172,10 @@ The turn and report prompts are defined in [`src/english_tutor/domain/prompts.py
 LEARNER:
 - Name: "Mauro". Use it now and then, not in every message.
 - Pronouns: he/him. Use them whenever you refer to the learner in the third person.
+- English level (CEFR): B1. Use everyday vocabulary and sentences of up to about 15 words. Report at most TWO errors per message.
 ```
+
+The last line depends on **Settings > General > English level** (`LEVEL_RULES` in `learner.py`): A2 asks for very simple words and one error at most, B1 two errors, B2 up to three, C1 also subtle word-choice and register errors. The level is a request to the model, not a rule the code enforces: it does not trim the list of corrections, so an 8B model may ignore it now and then.
 
 The earlier custom Ollama model `english-teacher` is no longer used.
 

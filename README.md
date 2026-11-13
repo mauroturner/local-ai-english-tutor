@@ -8,6 +8,7 @@ You hold a key and talk. The app transcribes your speech with Whisper, sends it 
 - **Conversation first.** The tutor replies to what you said and ends with a follow-up question. It remembers the last few exchanges.
 - **Live correction only for clear mistakes.** At most one clearly marked error per turn is shown (and spoken) right away. Smaller slips are recorded silently.
 - **End-of-session report.** Click **End session** to get the list of errors (original -> corrected, with the reason) and overall feedback.
+- **Levels and replay.** Pick your level (A2 to C1) in Settings and the tutor adapts its vocabulary and the number of corrections; **Repeat** and **Slower** (also `Ctrl+R` / `Ctrl+Shift+R`) say the last reply again.
 - **Natural phrasing.** When a sentence is correct but a native speaker would say it differently, a `More natural:` line appears under the reply (it is never counted as a mistake and can be turned off in Settings).
 - **Local history and targeted practice.** Every conversation is saved as a `.log` file on your disk, recurring mistakes are collected in a **Mistakes** tab, and a **Practice** button runs a short spoken drill on one specific mistake.
 - **Your own settings.** A Settings window (theme, language, scale, shortcuts, sounds, folders, auto-start, Ollama and Whisper options) with export and clean-up tools; see [Settings](#settings).

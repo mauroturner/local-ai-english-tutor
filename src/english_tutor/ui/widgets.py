@@ -219,13 +219,31 @@ class StatusBar(ctk.CTkLabel):
 
 
 class ControlBar(ctk.CTkFrame):
-    """Holds the End session button."""
+    """Holds the End session button and the two replay buttons."""
 
-    def __init__(self, master: Any, on_end_session: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        master: Any,
+        on_end_session: Callable[[], None],
+        on_repeat: Callable[[], None] = lambda: None,
+        on_repeat_slow: Callable[[], None] = lambda: None,
+    ) -> None:
         super().__init__(master, fg_color="transparent")
         self._enabled = False
+        self._replay = [
+            ctk.CTkButton(self, text=t("button.repeat"), width=70, command=on_repeat),
+            ctk.CTkButton(self, text=t("button.repeat_slow"), width=70, command=on_repeat_slow),
+        ]
+        for button in self._replay:
+            button.configure(state="disabled")
+            button.pack(side="left", padx=(0, 6))
         self._button = ctk.CTkButton(self, text=t("button.end_session"), command=on_end_session)
-        self._button.pack()
+        self._button.pack(side="left")
+
+    def set_replay_enabled(self, enabled: bool) -> None:
+        """Enable or disable Repeat and Slower (they need an idle session)."""
+        for button in self._replay:
+            button.configure(state="normal" if enabled else "disabled")
 
     @property
     def button(self) -> ctk.CTkButton:

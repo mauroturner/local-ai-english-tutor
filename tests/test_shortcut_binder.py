@@ -12,12 +12,14 @@ def with_shortcuts(**changes) -> UserSettings:
     return dataclasses.replace(UserSettings(), **changes)
 
 
-def test_default_settings_give_four_bindings():
+def test_default_settings_give_six_bindings():
     assert sequences_for(UserSettings()) == {
         "end_session": "<Control-e>",
         "settings": "<Control-comma>",
         "chat_tab": "<Control-Key-1>",
         "mistakes_tab": "<Control-Key-2>",
+        "repeat": "<Control-r>",
+        "repeat_slow": "<Control-Shift-R>",
     }
 
 
@@ -28,12 +30,12 @@ def test_blocking_conflicts_are_never_bound():
         shortcut_chat_tab="Ctrl+2",  # duplicate with the Mistakes tab
         shortcut_mistakes_tab="Ctrl+2",
     )
-    assert sequences_for(settings) == {}
+    assert set(sequences_for(settings)) == {"repeat", "repeat_slow"}  # only the valid ones remain
 
 
 def test_warnings_do_not_prevent_binding():
     settings = with_shortcuts(ptt_key="right ctrl")  # overlaps every Ctrl+ shortcut
-    assert len(sequences_for(settings)) == 4
+    assert len(sequences_for(settings)) == 6
 
 
 def test_unchanged_bindings_need_no_work():

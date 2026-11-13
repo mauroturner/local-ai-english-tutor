@@ -87,8 +87,11 @@ class SpeechSynthesizer(Protocol):
 
     available: bool
 
-    def speak(self, text: str) -> None:
-        """Speak ``text`` and block until playback ends."""
+    def speak(self, text: str, length_scale: float = 1.0) -> None:
+        """Speak ``text`` and block until playback ends.
+
+        ``length_scale`` stretches the speech: 1.0 is normal, above 1 is slower.
+        """
         ...
 
 

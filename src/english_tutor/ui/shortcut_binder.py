@@ -18,6 +18,8 @@ ACTIONS = {
     "shortcut_settings": "settings",
     "shortcut_chat_tab": "chat_tab",
     "shortcut_mistakes_tab": "mistakes_tab",
+    "shortcut_repeat": "repeat",
+    "shortcut_repeat_slow": "repeat_slow",
 }
 """Settings field -> action name handled by the main window."""
 

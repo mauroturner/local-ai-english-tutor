@@ -94,12 +94,14 @@ class FakeTTS:
     def __init__(self, available: bool = True) -> None:
         self.available = available
         self.spoken: list[str] = []
+        self.scales: list[float] = []
         self.error: Exception | None = None
 
-    def speak(self, text: str) -> None:
+    def speak(self, text: str, length_scale: float = 1.0) -> None:
         if self.error is not None:
             raise self.error
         self.spoken.append(text)
+        self.scales.append(length_scale)
 
 
 class ManualRunner:
@@ -340,6 +342,7 @@ def make_harness():
     def _make(
         texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None,
         coach=None, track_pauses=None, session_stats=None, suggest_natural=None,
+        speech_scale=None,
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -354,6 +357,7 @@ def make_harness():
             coach=coach,
             track_pauses=track_pauses or (lambda: True),
             suggest_natural=suggest_natural or (lambda: True),
+            speech_scale=speech_scale or (lambda: 1.0),
         )
         session.start()
         if isinstance(runner, ManualRunner):

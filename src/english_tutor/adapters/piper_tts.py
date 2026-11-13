@@ -31,7 +31,7 @@ class PiperSynthesizer:
         config = Path(f"{self._voice}.json")
         return self._exe.is_file() and self._voice.is_file() and config.is_file()
 
-    def speak(self, text: str) -> None:
+    def speak(self, text: str, length_scale: float = 1.0) -> None:
         """Synthesise ``text`` to a temp WAV, play it and delete the file."""
         if not self.available or self._exe is None:
             raise TtsError("Piper is not available")
@@ -45,7 +45,10 @@ class PiperSynthesizer:
             os.close(handle)
             tmp = Path(tmp_name)
             subprocess.run(
-                [str(self._exe), "--model", str(self._voice), "--output_file", str(tmp)],
+                [
+                    str(self._exe), "--model", str(self._voice), "--output_file", str(tmp),
+                    *(["--length_scale", f"{length_scale:.2f}"] if length_scale != 1.0 else []),
+                ],
                 input=text.replace("\n", " ").encode("utf-8"),
                 cwd=self._exe.parent,
                 check=True,
@@ -69,5 +72,5 @@ class NullSynthesizer:
     def __init__(self, available: bool = False) -> None:
         self.available = available
 
-    def speak(self, text: str) -> None:
+    def speak(self, text: str, length_scale: float = 1.0) -> None:
         """Do nothing."""
