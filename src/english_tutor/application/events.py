@@ -55,6 +55,25 @@ class ScenarioChanged:
 
 
 @dataclass(frozen=True)
+class ListeningChanged:
+    """A listening drill started or moved to a new sentence (``kind`` set) or ended (``None``).
+
+    ``text`` is the sentence to read or repeat; ``None`` hides it (dictation).
+    """
+
+    kind: str | None
+    text: str | None
+
+
+@dataclass(frozen=True)
+class ListeningFeedback:
+    """The verdict on one answer of a listening drill."""
+
+    perfect: bool
+    text: str
+
+
+@dataclass(frozen=True)
 class ReportReady:
     """The end-of-session report."""
 
@@ -117,6 +136,8 @@ SessionEvent = (
     | PracticeChanged
     | ProgressChanged
     | ScenarioChanged
+    | ListeningChanged
+    | ListeningFeedback
     | PracticeFeedback
     | DataCleared
 )

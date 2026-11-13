@@ -15,6 +15,8 @@ from ..application.events import (
     ErrorRaised,
     LevelChanged,
     MistakesChanged,
+    ListeningChanged,
+    ListeningFeedback,
     PracticeChanged,
     PracticeFeedback,
     ProgressChanged,
@@ -28,7 +30,8 @@ from ..application.events import (
 from ..application.session import ConversationSession
 from ..audio.devices import InputDevice
 from ..config import AppConfig
-from ..domain.models import SessionState
+from ..domain.drills import DrillKind
+from ..domain.models import PracticeOutcome, SessionState
 from ..domain.review_schedule import next_due
 from ..domain.scenarios import KEYS as SCENARIO_KEYS
 from ..i18n import t
@@ -37,7 +40,8 @@ from ..settings.model import UserSettings
 from . import theme
 from .banners import RestartBanner
 from .feedback import Feedback
-from .goal import goal_text
+from .goal import goal_text, topic_text
+from .listening_banner import ListeningBanner
 from .mistakes_view import MistakesView
 from .progress_view import ProgressView
 from .widgets import (
@@ -96,6 +100,7 @@ class TutorWindow(ctk.CTk):
         self._device_by_name = {d.name: d.index for d in devices}
         self._idle = False
         self._practicing = False
+        self._listening = False
         self._last_practiced: str | None = None  # so "review due" moves on to another item
 
         self.title(t("app.title"))
@@ -114,6 +119,16 @@ class TutorWindow(ctk.CTk):
         self._banner = PracticeBanner(self, on_stop=session.stop_practice)
         self._banner.grid(row=3, column=0, sticky="ew", padx=self._sp.l, pady=(0, self._sp.s))
         self._banner.grid_remove()
+        self._listening_banner = ListeningBanner(
+            self,
+            on_next=session.next_listening,
+            on_stop=session.stop_listening,
+            on_check=session.submit_dictation,
+        )
+        self._listening_banner.grid(
+            row=3, column=0, sticky="ew", padx=self._sp.l, pady=(0, self._sp.s)
+        )
+        self._listening_banner.grid_remove()
         self._build_footer()
         self._refresh_controls()
 
@@ -162,6 +177,11 @@ class TutorWindow(ctk.CTk):
         )
         self._scenario = ScenarioPicker(header, SCENARIO_KEYS, self._session.set_scenario)
         self._scenario.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(sp.s, 0))
+        self._topic_label = ctk.CTkLabel(
+            header, text="", text_color=theme.MUTED_TEXT, font=theme.FONT_HINT, anchor="w",
+            justify="left", wraplength=theme.BUBBLE_WRAP,
+        )
+        self._topic_label.grid(row=4, column=0, columnspan=2, sticky="w", pady=(sp.xs, 0))
 
     def _build_tabs(self, cfg: AppConfig) -> None:
         sp = self._sp
@@ -195,6 +215,7 @@ class TutorWindow(ctk.CTk):
             on_end_session=self._session.end_session,
             on_repeat=self._session.repeat_last,
             on_repeat_slow=lambda: self._session.repeat_last(slower=True),
+            on_drill=lambda kind: self._session.start_listening(DrillKind(kind)),
         )
         self._controls.grid(row=0, column=2)
         self._end_tip = Tooltip(
@@ -236,6 +257,12 @@ class TutorWindow(ctk.CTk):
         elif isinstance(event, ProgressChanged):
             self._progress.show(event.sessions)
             self._refresh_goal()
+        elif isinstance(event, ListeningChanged):
+            self._on_listening_changed(event)
+        elif isinstance(event, ListeningFeedback):
+            outcome = PracticeOutcome.CORRECT if event.perfect else PracticeOutcome.INCORRECT
+            self._chat.add_practice_feedback(outcome, event.text)
+            self._listening_banner.show_feedback(event.text)
         elif isinstance(event, ScenarioChanged):
             self._scenario.show(event.key)
         elif isinstance(event, ReportReady):
@@ -266,16 +293,27 @@ class TutorWindow(ctk.CTk):
             self._banner.hide()
         self._refresh_controls()
 
+    def _on_listening_changed(self, event: ListeningChanged) -> None:
+        self._listening = event.kind is not None
+        if event.kind is not None:
+            self._listening_banner.show(event.kind, event.text)
+            self._tabs.set(self._chat_tab_name)
+        else:
+            self._listening_banner.hide()
+        self._refresh_controls()
+
     @property
     def is_free(self) -> bool:
-        """Whether the session is idle and not in a practice drill."""
-        return self._idle and not self._practicing
+        """Whether the session is idle and not in a practice or listening drill."""
+        return self._idle and not self._practicing and not self._listening
 
     def _refresh_controls(self) -> None:
         """End session and Practice need an idle session outside a drill; Stop only idle."""
         free = self.is_free
         self._controls.set_enabled(free)
         self._controls.set_replay_enabled(self._idle)
+        self._controls.set_drill_enabled(free)
+        self._listening_banner.set_enabled(self._idle)
         self._scenario.set_enabled(free and not self._session.turns)
         self._mistakes.set_enabled(free)
         self._banner.set_enabled(self._idle)
@@ -307,6 +345,7 @@ class TutorWindow(ctk.CTk):
     def _refresh_goal(self) -> None:
         text = goal_text(self.snapshot.sessions, self._settings.daily_goal_minutes, date.today())
         self._goal_label.configure(text=text)
+        self._topic_label.configure(text=topic_text(self.snapshot.sessions, date.today()))
 
     def _shortcut_end_session(self) -> None:
         if self._controls.enabled:  # same rule as the button

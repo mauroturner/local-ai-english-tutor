@@ -19,6 +19,7 @@ _LABELS: dict[str, str] = {
     "pause": "PAUSE",
     "report": "REPORT",
     "practice": "PRACTICE",
+    "drill": "DRILL",
 }
 _TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 _INDENT = "    "

@@ -266,9 +266,20 @@ class ControlBar(ctk.CTkFrame):
         on_end_session: Callable[[], None],
         on_repeat: Callable[[], None] = lambda: None,
         on_repeat_slow: Callable[[], None] = lambda: None,
+        on_drill: Callable[[str], None] = lambda kind: None,
     ) -> None:
         super().__init__(master, fg_color="transparent")
         self._enabled = False
+        self._drill_names = {t(f"drill.{k}"): k for k in ("shadow", "pairs", "dictation")}
+        self._drill_menu = ctk.CTkOptionMenu(
+            self,
+            values=list(self._drill_names),
+            width=110,
+            command=lambda name: self._pick_drill(name, on_drill),
+        )
+        self._drill_menu.set(t("drill.menu"))
+        self._drill_menu.configure(state="disabled")
+        self._drill_menu.pack(side="left", padx=(0, 6))
         self._replay = [
             ctk.CTkButton(self, text=t("button.repeat"), width=70, command=on_repeat),
             ctk.CTkButton(self, text=t("button.repeat_slow"), width=70, command=on_repeat_slow),
@@ -278,6 +289,16 @@ class ControlBar(ctk.CTkFrame):
             button.pack(side="left", padx=(0, 6))
         self._button = ctk.CTkButton(self, text=t("button.end_session"), command=on_end_session)
         self._button.pack(side="left")
+
+    def _pick_drill(self, name: str, on_drill: Callable[[str], None]) -> None:
+        self._drill_menu.set(t("drill.menu"))  # a menu of actions: it never keeps a choice
+        kind = self._drill_names.get(name)
+        if kind:
+            on_drill(kind)
+
+    def set_drill_enabled(self, enabled: bool) -> None:
+        """Enable or disable the drills menu (it needs a free, idle session)."""
+        self._drill_menu.configure(state="normal" if enabled else "disabled")
 
     def set_replay_enabled(self, enabled: bool) -> None:
         """Enable or disable Repeat and Slower (they need an idle session)."""

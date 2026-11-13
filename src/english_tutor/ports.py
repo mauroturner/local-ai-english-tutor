@@ -119,7 +119,7 @@ class PushToTalk(Protocol):
         ...
 
 
-LogSpeaker = Literal["you", "tutor", "tip", "natural", "pause", "report", "practice"]
+LogSpeaker = Literal["you", "tutor", "tip", "natural", "pause", "report", "practice", "drill"]
 
 
 class ConversationLog(Protocol):

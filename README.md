@@ -8,6 +8,8 @@ You hold a key and talk. The app transcribes your speech with Whisper, sends it 
 - **Conversation first.** The tutor replies to what you said and ends with a follow-up question. It remembers the last few exchanges.
 - **Live correction only for clear mistakes.** At most one clearly marked error per turn is shown (and spoken) right away. Smaller slips are recorded silently.
 - **End-of-session report.** Click **End session** to get the list of errors (original -> corrected, with the reason) and overall feedback.
+- **Listening and speaking drills.** A **Drills** menu offers repeat-after-me (shadowing), minimal pairs (ship / sheep ...) and dictation, each judged word by word; they never count as mistakes.
+- **Topic of the day.** From your last two weeks of mistakes the app suggests a topic that makes you practise your weakest kind of mistake.
 - **Memory between sessions.** The tutor keeps a few short notes about what you told it and can ask about them next time. Local only; switch it off or delete the notes in Settings.
 - **Role-play scenarios.** Before your first answer, pick a situation (job interview, restaurant, doctor, airport, small talk, team meeting) under the microphone list. Alex plays the role and opens the conversation; the end-of-session report lists useful phrases for that situation you did not use yet.
 - **Levels and replay.** Pick your level (A2 to C1) in Settings and the tutor adapts its vocabulary and the number of corrections; **Repeat** and **Slower** (also `Ctrl+R` / `Ctrl+Shift+R`) say the last reply again.

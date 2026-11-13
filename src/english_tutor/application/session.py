@@ -10,6 +10,7 @@ from ..audio.processing import prepare_for_stt
 from ..domain.corrections import compose_speech, filter_corrections, pick_live, pick_natural
 from ..domain.formatting import correction_text, format_report
 from ..domain.memory import clean_memory, memory_block
+from ..domain.drills import DrillKind
 from ..domain.hesitation import as_corrections, explanation, find_hesitations, low_confidence
 from ..domain.models import ChatMessage, Hesitation, SessionState, Turn
 from ..domain.scenarios import FREE, get_scenario
@@ -29,6 +30,7 @@ from ..ports import (
 from .events import (
     ErrorRaised,
     EventSink,
+    ListeningFeedback,
     MistakesChanged,
     PracticeChanged,
     ProgressChanged,
@@ -39,6 +41,7 @@ from .events import (
     UserSaid,
 )
 from .history import ChatHistory
+from .listening import ListeningCoach, ListeningServices
 from .journal import NullConversationLog, NullMistakeStore, NullSessionStatsStore, SafeJournal
 from .mistake_book import MistakeBook
 from .practice import PracticeDrill, PracticeServices, open_practice, run_practice_turn
@@ -107,6 +110,10 @@ class ConversationSession:
         self._use_memory = use_memory  # read when the tutor is asked and when a session ends
         self._scenario = scenario or ScenarioChoice()  # shared with the tutor model
         self._drill: PracticeDrill | None = None
+        self._listen = ListeningCoach(ListeningServices(
+            self._emit, self._journal.record, self._speak,
+            lambda: self._turns[-1].tutor_reply if self._turns else "",
+        ))  # fmt: skip
         self._practice = PracticeServices(
             self._ask, self._emit, self._journal.record, self._speak
         )
@@ -304,6 +311,9 @@ class ConversationSession:
         if drill is not None:  # practice answers skip the normal correction pipeline
             self._practice_turn(drill, raw, pauses)
             return
+        if self._listen.active:  # drill answers are judged against the sentence, not corrected
+            self._listening_turn(raw)
+            return
         self._set_state(SessionState.THINKING, "Thinking...")
         reply = self._ask(lambda: self._tutor.reply(self._conversation(), raw))
         if reply is None:
@@ -384,7 +394,7 @@ class ConversationSession:
         The tutor opens the scenario with its first line (shown, logged and spoken).
         """
         with self._lock:
-            if self._state is not SessionState.IDLE or self._drill is not None or self._turns:
+            if self._state is not SessionState.IDLE or self._practicing() or self._turns:
                 return
             self._state = SessionState.THINKING
         self._emit(StateChanged(SessionState.THINKING, "Setting the scene..."))
@@ -414,11 +424,64 @@ class ConversationSession:
         self._speak(self._last_spoken, SLOWER_SPEECH if slower else 1.0)
         self._set_state(SessionState.IDLE, self._ready_message())
 
+    def _practicing(self) -> bool:
+        """Whether a practice or listening drill is running (the lock is held by callers)."""
+        return self._drill is not None or self._listen.active
+
+    # ------------------------------------------------- listening and speaking drills
+    def start_listening(self, kind: DrillKind) -> None:
+        """Start a shadowing, minimal-pair or dictation drill; ignored unless idle and free.
+
+        Shadowing and dictation need the voice; pairs are read from the screen.
+        """
+        with self._lock:
+            if self._state is not SessionState.IDLE or self._practicing():
+                return
+            if kind is not DrillKind.PAIRS and not self._tts.available:
+                return
+            self._state = SessionState.THINKING
+        self._emit(StateChanged(SessionState.THINKING, "Preparing the drill..."))
+        self._submit(lambda: self._listening_job(lambda: self._listen.open(kind)))
+
+    def next_listening(self) -> None:
+        """Move to another sentence of the running drill; ignored unless idle."""
+        self._listening_step(self._listen.next)
+
+    def stop_listening(self) -> None:
+        """Leave the running drill; ignored unless idle."""
+        self._listening_step(self._listen.close)
+
+    def submit_dictation(self, text: str) -> None:
+        """Check the text the learner typed; ignored unless a dictation is waiting for it."""
+        if text.strip() and self._listen.kind is DrillKind.DICTATION:
+            self._listening_step(lambda: self._listen.answer(text))
+
+    def _listening_step(self, action: Callable[[], object]) -> None:
+        with self._lock:
+            if self._state is not SessionState.IDLE or not self._listen.active:
+                return
+            self._state = SessionState.THINKING
+        self._emit(StateChanged(SessionState.THINKING, "Checking..."))
+        self._submit(lambda: self._listening_job(action))
+
+    def _listening_job(self, action: Callable[[], object]) -> None:
+        action()
+        self._set_state(SessionState.IDLE, self._ready_message())
+
+    def _listening_turn(self, raw: str) -> None:
+        """A spoken answer during a drill (typing is how dictation is answered)."""
+        if self._listen.kind is DrillKind.DICTATION:
+            self._emit(ErrorRaised("Type what you heard in the box and press Check."))
+            self._set_state(SessionState.IDLE, self._ready_message())
+            return
+        self._set_state(SessionState.THINKING, "Checking your answer...")
+        self._listening_job(lambda: self._listen.answer(raw))
+
     # --------------------------------------------------------------- practice
     def start_practice(self, key: str) -> None:
         """Start a drill on the mistake ``key``; ignored unless idle and not practicing."""
         with self._lock:
-            if self._state is not SessionState.IDLE or self._drill is not None:
+            if self._state is not SessionState.IDLE or self._practicing():
                 return
             self._state = SessionState.THINKING
         self._emit(StateChanged(SessionState.THINKING, "Preparing practice..."))
@@ -458,12 +521,16 @@ class ConversationSession:
             practicing = self._drill is not None
         if practicing:
             return f"Practice: hold {self._ptt_label} to answer"
+        if self._listen.active:
+            if self._listen.kind is DrillKind.DICTATION:
+                return "Dictation: type what you heard"
+            return f"Drill: hold {self._ptt_label} to answer"
         return f"Ready: hold {self._ptt_label}"
 
     def clear_data(self, job: Callable[[MistakeBook, SafeJournal, EventSink], None]) -> bool:
         """Run a data-clearing job on the worker; False unless idle and not practicing."""
         with self._lock:
-            if self._state is not SessionState.IDLE or self._drill is not None:
+            if self._state is not SessionState.IDLE or self._practicing():
                 return False
         self._submit(lambda: job(self._book, self._journal, self._emit))
         return True
@@ -472,7 +539,7 @@ class ConversationSession:
     def end_session(self) -> None:
         """Build the end-of-session report; ignored unless idle and not practicing."""
         with self._lock:
-            if self._state is not SessionState.IDLE or self._drill is not None:
+            if self._state is not SessionState.IDLE or self._practicing():
                 return
             self._state = SessionState.REPORTING
         self._emit(StateChanged(SessionState.REPORTING, "Writing feedback..."))

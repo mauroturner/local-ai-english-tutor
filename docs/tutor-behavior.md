@@ -66,6 +66,24 @@ The model's output is not trusted blindly. `domain/corrections.py` applies these
 
 The code does **not** check that a `corrected` phrase is actually right, and it does not re-classify severity; those depend on the model.
 
+## Listening and speaking drills
+
+The **Drills** menu next to the Repeat / Slower / End session buttons starts one of three exercises (only when the app is idle and not practising; **End session**, practice and the scenario picker are blocked while one runs). A banner shows the sentence and has **Next** and **Stop drill**. Answers go through the same push-to-talk key, but they are **not** sent to the tutor: nothing is corrected, recorded as a mistake or added to the session report or statistics. Every sentence and verdict is written to the conversation log as `DRILL`, and spoken.
+
+| Drill | What happens | How it is judged |
+| --- | --- | --- |
+| Repeat after me (shadowing) | Alex says one sentence of 4 to 14 words taken from its last reply (a fixed list when there is none); you repeat it | Word by word against the sentence (`domain/shadowing.py`): case, punctuation and contractions (`don't` = `do not`) are ignored; the feedback lists missing, changed and extra words and the share of words that were right |
+| Minimal pairs | A sentence with one word of a pair that Spanish speakers mix up (ship / sheep, live / leave, hat / hut, cap / cup, wash / watch, pen / pan, walk / work, beat / bit) is shown; you read it aloud | The transcript must contain the target word and not its partner, so Whisper itself is the judge |
+| Dictation | Alex says a sentence without showing it; you type it and press Check (Enter) | Same word-by-word comparison as shadowing; speaking instead asks you to type |
+
+**Repeat** and **Slower** also replay the dictation sentence. Shadowing and dictation need voice output; minimal pairs do not.
+
+Known limits. Whisper has a language model, so it can "fix" a word from context: pairs were chosen so that both words make a normal sentence, and in a check with synthetic speech 16 of 16 sentences were judged correctly, but a real learner's accent is harder and a correct sentence may occasionally be judged wrong (or the other way round). The judge is the transcript, so a sentence that is transcribed correctly despite an accent counts as right.
+
+## Topic of the day
+
+Under the scenario picker the main window shows a suggestion such as `Topic for today: "Tell me about your last trip." (practises: verb tense)`. It is chosen from the session statistics: the kind of mistake you made most in the last 14 days (`other` and `fluency` are ignored), and a topic from a fixed list that cannot be answered without using it (`domain/topics.py`; two topics per category, alternating by day). Nothing is shown until at least one finished session has labelled mistakes. It is only a suggestion: it does not change the prompt or the conversation.
+
 ## Session memory
 
 When a session ends, the same call that writes the feedback also returns `memory`: a few short notes about what you talked about and shared (a trip, a job, plans). They are cleaned (`clean_memory`: at most 5 lines and 600 characters, no bullets or control characters) and stored with that session in `data/sessions.json`. Before each answer of a later conversation the tutor receives the notes of your **last 3 sessions that have some** as an extra `MEMORY` system message ahead of the chat history, worded as background to ask a natural follow-up about, never to recite and never as instructions. Practice drills and the report do not receive it.
