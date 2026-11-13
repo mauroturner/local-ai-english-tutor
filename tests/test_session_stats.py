@@ -95,3 +95,14 @@ def test_an_unreadable_statistics_file_warns_and_the_session_starts(make_harness
     assert h.session.state is SessionState.IDLE
     assert any("were unreadable" in e.message for e in h.of_type(ErrorRaised))
     assert h.of_type(ProgressChanged)[0].sessions == ()
+
+
+def test_a_load_warning_does_not_hide_a_later_save_warning(make_harness, fake_stats):
+    fake_stats.load_error = RuntimeError("Session statistics were unreadable")
+    fake_stats.error = RuntimeError("disk full")
+    h = make_harness(["one"], [TutorReply("a")], session_stats=fake_stats)
+    h.say()
+    h.session.end_session()
+    messages = [e.message for e in h.of_type(ErrorRaised)]
+    assert any("were unreadable" in m for m in messages)
+    assert any("disk full" in m for m in messages)

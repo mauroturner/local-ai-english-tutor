@@ -27,21 +27,26 @@ class StatsRecorder:
         on_warning: Callable[[str], None],
         on_change: Callable[[tuple[SessionStats, ...]], None] = lambda sessions: None,
         clock: Callable[[], datetime] = datetime.now,
+        on_load_warning: Callable[[str], None] | None = None,
     ) -> None:
         self._store = store
         self._on_warning = on_warning
+        self._on_load_warning = on_load_warning or on_warning  # its own channel: see ``load``
         self._on_change = on_change
         self._clock = clock
         self._started: datetime | None = None
         self._sessions: list[SessionStats] = []
 
     def load(self) -> None:
-        """Read the stored sessions (an unreadable file starts empty with a warning)."""
+        """Read the stored sessions (an unreadable file starts empty with a warning).
+
+        The warning goes to its own callback so that a later failure to save is still shown.
+        """
         try:
             self._sessions = self._store.load()
         except Exception as exc:  # StorageError by contract; anything else is also non-fatal
             logger.warning("Session statistics not loaded: %s", exc)
-            self._on_warning(str(exc))
+            self._on_load_warning(str(exc))
         self._on_change(tuple(self._sessions))
 
     def turn_done(self) -> None:

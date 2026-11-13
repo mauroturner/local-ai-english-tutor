@@ -115,6 +115,7 @@ class ConversationSession:
             session_stats or NullSessionStatsStore(),
             lambda message: self._warn_once("stats", message),
             lambda sessions: self._emit(ProgressChanged(sessions)),
+            on_load_warning=lambda message: self._warn_once("stats-load", message),
         )
         self._history = ChatHistory(history_exchanges)
         self._turns: list[Turn] = []
