@@ -124,6 +124,8 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `domain/mistakes.py` | Pure mistake-history rules: `mistake_key`, `add_corrections`, `add_practice`, `rank` (`MAX_EXAMPLES` = 3) |
 | `domain/prompts.py` | `TURN_SYSTEM_PROMPT`, `REPORT_SYSTEM_PROMPT`, `TURN_SCHEMA`, `REPORT_SCHEMA`, `build_report_user_message` |
 | `domain/practice_prompts.py` | `PRACTICE_SYSTEM_PROMPT`, `PRACTICE_SCHEMA`, `PRACTICE_START`, `build_practice_system_prompt` |
+| `domain/learner.py` | `LearnerProfile`, `profile_block`, `with_profile`: the name and pronouns added to every prompt |
+| `domain/hesitation.py` | `find_hesitations`, `as_corrections`, `pause_inside`, `restore_times`, `matching_words`: long pauses from word timings |
 | `domain/formatting.py` | Plain-text renderings shared by the UI and the log: `format_report`, `correction_text`, `practice_speech` |
 | `audio/processing.py` | `to_mono`, `resample` (polyphase), `peak_normalize`, `prepare_for_stt` |
 | `audio/devices.py` | `InputDevice`, `dedupe_input_devices` (WASAPI > DirectSound > MME), `resolve_default`, `list_input_devices` |
@@ -135,7 +137,8 @@ Notes on the wiring (the settings-related ports are described in [Settings subsy
 | `application/events.py` | Event dataclasses sent to the UI: `StateChanged`, `UserSaid`, `TutorSaid`, `ReportReady`, `ErrorRaised`, `LevelChanged`, `MistakesChanged`, `PracticeChanged`, `PracticeFeedback`, `DataCleared` |
 | `application/history.py` | `ChatHistory`: bounded memory of user/assistant pairs |
 | `application/worker.py` | `SerialWorker` (one daemon thread, one job at a time) and `InlineRunner` (runs jobs on the caller's thread, for tests) |
-| `adapters/whisper_stt.py` | `build_transcribe_kwargs`, `WhisperTranscriber` (lazy import, CUDA warm-up, CPU fallback) |
+| `adapters/whisper_stt.py` | `build_transcribe_kwargs`, `WhisperTranscriber` (lazy import, CUDA warm-up, CPU fallback; `with_words` adds word timings) |
+| `adapters/whisper_alignment.py` | `align_words`: forced alignment of the finished text on the speech found by Silero VAD, for [long pauses](tutor-behavior.md#long-pauses) |
 | `adapters/ollama_chat.py` | `OllamaTutorModel`: `check`, `reply`, `feedback`, `practice` over `/api/chat` with structured output |
 | `adapters/ollama_check.py` | `check_connection(url, model)`: classifies the `/api/tags` answer (ok, model missing, unreachable, timeout, bad URL) for the Settings window; shares `model_installed` with `OllamaTutorModel.check` |
 | `adapters/ollama_parsing.py` | Tolerant JSON parsing of model answers (`parse_tutor_reply`, `parse_feedback`, `parse_practice_reply`); never raises |

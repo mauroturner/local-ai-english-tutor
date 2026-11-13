@@ -87,6 +87,8 @@ Details of what is shown, spoken and recorded: [docs/tutor-behavior.md](docs/tut
 
 Every correction the tutor finds (major and minor) is added to a persistent list, grouped by the normalised `original -> corrected` pair, with a counter. It survives restarts and is not cleared by **End session**.
 
+Long pauses inside a sentence (1.2 s or more) are added too, as `PAUSE` items such as `"how's … everything"`. They are not errors, only phrases worth practising until you can say them in one go; the session report also lists them, plus answers you took 3 s or more to start. Details: [docs/tutor-behavior.md](docs/tutor-behavior.md#long-pauses).
+
 1. Open the **Mistakes** tab. Rows are sorted by frequency (then most recent) and show severity, the pair, how many times it occurred, the last date and your practice score (`practice successes/attempts`). Up to 50 rows are shown.
 2. Click **Practice** on a row (enabled only when the app is idle). The app switches to the **Chat** tab, a banner `Practicing: "..." -> "..."` appears, and Alex introduces the drill and asks a question.
 3. Answer by holding the push-to-talk key. For each answer the coach judges **only the target structure**: `correct`, `incorrect` (you get the corrected sentence) or `not_used` (a reminder), then asks the next question.
@@ -100,7 +102,7 @@ Click the gear button (or press **Ctrl+,**) to open the Settings window. It has 
 
 | Category | What you can change |
 | --- | --- |
-| General | Interface language (English or Spanish; the tutor always speaks English), your name and pronouns (used by the tutor), start with Windows |
+| General | Interface language (English or Spanish; the tutor always speaks English), your name and pronouns (used by the tutor), tracking of long pauses, start with Windows |
 | Appearance | Light, dark or system theme, interface scale, chat font size, layout density |
 | Audio & notifications | Voice output, sound cues for recording start/stop/errors, desktop notification when the report is ready |
 | Storage | Data folder, export folder, open the folder, export the last report (Markdown) or the mistake list (CSV), delete conversation logs or mistake history |

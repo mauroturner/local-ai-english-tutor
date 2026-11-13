@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 
 from ..domain.corrections import dedupe
-from ..domain.models import Correction, SessionReport, Severity, Turn
+from ..domain.hesitation import last_question
+from ..domain.models import Correction, Hesitation, SessionReport, Severity, Turn
 from ..ports import TutorModel
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,24 @@ def collect_errors(
     return majors, minors
 
 
+def collect_pauses(
+    turns: tuple[Turn, ...],
+) -> tuple[tuple[Hesitation, ...], tuple[tuple[str, float], ...]]:
+    """The unique pauses inside sentences, and each slow start with the question before it.
+
+    The first turn has no question before it, so its start is never counted.
+    """
+    pauses: dict[str, Hesitation] = {}
+    starts: list[tuple[str, float]] = []
+    for previous, turn in zip((None, *turns), turns):
+        for item in turn.hesitations:
+            if not item.at_start:
+                pauses.setdefault(item.marked.lower(), item)
+            elif previous is not None:
+                starts.append((last_question(previous.tutor_reply), item.pause_s))
+    return tuple(pauses.values()), tuple(starts)
+
+
 def make_report(tutor: TutorModel, turns: tuple[Turn, ...]) -> SessionReport:
     """Collect the errors and ask the tutor for feedback (failures are kept as text)."""
     majors, minors = collect_errors(turns)
@@ -32,4 +51,5 @@ def make_report(tutor: TutorModel, turns: tuple[Turn, ...]) -> SessionReport:
         except Exception as exc:  # the recorded errors are still worth reporting
             logger.warning("Feedback generation failed: %s", exc)
             feedback_error = str(exc)
-    return SessionReport(len(turns), majors, minors, feedback, feedback_error)
+    pauses, starts = collect_pauses(turns)
+    return SessionReport(len(turns), majors, minors, feedback, feedback_error, pauses, starts)

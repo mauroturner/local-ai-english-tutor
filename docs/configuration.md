@@ -47,7 +47,7 @@ User settings are saved in `settings.json`. Environment variables keep working a
 {
   "version": 1,
   "settings": {
-    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he",
+    "language": "en", "learner_name": "Mauro", "learner_pronouns": "he", "track_pauses": true,
     "appearance_mode": "system", "ui_scale": 1.0, "chat_font_size": 13,
     "density": "comfortable", "tts_enabled": true,
     "cue_record_start": true, "cue_record_stop": true, "cue_error": true,
@@ -90,6 +90,7 @@ Open it with the gear button in the main window or **Ctrl+,**. Edits stay in a d
 | Interface language | `en`, `es` (`en`) | Restart | Buttons, labels, status messages and dates in the Mistakes tab (`Nov 12, 2026` / `12 nov 2026`). The tutor, corrections, reports and conversation logs stay English |
 | Your name | text, up to 40 characters (`Mauro`) | Save | The tutor uses it now and then. Leave it empty to not be called by name. Quotes, braces, angle brackets, backslashes, backticks and control characters are refused |
 | Your pronouns | `he` (he/him), `she` (she/her), `they` (they/them) (`he`) | Save | Used when the tutor refers to you in the third person, for example in the report |
+| Track long pauses | on / off (on) | Save | Adds pauses of 1.2 s or more inside a sentence to the Mistakes tab and lists slow starts (3 s or more) in the report; never counted as errors. See [Long pauses](tutor-behavior.md#long-pauses) |
 | Start with Windows | on / off (off) | Save | Not stored in `settings.json`; see [Start with Windows](#start-with-windows) |
 
 ### Appearance
@@ -230,6 +231,7 @@ The first line is `# English tutor conversation - <timestamp>`. Every entry is `
 | `YOU` | After each transcription, **before** the tutor is called. The raw Whisper text is written verbatim |
 | `ALEX` | The tutor reply (or, in practice mode, the next question) |
 | `TIP` | The live correction, as `"original" -> "corrected" (explanation) [major]` |
+| `PAUSE` | A long pause inside the sentence just said, as `think how's … everything (You paused 1.7 s between 'how's' and 'everything'.)` |
 | `REPORT` | The end-of-session report text |
 | `PRACTICE` | `Started: 'orig' -> 'corr'`, each verdict as `[correct] feedback` (or `[incorrect]`, `[not_used]`), and `Stopped practice` |
 
@@ -262,7 +264,7 @@ Multi-line entries (the report) continue on following lines indented by four spa
 }
 ```
 
-- **Grouping.** Corrections are grouped by the normalised `original => corrected` pair (lower-case, punctuation removed except apostrophes). Repeating a pair increments `count`, updates `last_seen`, keeps `first_seen`, keeps the latest non-empty explanation, and stores up to the last 3 distinct example sentences. Severity becomes `major` if any occurrence was major.
+- **Grouping.** Corrections are grouped by the normalised `original => corrected` pair (lower-case, punctuation removed except apostrophes). Repeating a pair increments `count`, updates `last_seen`, keeps `first_seen`, keeps the latest non-empty explanation, and stores up to the last 3 distinct example sentences. Severity becomes `major` if any occurrence was major. Long pauses are stored the same way with `"severity": "hesitation"` (shown as `PAUSE`); their `original` holds the words with `…` where the pause was and `corrected` the same words without it. An older version of the app skips such entries when it reads the file, and drops them the next time it saves.
 - **What is counted.** Every correction that survives the code guards, in normal conversation turns only (major and minor, not only the live one). Practice turns add only to `practice.attempts` / `practice.successes` (a `correct` result adds an attempt and a success, `incorrect` adds an attempt, `not_used` adds nothing) and do not change `last_seen`.
 - **Saving.** After every change the file is written to `mistakes.json.tmp` in the same folder, flushed, and swapped in with `os.replace`, so a failed save never destroys the previous file.
 - **Corrupt or unsupported file.** If the file is not valid JSON, has the wrong structure or a `version` other than 1, it is renamed to `mistakes.json.corrupt-YYYYmmdd-HHMMSS`, the app shows `Mistake history was unreadable; saved a copy as <name> and started a new one`, and starts with an empty history. If the rename itself fails, the store becomes read-only for that run (nothing is overwritten) and a message says so. Single bad entries inside a valid file are skipped with a console warning.

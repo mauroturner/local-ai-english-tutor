@@ -9,7 +9,8 @@ from typing import Callable, Literal, TypeVar
 from ..audio.processing import prepare_for_stt
 from ..domain.corrections import compose_speech, filter_corrections, pick_live
 from ..domain.formatting import correction_text, format_report
-from ..domain.models import Correction, SessionState, Turn
+from ..domain.hesitation import as_corrections, explanation, find_hesitations
+from ..domain.models import Hesitation, SessionState, Turn
 from ..ports import (
     AdapterError,
     AudioRecorder,
@@ -42,6 +43,7 @@ from .worker import Runner, SerialWorker
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
+Pauses = tuple[Hesitation, ...]
 
 
 class ConversationSession:
@@ -69,6 +71,7 @@ class ConversationSession:
         conversation_log: ConversationLog | None = None,
         mistakes: MistakeStore | None = None,
         coach: PracticeCoach | None = None,
+        track_pauses: Callable[[], bool] = lambda: True,
     ) -> None:
         self._stt = stt
         self._tutor = tutor
@@ -83,6 +86,7 @@ class ConversationSession:
             lambda message: self._warn_once("log", message),
         )
         self._coach = coach
+        self._track_pauses = track_pauses  # read every turn, so the setting applies at once
         self._drill: PracticeDrill | None = None
         self._practice = PracticeServices(
             self._ask, self._emit, self._journal.record, self._speak
@@ -252,7 +256,7 @@ class ConversationSession:
             self._set_state(SessionState.IDLE, "Too short or too quiet, try again")
             return
         try:
-            transcript = self._stt.transcribe(audio)
+            transcript = self._stt.transcribe(audio, with_words=self._track_pauses())
         except Exception as exc:  # Whisper/CUDA raise assorted runtime errors
             logger.exception("Transcription failed")
             self._fail(f"Transcription failed: {exc}")
@@ -263,10 +267,11 @@ class ConversationSession:
             return
         self._emit(UserSaid(raw))
         self._journal.record("you", raw)
+        pauses = find_hesitations(transcript.words)  # no words unless tracking is on
         with self._lock:
             drill = self._drill
         if drill is not None:  # practice answers skip the normal correction pipeline
-            self._practice_turn(drill, raw)
+            self._practice_turn(drill, raw, pauses)
             return
         self._set_state(SessionState.THINKING, "Thinking...")
         reply = self._ask(lambda: self._tutor.reply(self._history.messages(), raw))
@@ -274,15 +279,14 @@ class ConversationSession:
             return
         corrections = filter_corrections(raw, reply.corrections)
         live, _ = pick_live(corrections)
-        self._turns.append(
-            Turn(len(self._turns) + 1, raw, reply.reply, corrections, live)
-        )
+        turn = Turn(len(self._turns) + 1, raw, reply.reply, corrections, live, pauses)
+        self._turns.append(turn)
         self._history.add_exchange(raw, reply.reply)
         self._emit(TutorSaid(reply.reply, live))
         self._journal.record("tutor", reply.reply)
         if live is not None:
             self._journal.record("tip", correction_text(live))
-        self._record_mistakes(corrections, raw)
+        self._record_mistakes(turn)
         self._speak(compose_speech(reply.reply, live))
         self._set_state(SessionState.IDLE, "Ready")
 
@@ -298,11 +302,14 @@ class ConversationSession:
             self._fail(f"Tutor model failed: {exc}")
         return None
 
-    def _record_mistakes(self, corrections: tuple[Correction, ...], sentence: str) -> None:
-        """Add this turn's corrections to the history and tell the UI."""
-        if not corrections:
+    def _record_mistakes(self, turn: Turn) -> None:
+        """Add the turn's corrections and long pauses to the history and tell the UI."""
+        for pause in turn.hesitations:
+            self._journal.record("pause", f"{pause.marked} ({explanation(pause)})")
+        found = turn.corrections + as_corrections(turn.hesitations)
+        if not found:
             return
-        self._book.add_corrections(corrections, sentence)
+        self._book.add_corrections(found, turn.user_text)
         self._emit(MistakesChanged(self._book.snapshot()))
 
     def _speak(self, text: str) -> None:
@@ -338,12 +345,12 @@ class ConversationSession:
                 self._drill = drill
             self._set_state(SessionState.IDLE, self._ready_message())
 
-    def _practice_turn(self, drill: PracticeDrill, raw: str) -> None:
+    def _practice_turn(self, drill: PracticeDrill, raw: str, pauses: Pauses) -> None:
         if self._coach is None:
             self._fail("Practice is not available.")
             return
         self._set_state(SessionState.THINKING, "Checking your answer...")
-        if run_practice_turn(drill, self._coach, raw, self._book, self._practice):
+        if run_practice_turn(drill, self._coach, raw, self._book, self._practice, pauses):
             self._set_state(SessionState.IDLE, self._ready_message())
 
     def stop_practice(self) -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from .hesitation import explanation
 from .models import Correction, PracticeReply, SessionReport
 
 
@@ -28,11 +29,24 @@ def _format_errors(title: str, errors: Sequence[Correction]) -> list[str]:
     return lines
 
 
+def pause_lines(report: SessionReport) -> list[str]:
+    """Long pauses and slow starts (none of them errors); empty when there were none."""
+    lines: list[str] = []
+    if report.pauses:
+        lines.append("Long pauses (practice these phrases):")
+        lines += [f'  - "{p.marked}" ({explanation(p)})' for p in report.pauses]
+    if report.slow_starts:
+        lines.append("Slow starts:")
+        lines += [f'  - {s:.1f} s to answer "{q}"' for q, s in report.slow_starts]
+    return lines
+
+
 def format_report(report: SessionReport) -> str:
     """Render the end-of-session report as text."""
     lines = [f"SESSION REPORT ({report.turn_count} turns)", ""]
     lines += _format_errors("Major errors", report.major_errors)
     lines += _format_errors("Minor errors", report.minor_errors)
+    lines += pause_lines(report)
     lines.append("")
     feedback = report.feedback
     if feedback is not None:

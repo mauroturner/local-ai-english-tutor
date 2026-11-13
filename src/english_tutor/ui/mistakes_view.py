@@ -11,6 +11,13 @@ from ..domain.models import MistakeRecord, Severity
 from ..i18n import format_date, t
 from . import theme
 
+_BADGES = {
+    Severity.MAJOR: "BADGE_MAJOR",
+    Severity.MINOR: "BADGE_MINOR",
+    Severity.HESITATION: "BADGE_PAUSE",
+}
+"""Theme colour name of each badge (looked up when drawn, so theme changes apply)."""
+
 MAX_ROWS = 50
 
 
@@ -50,11 +57,10 @@ class MistakesView(ctk.CTkScrollableFrame):
     def _add_row(self, record: MistakeRecord) -> None:
         row = ctk.CTkFrame(self, fg_color=theme.USER_BUBBLE, corner_radius=8)
         row.pack(fill="x", padx=6, pady=3)
-        major = record.severity is Severity.MAJOR
         ctk.CTkLabel(
             row,
             text=t(f"severity.{record.severity.value}"),
-            fg_color=theme.BADGE_MAJOR if major else theme.BADGE_MINOR,
+            fg_color=getattr(theme, _BADGES[record.severity]),
             text_color="white",
             corner_radius=6,
             width=60,

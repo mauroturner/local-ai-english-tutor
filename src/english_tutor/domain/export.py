@@ -7,6 +7,7 @@ import io
 from collections.abc import Sequence
 from datetime import datetime
 
+from .hesitation import explanation
 from .models import Correction, MistakeRecord, SessionReport
 
 CSV_ENCODING = "utf-8-sig"
@@ -36,6 +37,19 @@ def _error_lines(title: str, errors: Sequence[Correction]) -> list[str]:
     return [*lines, ""]
 
 
+def _pause_lines(report: SessionReport) -> list[str]:
+    lines: list[str] = []
+    if report.pauses:
+        lines += ["## Long pauses", ""]
+        lines += [f'- "{p.marked}" ({explanation(p)})' for p in report.pauses]
+        lines.append("")
+    if report.slow_starts:
+        lines += ["## Slow starts", ""]
+        lines += [f'- {s:.1f} s to answer "{q}"' for q, s in report.slow_starts]
+        lines.append("")
+    return lines
+
+
 def _feedback_lines(report: SessionReport) -> list[str]:
     feedback = report.feedback
     if feedback is None:
@@ -59,6 +73,7 @@ def report_markdown(report: SessionReport, when: datetime) -> str:
         "",
         *_error_lines("Major errors", report.major_errors),
         *_error_lines("Minor errors", report.minor_errors),
+        *_pause_lines(report),
         "## Feedback",
         "",
         *_feedback_lines(report),

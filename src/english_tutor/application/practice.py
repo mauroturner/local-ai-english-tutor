@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 
 from ..domain.formatting import practice_speech
-from ..domain.models import MistakeRecord, PracticeOutcome, PracticeReply
+from ..domain.hesitation import pause_inside, retry_feedback
+from ..domain.models import Hesitation, MistakeRecord, PracticeOutcome, PracticeReply, Severity
 from ..domain.practice_prompts import PRACTICE_START
 from ..ports import LogSpeaker, PracticeCoach
 from .events import EventSink, MistakesChanged, PracticeChanged, PracticeFeedback, TutorSaid
@@ -69,17 +70,34 @@ def open_practice(drill: PracticeDrill, coach: PracticeCoach, svc: PracticeServi
     return True
 
 
+def judge_fluency(
+    target: MistakeRecord, reply: PracticeReply, pauses: Sequence[Hesitation]
+) -> PracticeReply:
+    """For a pause item, a phrase used with a long pause inside it is not yet correct.
+
+    The coach only sees text, so it cannot hear pauses; the measured timings decide.
+    """
+    if target.severity is not Severity.HESITATION or reply.outcome is not PracticeOutcome.CORRECT:
+        return reply
+    pause = pause_inside(target.corrected, pauses)
+    if pause is None:
+        return reply
+    return replace(reply, outcome=PracticeOutcome.INCORRECT, feedback=retry_feedback(pause))
+
+
 def run_practice_turn(
     drill: PracticeDrill,
     coach: PracticeCoach,
     raw: str,
     book: MistakeBook,
     svc: PracticeServices,
+    pauses: Sequence[Hesitation] = (),
 ) -> bool:
     """Judge one answer; False when the coach failed (the drill stays active)."""
     reply = svc.ask(lambda: drill.answer(coach, raw))
     if reply is None:
         return False
+    reply = judge_fluency(drill.target, reply, pauses)
     if reply.parsed_ok and reply.outcome is not PracticeOutcome.NOT_USED:
         book.add_practice(drill.target.key, reply.outcome)
         svc.emit(MistakesChanged(book.snapshot()))

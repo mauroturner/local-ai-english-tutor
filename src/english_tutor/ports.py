@@ -56,8 +56,12 @@ class SpeechToText(Protocol):
         """Load the model and return a description of the device used."""
         ...
 
-    def transcribe(self, audio_16k: np.ndarray) -> Transcript:
-        """Transcribe float32 mono audio sampled at 16 kHz."""
+    def transcribe(self, audio_16k: np.ndarray, with_words: bool = False) -> Transcript:
+        """Transcribe float32 mono audio sampled at 16 kHz.
+
+        ``with_words`` also asks for word timings (``Transcript.words``); the
+        text must be exactly the same either way.
+        """
         ...
 
 
@@ -111,7 +115,7 @@ class PushToTalk(Protocol):
         ...
 
 
-LogSpeaker = Literal["you", "tutor", "tip", "report", "practice"]
+LogSpeaker = Literal["you", "tutor", "tip", "pause", "report", "practice"]
 
 
 class ConversationLog(Protocol):

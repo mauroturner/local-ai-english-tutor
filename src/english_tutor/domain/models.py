@@ -13,6 +13,7 @@ class Severity(str, Enum):
 
     MAJOR = "major"
     MINOR = "minor"
+    HESITATION = "hesitation"  # a long pause, not an error (see domain.hesitation)
 
 
 class SessionState(Enum):
@@ -46,6 +47,42 @@ class TutorReply:
     parsed_ok: bool = True
 
 
+PAUSE_MARK = "…"
+
+
+@dataclass(frozen=True)
+class TimedWord:
+    """One recognised word with its position in the recording, in seconds."""
+
+    text: str
+    start_s: float
+    end_s: float
+
+
+@dataclass(frozen=True)
+class Hesitation:
+    """A long pause: the words around it and how long it lasted."""
+
+    before: str  # empty for a pause before the first word
+    after: str
+    pause_s: float
+
+    @property
+    def phrase(self) -> str:
+        """The words said without the pause, e.g. ``how's everything``."""
+        return " ".join(part for part in (self.before, self.after) if part)
+
+    @property
+    def marked(self) -> str:
+        """The words with the pause shown, e.g. ``how's … everything``."""
+        return " ".join(part for part in (self.before, PAUSE_MARK, self.after) if part)
+
+    @property
+    def at_start(self) -> bool:
+        """Whether the pause came before the first word."""
+        return not self.before
+
+
 @dataclass(frozen=True)
 class Turn:
     """One completed learner/tutor exchange."""
@@ -55,6 +92,7 @@ class Turn:
     tutor_reply: str
     corrections: tuple[Correction, ...]
     live_correction: Correction | None
+    hesitations: tuple[Hesitation, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -63,6 +101,7 @@ class Transcript:
 
     text: str
     duration_s: float
+    words: tuple[TimedWord, ...] = ()  # empty when the recogniser gave no timings
 
 
 @dataclass(frozen=True)
@@ -91,6 +130,8 @@ class SessionReport:
     minor_errors: tuple[Correction, ...]
     feedback: SessionFeedback | None
     feedback_error: str | None = None
+    pauses: tuple[Hesitation, ...] = ()  # inside sentences
+    slow_starts: tuple[tuple[str, float], ...] = ()  # (tutor question, seconds to start)
 
 
 class PracticeOutcome(str, Enum):

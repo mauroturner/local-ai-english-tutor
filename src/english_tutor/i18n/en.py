@@ -57,6 +57,7 @@ STRINGS: dict[str, str] = {
     "mistakes.stats": "x{count}   last seen {date}   practice {successes}/{attempts}",
     "severity.major": "MAJOR",
     "severity.minor": "MINOR",
+    "severity.hesitation": "PAUSE",
     "notify.report_title": "Your session report is ready",
     "notify.report_body": "Open the app to review your feedback.",
     "restart.failed": (

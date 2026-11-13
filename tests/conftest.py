@@ -38,18 +38,23 @@ def minor(original: str, corrected: str, why: str = "because") -> Correction:
 class FakeSTT:
     """Returns scripted transcripts, unchanged."""
 
-    def __init__(self, texts: Sequence[str] = ()) -> None:
+    def __init__(self, texts: Sequence[str | Transcript] = ()) -> None:
         self.texts = list(texts)
         self.loaded = False
         self.received: list[np.ndarray] = []
+        self.with_words: list[bool] = []
 
     def load(self) -> str:
         self.loaded = True
         return "fake-device"
 
-    def transcribe(self, audio_16k: np.ndarray) -> Transcript:
+    def transcribe(self, audio_16k: np.ndarray, with_words: bool = False) -> Transcript:
         self.received.append(audio_16k)
-        return Transcript(self.texts.pop(0), 1.0)
+        self.with_words.append(with_words)
+        item = self.texts.pop(0)  # a plain text, or a Transcript with word timings
+        if not isinstance(item, Transcript):
+            return Transcript(item, 1.0)
+        return item if with_words else Transcript(item.text, item.duration_s)
 
 
 class FakeTutor:
@@ -308,7 +313,7 @@ def make_harness():
 
     def _make(
         texts=(), replies=(), tts_available=True, history_exchanges=6, runner=None, log=None, store=None,
-        coach=None,
+        coach=None, track_pauses=None,
     ) -> Harness:
         events: list = []
         stt, tutor = FakeSTT(texts), FakeTutor(replies)
@@ -320,6 +325,7 @@ def make_harness():
             conversation_log=log,
             mistakes=store,
             coach=coach,
+            track_pauses=track_pauses or (lambda: True),
         )
         session.start()
         if isinstance(runner, ManualRunner):

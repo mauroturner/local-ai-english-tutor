@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from .learner import LearnerProfile, with_profile
-from .models import MistakeRecord
+from .models import MistakeRecord, Severity
 
 PRACTICE_START = "START"
 _MAX_FIELD_CHARS = 200
@@ -60,7 +60,16 @@ def _clean(text: str) -> str:
 
 
 def target_block(target: MistakeRecord) -> str:
-    """The TARGET section describing the mistake being practised."""
+    """The TARGET section describing the mistake (or the long pause) being practised."""
+    if target.severity is Severity.HESITATION:
+        return (
+            "TARGET (fluency, not a grammar mistake):\n"
+            f'- The learner paused for a long time while saying: "{_clean(target.original)}"\n'
+            f'- Goal: say "{_clean(target.corrected)}" smoothly, in one go.\n'
+            '- "target_used": "correct" when they said this phrase (or nearly the same words), '
+            'otherwise "not_used". Never "incorrect": the app measures the pauses itself.\n'
+            "- Ask questions whose natural answer contains this phrase."
+        )
     return (
         "TARGET:\n"
         f'- The learner said: "{_clean(target.original)}"\n'

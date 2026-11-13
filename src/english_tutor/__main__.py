@@ -105,14 +105,14 @@ def main() -> int:
             window_ref[0].post(event)
 
     recorder = SoundDeviceRecorder(on_level=lambda value: emit(LevelChanged(value)))
-    profile = [learner_profile(loaded.settings)]  # replaced on Save; read by the worker
+    current = [loaded.settings]  # replaced on Save; read by the worker on every turn
     tutor = OllamaTutorModel(
         cfg.ollama_url, cfg.ollama_model, cfg.ollama_timeout_s, cfg.llm_temperature,
-        profile=lambda: profile[0],
+        profile=lambda: learner_profile(current[0]),
     )
 
     def on_applied(saved: UserSettings) -> None:
-        profile[0] = learner_profile(saved)
+        current[0] = saved
         window_ref[0].apply_settings(saved)
 
     conversation_log = FileConversationLog(cfg.data_dir / "conversations")
@@ -127,6 +127,7 @@ def main() -> int:
         conversation_log=conversation_log,
         mistakes=JsonMistakeStore(cfg.data_dir / "mistakes.json"),
         coach=tutor,
+        track_pauses=lambda: current[0].track_pauses,
     )
     gate = PttGate(session.on_ptt_press, session.on_ptt_release)
     theme.apply_appearance(loaded.settings.appearance_mode, loaded.settings.ui_scale)

@@ -32,7 +32,7 @@ def test_turn_prompt_keeps_corrections_out_of_reply_and_allows_empty_errors():
 def test_report_message_with_no_errors():
     turns = [Turn(1, "Hello there", "Hi!", (), None)]
     assert build_report_user_message(turns) == (
-        "Learner said:\n1. Hello there\n\nRecorded errors:\nnone"
+        "Learner said:\n1. Hello there\n\nRecorded errors:\nnone\n\nLong pauses:\nnone"
     )
 
 
@@ -44,7 +44,7 @@ def test_report_message_lists_all_errors():
     assert build_report_user_message(turns) == (
         "Learner said:\n1. yesterday I go\n2. the Paris\n\n"
         'Recorded errors:\n- [major] "I go" -> "I went": Past.\n'
-        '- [minor] "the Paris" -> "Paris": No the.'
+        '- [minor] "the Paris" -> "Paris": No the.\n\nLong pauses:\nnone'
     )
 
 

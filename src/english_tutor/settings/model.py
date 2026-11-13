@@ -25,6 +25,7 @@ class UserSettings:
     language: str = "en"
     learner_name: str = "Mauro"
     learner_pronouns: str = "he"
+    track_pauses: bool = True
     appearance_mode: str = "system"
     ui_scale: float = 1.0
     chat_font_size: int = 13

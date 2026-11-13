@@ -80,6 +80,8 @@ spoken English. You receive what the learner said and the list of errors recorde
 - Do not invent errors that are not in the list. Never mention punctuation, capitalization or spelling
   (the text comes from speech recognition).
 - If there are no recorded errors, say so and suggest one way to stretch (richer vocabulary, longer answers).
+- "Long pauses" are not errors: they show phrases the learner found hard to say. If there are any,
+  you may suggest practicing them for fluency, but never call them mistakes.
 Plain text only inside the JSON fields. Answer ONLY with JSON:
 {"summary": "...", "strengths": ["..."], "focus_areas": ["..."]}
 """
@@ -95,4 +97,6 @@ def build_report_user_message(turns: Sequence[Turn]) -> str:
         for c in t.corrections
     ]
     errors = "\n".join(error_lines) if error_lines else "none"
-    return f"Learner said:\n{said}\n\nRecorded errors:\n{errors}"
+    pause_lines = [f'- "{h.marked}"' for t in recent for h in t.hesitations if not h.at_start]
+    pauses = "\n".join(pause_lines) if pause_lines else "none"
+    return f"Learner said:\n{said}\n\nRecorded errors:\n{errors}\n\nLong pauses:\n{pauses}"

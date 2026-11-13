@@ -9,6 +9,7 @@ import pytest
 
 from english_tutor.adapters.whisper_stt import WhisperTranscriber, build_transcribe_kwargs
 from english_tutor.config import AppConfig
+from english_tutor.domain.models import TimedWord
 from english_tutor.ports import SttError
 
 
@@ -104,3 +105,43 @@ def test_cpu_device_skips_cuda(fake_faster_whisper):
 def test_transcribe_before_load_raises(fake_faster_whisper):
     with pytest.raises(SttError):
         WhisperTranscriber(AppConfig()).transcribe(np.zeros(10, dtype=np.float32))
+
+
+def aligned(*items):
+    return tuple(TimedWord(*item) for item in items)
+
+
+def test_text_is_decoded_once_and_timings_come_from_the_aligner(fake_faster_whisper):
+    seen = []
+
+    def aligner(model, audio, text):
+        seen.append(text)
+        # an extra word the transcript does not have is dropped
+        return aligned((" Hi", 0.1, 0.3), (" Could", 1.9, 2.1), (" you", 2.1, 2.2),
+                       (" hear", 2.2, 2.4), (" me?", 2.4, 2.6), (" Thanks", 4.0, 4.2))  # fmt: skip
+
+    stt = WhisperTranscriber(AppConfig(), aligner=aligner)
+    stt.load()
+    calls = len(fake_faster_whisper.instances[0].calls)
+    result = stt.transcribe(np.zeros(32000, dtype=np.float32), with_words=True)
+    assert result.text == "Hi - Could you hear me?"
+    assert seen == ["Hi - Could you hear me?"]
+    assert [w.text for w in result.words] == [" Hi", " Could", " you", " hear", " me?"]
+    assert len(fake_faster_whisper.instances[0].calls) == calls + 1  # no second decode
+    assert fake_faster_whisper.instances[0].calls[-1]["word_timestamps"] is False
+
+
+def test_without_words_the_aligner_is_not_called(fake_faster_whisper):
+    stt = WhisperTranscriber(AppConfig(), aligner=lambda *a: pytest.fail("aligned"))
+    stt.load()
+    assert stt.transcribe(np.zeros(16000, dtype=np.float32)).words == ()
+
+
+def test_a_failed_alignment_keeps_the_transcript(fake_faster_whisper):
+    def broken(model, audio, text):
+        raise RuntimeError("alignment failed")
+
+    stt = WhisperTranscriber(AppConfig(), aligner=broken)
+    stt.load()
+    result = stt.transcribe(np.zeros(16000, dtype=np.float32), with_words=True)
+    assert (result.text, result.words) == ("Hi - Could you hear me?", ())

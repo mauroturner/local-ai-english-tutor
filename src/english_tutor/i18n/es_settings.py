@@ -34,6 +34,11 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.learner_pronouns.label": "Tus pronombres",
     "setting.learner_pronouns.help": "Se usan cuando el tutor habla de ti, por ejemplo en "
     "el informe de la sesión.",
+    "setting.track_pauses.label": "Registrar pausas largas",
+    "setting.track_pauses.help": "Detecta dónde te detienes mucho dentro de una frase (1,2 s o "
+    "más) y agrega esa frase a Errores para practicar decirla de corrido. También muestra en el "
+    "informe las respuestas que tardaste en empezar (3 s o más). Las pausas nunca cuentan como "
+    "errores.",
     "setting.autostart.label": "Iniciar con Windows",
     "setting.autostart.help": "Abre la aplicación automáticamente al iniciar sesión.",
     # Apariencia

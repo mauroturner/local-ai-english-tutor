@@ -34,6 +34,10 @@ SETTINGS_STRINGS: dict[str, str] = {
     "setting.learner_pronouns.label": "Your pronouns",
     "setting.learner_pronouns.help": "Used when the tutor refers to you, for example in "
     "the session report.",
+    "setting.track_pauses.label": "Track long pauses",
+    "setting.track_pauses.help": "Notes where you stop for a long time in a sentence (1.2 s or "
+    "more) and adds that phrase to Mistakes to practise saying it in one go. Also reports slow "
+    "starts (3 s or more) in the session report. Pauses are never counted as errors.",
     "setting.autostart.label": "Start with Windows",
     "setting.autostart.help": "Open the app automatically when you sign in.",
     # Appearance

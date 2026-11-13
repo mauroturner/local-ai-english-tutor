@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
 
 from ..config import AppConfig
-from ..domain.models import Transcript
+from ..domain.hesitation import matching_words
+from ..domain.models import TimedWord, Transcript
 from ..ports import SttError
+from .whisper_alignment import align_words
+
+Aligner = Callable[[Any, np.ndarray, str], tuple[TimedWord, ...]]
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +25,10 @@ def build_transcribe_kwargs(cfg: AppConfig) -> dict[str, Any]:
     """Decoding options chosen to keep the transcript as literal as possible.
 
     No ``initial_prompt`` (it would bias towards "correct" English), greedy
-    temperature 0 and no conditioning on previous text.
+    temperature 0 and no conditioning on previous text. No word timestamps:
+    faster-whisper (1.2.1) then re-decodes the audio after the last word,
+    which can repeat or invent words at the end; word timings come from
+    ``whisper_alignment`` instead.
     """
     return dict(
         language="en",
@@ -46,10 +54,11 @@ def build_transcribe_kwargs(cfg: AppConfig) -> dict[str, Any]:
 class WhisperTranscriber:
     """Loads faster-whisper lazily and transcribes numpy audio directly."""
 
-    def __init__(self, cfg: AppConfig) -> None:
+    def __init__(self, cfg: AppConfig, aligner: Aligner = align_words) -> None:
         self._cfg = cfg
         self._model: Any = None
         self._kwargs = build_transcribe_kwargs(cfg)
+        self._aligner = aligner
 
     def load(self) -> str:
         """Load the model, warming up CUDA, and fall back to CPU int8 on failure."""
@@ -86,8 +95,12 @@ class WhisperTranscriber:
         segments, _ = model.transcribe(np.zeros(_SAMPLE_RATE, dtype=np.float32), **kwargs)
         list(segments)
 
-    def transcribe(self, audio_16k: np.ndarray) -> Transcript:
-        """Transcribe 16 kHz mono float32 audio without altering the text."""
+    def transcribe(self, audio_16k: np.ndarray, with_words: bool = False) -> Transcript:
+        """Transcribe 16 kHz mono float32 audio without altering the text.
+
+        With ``with_words`` the finished text is also aligned to the audio to
+        learn when each word was said; that step never changes the text.
+        """
         if self._model is None:
             raise SttError("Speech model is not loaded yet")
         try:
@@ -95,4 +108,14 @@ class WhisperTranscriber:
             text = "".join(seg.text for seg in list(segments)).strip()
         except Exception as exc:  # decoding errors are library specific
             raise SttError(f"Transcription failed: {exc}") from exc
-        return Transcript(text=text, duration_s=len(audio_16k) / _SAMPLE_RATE)
+        words = self._timed_words(audio_16k, text) if with_words and text else ()
+        return Transcript(text, len(audio_16k) / _SAMPLE_RATE, words)
+
+    def _timed_words(self, audio_16k: np.ndarray, text: str) -> tuple[TimedWord, ...]:
+        """Word timings for ``text``; a failure only costs the pause check of this turn."""
+        try:
+            timed = self._aligner(self._model, audio_16k, text)
+        except Exception as exc:  # library internals: any error means "no timings"
+            logger.warning("Word timings unavailable for this turn: %s", exc)
+            return ()
+        return matching_words(text, timed)

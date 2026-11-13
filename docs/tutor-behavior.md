@@ -18,7 +18,7 @@ Whisper is called (`adapters/whisper_stt.py`, `build_transcribe_kwargs`) with th
 | `initial_prompt` | `None` | A prompt of "correct" English would bias the output towards it |
 | `hotwords` | `None` | No vocabulary bias |
 | `without_timestamps` | `True` | Not needed |
-| `word_timestamps` | `False` | Not needed |
+| `word_timestamps` | `False` | With `True`, faster-whisper 1.2.1 re-decodes the audio after the last word and can repeat or invent words at the end; [long pauses](#long-pauses) are timed separately |
 | `suppress_blank` | `True` | Pinned explicitly |
 | `suppress_tokens` | `[-1]` | Pinned explicitly |
 | `multilingual` | `False` | English only |
@@ -96,6 +96,7 @@ Clicking **End session** (only possible when idle) sends the learner's raw sente
 
 - `Major errors` and `Minor errors`, deduplicated, each line as `"original" -> "corrected" (explanation)`, or `none`.
 - `Feedback:` summary (3 to 5 sentences addressed to "you"), `+` strengths (1 to 3) and `> Focus on:` points (1 to 3, based only on the recorded errors).
+- `Long pauses` and `Slow starts` when there were any (see [Long pauses](#long-pauses)); they are not errors.
 - If feedback could not be generated: `Feedback unavailable: <reason>`, with the error lists still shown.
 - With no turns: `No turns were recorded in this session.`
 
@@ -133,6 +134,25 @@ Observed behaviour with `llama3:8b-instruct-q4_K_M` (manual test, target "I go" 
 | An unrelated sentence | `not_used` |
 
 Replies took about 1.2 seconds each. Known limit: the model's next question does not always call for the target form, so a perfectly good answer can end up as `not_used`.
+
+## Long pauses
+
+A long pause is a sign that a phrase is hard for you to say. It is **not an error**: it never appears under `Major errors` or `Minor errors` and never changes how the tutor corrects you. Turn it off with **Settings > General > Track long pauses** (on by default; the next turn after **Save** uses the new value).
+
+**How it is measured.** After the normal transcription, the finished text is force-aligned to the audio (`adapters/whisper_alignment.py`): Silero VAD (bundled with faster-whisper) finds the stretches of speech, the text is aligned to those stretches joined together (one encoder pass, no decoding), and each word is moved back to the stretch it belongs to, so the silences show up as gaps. This never changes the text, adds about 0.2 to 0.3 s per turn on a GPU (more on a CPU), and only runs while tracking is on. Asking Whisper for word timestamps while decoding was rejected because it changed the transcript (see the table above). The recording starts when the microphone opens after you press the push-to-talk key, so the first word's start time is how long you took to begin. Thresholds are fixed in `src/english_tutor/domain/hesitation.py`:
+
+| Kind | Rule | Where it goes |
+| --- | --- | --- |
+| Pause inside a sentence | 1.2 s or more between two words | **Mistakes** tab as a `PAUSE` item, the conversation log (`PAUSE`), the report |
+| Slow start | 3.0 s or more before the first word | Only the report, with the tutor question you were answering |
+
+A pause item stores two words on each side of the silence, for example `"think how's … everything" -> "think how's everything"` with `You paused 1.7 s between 'how's' and 'everything'.` Repeating the same words with a pause adds to its counter like a repeated mistake. A slow start is not stored: it says the question was hard, not which words were, and every answer starts differently. The first turn of a session has no question before it, so its start is not counted. Practice answers never add pause items.
+
+**In the report.** After the error lists, `Long pauses (practice these phrases):` lists each pause once and `Slow starts:` lists `<seconds> s to answer "<question>"`. Both sections are left out when empty. The model also receives the pause list (see [Report prompt](#report-prompt)) and may suggest practising those phrases, but is told never to call them mistakes.
+
+**Practising a pause item.** The coach gets a fluency target (see [Practice prompt](#practice-prompt)) and only answers `correct` (you said the phrase) or `not_used`. The app then checks the timings itself: if a pause of 1.2 s or more falls between two words of the phrase, the result becomes `incorrect` with `You said it, but you paused 1.4 seconds between 'how's' and 'everything'. Try once more, in one go.` A pause elsewhere in your answer, or a slow start, does not count against the phrase.
+
+**Limits.** Durations are close to the real silence (a 2.0 s gap measured 2.2 to 2.4 s in tests with synthetic speech, a 3.5 s slow start 3.5 s), but the pause can be placed **one word early or late** when a word sits right at the edge of the silence; the two words of context on each side usually still show the right spot. A recording with more than 30 s of speech gets no timings. If the alignment fails for any reason, that turn records no pauses and the conversation goes on. Filler sounds (`um`, `uh`) are often left out of the transcript, so a pause filled with "um" still counts as a pause. A transcript without timings (for example from an unusual model) simply records no pauses.
 
 ## Prompts
 
@@ -194,6 +214,8 @@ spoken English. You receive what the learner said and the list of errors recorde
 - Do not invent errors that are not in the list. Never mention punctuation, capitalization or spelling
   (the text comes from speech recognition).
 - If there are no recorded errors, say so and suggest one way to stretch (richer vocabulary, longer answers).
+- "Long pauses" are not errors: they show phrases the learner found hard to say. If there are any,
+  you may suggest practicing them for fluency, but never call them mistakes.
 Plain text only inside the JSON fields. Answer ONLY with JSON:
 {"summary": "...", "strengths": ["..."], "focus_areas": ["..."]}
 ```
@@ -208,9 +230,13 @@ Learner said:
 Recorded errors:
 - [major] "<original>" -> "<corrected>": <explanation>
 - ...
+
+Long pauses:
+- "<words before> … <words after>"
+- ...
 ```
 
-with `none` under `Recorded errors:` when the list is empty.
+with `none` under `Recorded errors:` or `Long pauses:` when the list is empty.
 
 ### Practice prompt
 
@@ -255,6 +281,18 @@ TARGET:
 - Correct form: "<corrected>"
 - Rule: <explanation>
 ```
+
+For a [long pause](#long-pauses) item the TARGET section is instead:
+
+```text
+TARGET (fluency, not a grammar mistake):
+- The learner paused for a long time while saying: "<words with …>"
+- Goal: say "<words>" smoothly, in one go.
+- "target_used": "correct" when they said this phrase (or nearly the same words), otherwise "not_used". Never "incorrect": the app measures the pauses itself.
+- Ask questions whose natural answer contains this phrase.
+```
+
+Both are followed by the `LEARNER` section.
 
 Message order for a practice call: this system prompt, the drill history (last 4 exchanges), then the learner's raw text (or `START`).
 
