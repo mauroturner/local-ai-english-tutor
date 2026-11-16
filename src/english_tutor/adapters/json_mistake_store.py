@@ -14,7 +14,7 @@ from typing import Any
 from ..domain.corrections import normalize
 from ..domain.mistakes import MAX_EXAMPLES, mistake_key
 from ..domain.models import MistakeRecord, ReviewState, Severity
-from ..ports import StorageError
+from ..ports import StartedFresh, StorageError
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class JsonMistakeStore:
                 "Mistake history was unreadable and could not be backed up; "
                 "it is read-only this run"
             ) from exc
-        raise StorageError(
+        raise StartedFresh(
             f"Mistake history was unreadable; saved a copy as {backup.name} and started a new one"
         )
 

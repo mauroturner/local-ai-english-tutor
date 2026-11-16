@@ -15,13 +15,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ..ports import StorageError
+from ..ports import StartedFresh, StorageError
 from .atomic_io import atomic_write_text
 
 logger = logging.getLogger(__name__)
 
 
-class MovedAside(StorageError):
+class MovedAside(StartedFresh):
     """The unreadable file was renamed to ``.corrupt-<time>``; a new file may start."""
 
 

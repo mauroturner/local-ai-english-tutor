@@ -15,7 +15,7 @@ from ..domain.vocabulary import (
     practice_entry,
     remove_entry,
 )
-from ..ports import VocabularyStore
+from ..ports import StartedFresh, VocabularyStore
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class VocabularyBook:
         self._on_warning = on_warning
         self._clock = clock
         self._entries: dict[str, VocabEntry] = {}
+        self._unread = False  # the stored list could not be read: never write over it
 
     def load(self) -> None:
         """Read the saved phrases (an unreadable file starts empty with a warning)."""
@@ -44,7 +45,9 @@ class VocabularyBook:
             entries = self._store.load()
         except Exception as exc:  # StorageError by contract; anything else is also non-fatal
             logger.warning("Word list not loaded: %s", exc)
-            self._on_warning(str(exc))
+            self._unread = not isinstance(exc, StartedFresh)
+            suffix = " New phrases will not be saved this run, so the old list stays untouched."
+            self._on_warning(str(exc) + (suffix if self._unread else ""))
             return
         self._entries = {e.key: e for e in entries}
 
@@ -83,6 +86,9 @@ class VocabularyBook:
         return key if key in self._entries else None
 
     def _save(self) -> None:
+        if self._unread:
+            logger.warning("Word list not saved: the stored list could not be read")
+            return
         try:
             self._store.save(self.snapshot())
         except Exception as exc:  # StorageError by contract; keep the memory copy

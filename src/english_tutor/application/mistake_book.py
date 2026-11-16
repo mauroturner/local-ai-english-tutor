@@ -8,7 +8,7 @@ from datetime import datetime
 
 from ..domain.mistakes import add_corrections, add_practice, rank
 from ..domain.models import Correction, MistakeRecord, PracticeOutcome
-from ..ports import MistakeStore
+from ..ports import MistakeStore, StartedFresh
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ class MistakeBook:
         self._on_warning = on_warning
         self._clock = clock
         self._records: dict[str, MistakeRecord] = {}
+        self._unread = False  # the stored history could not be read: never write over it
 
     def load(self) -> None:
         """Read the stored history (an unreadable one starts empty with a warning)."""
@@ -37,7 +38,11 @@ class MistakeBook:
             records = self._store.load()
         except Exception as exc:  # StorageError by contract; anything else is also non-fatal
             logger.warning("Mistake history not loaded: %s", exc)
-            self._on_warning(str(exc))
+            # A file set aside is safe and a new one may start; anything else may still hold
+            # the old history, so saving is switched off for this run (and the learner told).
+            self._unread = not isinstance(exc, StartedFresh)
+            suffix = " New mistakes will not be saved this run, so the old history stays untouched."
+            self._on_warning(str(exc) + (suffix if self._unread else ""))
             return
         self._records = {r.key: r for r in records}
 
@@ -68,9 +73,13 @@ class MistakeBook:
         count = len(self._records)
         self._store.save(())
         self._records = {}
+        self._unread = False  # the learner asked for an empty history, and it is written
         return count
 
     def _save(self) -> None:
+        if self._unread:
+            logger.warning("Mistake history not saved: the stored history could not be read")
+            return
         try:
             self._store.save(self.snapshot())
         except Exception as exc:  # StorageError by contract; keep the memory copy

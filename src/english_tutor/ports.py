@@ -43,6 +43,14 @@ class StorageError(AdapterError):
     """Reading or writing local data (logs, mistake history) failed."""
 
 
+class StartedFresh(StorageError):
+    """The stored data was unreadable but is safe under another name; a new file may start.
+
+    Any other ``StorageError`` from a load means the data is still in place and was only
+    not read, so nothing may be written over it.
+    """
+
+
 @dataclass(frozen=True)
 class AudioClip:
     """Recorded audio at the device's native sample rate."""
